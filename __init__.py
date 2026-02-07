@@ -401,6 +401,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         buffer = ""
         reasoning_sent = False
         text_sent = False  # True once we have sent at least one text-delta (so UI shows a message)
+        text_end_sent = False  # True after we emit text-end (must be before tool-input-available for client)
         # Buffer for accumulating tool call chunks
         tool_calls_buffer = {}
         # Accumulate assistant response for debug log
@@ -541,6 +542,11 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 text_sent = True
                 response_text_parts.append(placeholder)
 
+            # Close text part before tool calls so the client can finalize the message and run tools
+            if text_sent and text_id and not text_end_sent:
+                yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+                text_end_sent = True
+
             # Emit tool-input-available for all complete tool calls
             for index, tool_call in tool_calls_buffer.items():
                 if tool_call["id"] and tool_call["name"] and tool_call["arguments"] and not tool_call["completed"]:
@@ -582,7 +588,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             else:
                 yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
 
-        if text_sent and text_id:
+        if text_sent and text_id and not text_end_sent:
             yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
         yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
         yield "data: [DONE]\n\n".encode("utf-8")

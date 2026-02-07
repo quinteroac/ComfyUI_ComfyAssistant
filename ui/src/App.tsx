@@ -14,6 +14,7 @@
 import { ComfyApp } from '@comfyorg/comfyui-frontend-types'
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk"
+import { lastAssistantMessageIsCompleteWithToolCalls } from "ai"
 import { useEffect, useState } from "react"
 import { ThreadList } from "@/components/assistant-ui/thread-list"
 import { Thread } from "@/components/assistant-ui/thread"
@@ -47,6 +48,7 @@ function AppContent() {
     transport: new AssistantChatTransport({
       api: "/api/chat",
     }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   })
 
   return (
