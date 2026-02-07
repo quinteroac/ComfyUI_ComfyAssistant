@@ -291,17 +291,6 @@
 }
 
 /* ============================================
-   Plain Text Wrapper (for testing)
-   ============================================ */
-#comfyui-react-example-root .plain-text-wrapper {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  word-break: normal;
-  display: block;
-}
-
-/* ============================================
    Markdown Content
    ============================================ */
 #comfyui-react-example-root .aui-md,

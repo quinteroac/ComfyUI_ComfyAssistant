@@ -422,6 +422,15 @@ window.app.graph.clear() // Might crash
 
 ## Git Conventions
 
+### Commit Before Significant Changes
+
+**Each important change must be preceded by a commit.** Before starting a substantial change (refactor, new feature, risky fix), ensure the current state is committed. This keeps history clear, makes rollback easy, and allows diffing against a known good state.
+
+- **Always ask before committing.** Do not run `git commit` or stage and commit changes without explicit confirmation from the user. Confirm what will be committed and get approval first.
+- Commit working state before beginning a large or risky change
+- Prefer small, focused commits over one big commit at the end
+- If you need to try an approach and might revert, commit first
+
 ### Commit Messages
 
 Follow conventional commits:

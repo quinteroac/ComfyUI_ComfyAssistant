@@ -86,7 +86,6 @@ ComfyUI_ComfyAssistant/
 │   │   │   ├── index.ts       # Tool registry
 │   │   │   └── types.ts       # Shared types
 │   │   ├── lib/
-│   │   │   ├── comfy-api.ts   # ComfyUI API wrapper
 │   │   │   └── utils.ts       # Utilities
 │   │   ├── App.tsx            # Main application
 │   │   └── main.tsx           # Entry point

@@ -17,8 +17,6 @@ The assistant uses text-based tool calling to interact with ComfyUI. Just chat n
 - "Create a basic text-to-image workflow"
 - "What nodes are in my workflow?"
 
-**[See Full Testing Guide →](TEXT_BASED_TOOLS_TESTING.md)**
-
 ## Features
 
 - **React & TypeScript Integration**: Ready-to-use setup for creating modern UI components within ComfyUI

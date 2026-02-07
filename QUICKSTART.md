@@ -262,10 +262,9 @@ After successful testing:
 
 If you encounter issues:
 
-1. Check `TEXT_BASED_TOOLS_TESTING.md` for detailed test cases
-2. Review `IMPLEMENTATION_SUMMARY.md` for architecture
-3. Check browser console and server logs
-4. Verify all files were built correctly
+1. Check `.agents/skills/tools/` and `TOOLS_SETUP_GUIDE.md` for tool documentation
+2. Check browser console and server logs
+3. Verify all files were built correctly
 
 ---
 
