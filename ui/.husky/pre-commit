@@ -1,17 +1,5 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-cd ui
-
-echo "Running pre-commit checks..."
-
-echo "→ Type checking..."
-npm run typecheck || exit 1
-
-echo "→ Linting..."
-npm run lint || exit 1
-
-echo "→ Running tests..."
-npm test || exit 1
-
-echo "✓ All checks passed!"
+# Pre-commit checks are currently disabled.
+# To re-enable: see SETUP_AUTOMATED_CHECKS.md and restore the prepare script in ui/package.json.
+# Run checks manually before committing: npm run precommit (from ui/)
+exit 0

@@ -1,33 +1,36 @@
 # Setup Automated Checks
 
-This guide explains how to enable automated pre-commit checks using husky.
+**Status: Pre-commit checks are currently disabled.** Husky is not activated (the `prepare` script that installs git hooks has been removed). Run checks manually before committing (see "Before Committing" in `.agents/conventions.md`). This guide explains how to **re-enable** automated pre-commit checks when desired.
 
 ## What Are Pre-Commit Checks?
 
 Pre-commit checks automatically run tests, linting, and type checking before allowing a git commit. This prevents committing code with errors.
 
-## Installation
+## Installation (Re-enabling Pre-Commit Hooks)
 
-### Step 1: Install Husky
+To turn automated checks back on, you need to restore the Husky `prepare` script and run it once.
 
-Navigate to the `ui/` directory and install husky:
+### Step 1: Restore the prepare script
+
+In `ui/package.json`, add back the `prepare` script so it runs Husky:
+
+```json
+"scripts": {
+  "prepare": "cd .. && husky ui/.husky",
+  "precommit": "npm run typecheck && npm run lint && npm test",
+  ...
+}
+```
+
+### Step 2: Install dependencies and initialize Husky
 
 ```bash
 cd ui
 npm install
-```
-
-This will install husky (already added to `devDependencies` in `package.json`).
-
-### Step 2: Initialize Husky
-
-Run the prepare script to set up git hooks:
-
-```bash
 npm run prepare
 ```
 
-This creates the necessary husky infrastructure and activates the git hooks.
+This creates the husky infrastructure and activates the git hooks (the hook files in `ui/.husky/` are already present).
 
 ### Step 3: Verify Installation
 

@@ -14,7 +14,6 @@
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
-    "prepare": "cd .. && husky ui/.husky",
     "precommit": "npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {

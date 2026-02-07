@@ -624,6 +624,8 @@ ui/src/tools/
 
 ### Before Committing
 
+**Note:** Automated pre-commit hooks (Husky) are currently **disabled**. Run the following checks manually before committing.
+
 ```bash
 # Frontend checks
 cd ui
@@ -635,6 +637,8 @@ npm test            # Run tests
 # Build check
 npm run build       # Ensure builds successfully
 ```
+
+To re-enable pre-commit hooks, see `SETUP_AUTOMATED_CHECKS.md`.
 
 ### Before Release
 
@@ -957,6 +961,8 @@ These conventions are enforced through:
 - **Tests**: Automated testing (run `npm test`)
 - **Code Review**: Manual review of PRs
 - **Documentation Review**: Verify docs updated with code changes
+
+Pre-commit git hooks (Husky) are currently **disabled**; run the above commands manually before committing. See `SETUP_AUTOMATED_CHECKS.md` to re-enable hooks.
 
 ## Questions or Clarifications?
 
