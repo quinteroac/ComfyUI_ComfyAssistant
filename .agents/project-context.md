@@ -182,9 +182,11 @@ ComfyUI_ComfyAssistant/
 
 **Backend** (`.env`):
 ```bash
-GROQ_API_KEY=gsk_xxx        # Required: Groq API key
-GROQ_MODEL=llama3-70b-8192  # Optional: Model selection
+GROQ_API_KEY=gsk_xxx              # Required: API key for the LLM provider
+OPENAI_API_BASE_URL=https://...   # Optional: OpenAI-compatible API URL (default: Groq)
+GROQ_MODEL=llama3-70b-8192        # Optional: Model name
 ```
+Use `OPENAI_API_BASE_URL` to point to any OpenAI-compatible provider (Groq, OpenAI, Together, Ollama, etc.).
 
 **Frontend** (`ui/.env.local`):
 ```bash

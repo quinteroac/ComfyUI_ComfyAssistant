@@ -30,9 +30,13 @@ workspace_path = os.path.dirname(__file__)
 dist_path = os.path.join(workspace_path, "dist/example_ext")
 dist_locales_path = os.path.join(workspace_path, "dist/locales")
 
-# Groq config from .env
+# LLM config from .env (OpenAI-compatible: Groq, OpenAI, Together, Ollama, etc.)
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama3-70b-8192")
+OPENAI_API_BASE_URL = os.environ.get(
+    "OPENAI_API_BASE_URL",
+    "https://api.groq.com/openai/v1",
+).rstrip("/")
 
 # AI SDK UI Message Stream headers (required by AssistantChatTransport)
 UI_MESSAGE_STREAM_HEADERS = {
@@ -338,9 +342,14 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             await resp.write(chunk)
         return resp
 
-    # Call Groq API (OpenAI-compatible) and stream response
+    # Call OpenAI-compatible API (Groq, OpenAI, Together, Ollama, etc.) and stream response
     from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+    # Limit retries on 429 so we fail fast and show a clear message instead of long waits
+    client = AsyncOpenAI(
+        api_key=GROQ_API_KEY,
+        base_url=OPENAI_API_BASE_URL,
+        max_retries=2,
+    )
 
     async def stream_groq():
         text_id = f"msg_{uuid.uuid4().hex[:24]}"
@@ -483,7 +492,17 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                         pass
 
         except Exception as e:
-            yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
+            # User-friendly message for rate limit (429); other errors pass through
+            status = getattr(e, "status_code", None) or (
+                getattr(getattr(e, "response", None), "status_code", None)
+            )
+            if status == 429:
+                yield _sse_line({
+                    "type": "error",
+                    "errorText": "Rate limit exceeded (429). Please wait a minute and try again.",
+                }).encode("utf-8")
+            else:
+                yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
 
         if text_id and not text_id.startswith("msg_"):
             yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
