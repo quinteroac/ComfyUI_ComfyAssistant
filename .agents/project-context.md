@@ -75,6 +75,21 @@ ComfyUI_ComfyAssistant/
 │       ├── thread-list/        # Thread management
 │       └── tools/              # Agentic tools system ⭐
 │
+├── system_context/             # Base system prompt (read-only; top-level .md then skills/*/SKILL.md)
+│   ├── 01_role.md
+│   ├── skills/                 # Base capabilities (Agent Skills standard: dir/SKILL.md with frontmatter)
+│   │   ├── 01_base_tools/SKILL.md
+│   │   ├── 02_tool_guidelines/SKILL.md
+│   │   └── 03_node_reference/SKILL.md
+│   └── README.md
+│
+├── user_context/               # User workspace (Phase 1); writable by backend only
+│   ├── context.db              # SQLite: rules, preferences, onboarding flag
+│   ├── SOUL.md                 # Personality / tone (from onboarding or manual edit)
+│   ├── goals.md                # User goals and experience level
+│   └── skills/                 # One .md per user skill (manual; agent reads, does not create)
+│       └── *.md                # e.g. preview-instead-of-save.md
+│
 ├── ui/                         # React frontend
 │   ├── src/
 │   │   ├── components/
@@ -93,12 +108,30 @@ ComfyUI_ComfyAssistant/
 │   └── package.json
 │
 ├── __init__.py                # Python backend entry point
-├── agent_prompts.py           # System prompts for LLM agent ⭐
+├── agent_prompts.py           # Assembles system message: system_context + user_context (format_user_context, get_system_message)
+├── user_context_store.py     # SQLite store for rules, preferences, onboarding
+├── user_context_loader.py     # load_system_context(system_context/), load_user_context(user_context/), skills
 ├── tools_definitions.py       # Backend tool declarations ⭐
 ├── .env.example               # Environment template
 ├── pyproject.toml             # Python project metadata
 └── README.md                  # Documentation
 ```
+
+### System and user context (injection order)
+
+The system message is built as **system_context + user_context + skills** (same mechanism for both):
+
+1. **system_context/** — Base system prompt. Read-only `.md` files concatenated in sorted filename order (e.g. `01_role_and_capabilities.md`, `02_tool_guidelines.md`, `03_node_reference.md`). Loaded by `user_context_loader.load_system_context(system_context_path)`. If missing or empty, a minimal fallback prompt is used.
+2. **user_context/** — User workspace (Phase 1); writable by backend. Injected after system context (see below).
+3. **Skills** — Loaded from `user_context/skills/*.md` and included in the user context block (see “User context workspace” below).
+
+### User context workspace (Phase 1)
+
+The **user_context/** directory is the assistant’s writable workspace (created on first use). It is separate from **.agents/** (project docs). Backend only writes here; the UI agent reads via injected system message.
+
+- **context.db** — SQLite: `rules` (name, rule_text), `preferences` (key/value), `meta` (e.g. onboarding_done).
+- **SOUL.md**, **goals.md** — Plain markdown; set by first-time onboarding or manual edit. Injected as “Personality” and “Goals” in the system prompt.
+- **skills/** — One directory per user skill: `skills/<name>/SKILL.md` per [Agent Skills](https://agentskills.io) standard (see [Claude Code skills](https://code.claude.com/docs/en/skills)). SKILL.md has YAML frontmatter (`name`, `description`) and a markdown body. Legacy flat `skills/<slug>.md` files are still supported. Skills are **manual** in Phase 1; the agent uses them but does not create them until Phase 3 (create_skill tool). Full text or summaries by size; see `user_context_loader.py`.
 
 ## Key Features
 

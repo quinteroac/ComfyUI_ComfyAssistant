@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import uuid
 import re
 import server
@@ -7,6 +8,10 @@ from aiohttp import web
 import folder_paths
 import nodes
 import importlib
+
+# Debug: log LLM request/response (set to logging.INFO to disable)
+logger = logging.getLogger("ComfyUI_ComfyAssistant.chat")
+logger.setLevel(logging.DEBUG)
 
 # Import from current directory
 current_dir = os.path.dirname(__file__)
@@ -16,6 +21,7 @@ if current_dir not in sys.path:
 
 import agent_prompts
 from agent_prompts import get_system_message
+import user_context_store
 
 
 # Load .env from extension folder
@@ -29,6 +35,9 @@ __all__ = ["NODE_CLASS_MAPPINGS"]
 workspace_path = os.path.dirname(__file__)
 dist_path = os.path.join(workspace_path, "dist/example_ext")
 dist_locales_path = os.path.join(workspace_path, "dist/locales")
+user_context_path = os.path.join(workspace_path, "user_context")
+system_context_path = os.path.join(workspace_path, "system_context")
+user_context_store.set_user_context_path(user_context_path)
 
 # LLM config from .env (OpenAI-compatible: Groq, OpenAI, Together, Ollama, etc.)
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
@@ -320,11 +329,27 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     # Reload agent_prompts to pick up any changes (useful during development)
     importlib.reload(agent_prompts)
     from agent_prompts import get_system_message
-    
+    import user_context_loader
+
+    # Build system message: system_context + user_context + skills (same injection mechanism)
+    system_context_text = ""
+    user_context = None
+    try:
+        system_context_text = user_context_loader.load_system_context(system_context_path)
+        user_context = user_context_loader.load_user_context()
+    except Exception:
+        pass
+    if not (system_context_text or "").strip():
+        system_context_text = (
+            "You are ComfyUI Assistant. Help users with ComfyUI workflows. "
+            "Use getWorkflowInfo, addNode, removeNode, connectNodes when needed. "
+            "Reply in the user's language. For greetings only, reply with text; do not call tools."
+        )
+
     # Add system message if not present
     has_system = any(msg.get("role") == "system" for msg in openai_messages)
     if not has_system:
-        openai_messages.insert(0, get_system_message())
+        openai_messages.insert(0, get_system_message(system_context_text, user_context))
     
     message_id = f"msg_{uuid.uuid4().hex}"
 
@@ -351,13 +376,36 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         max_retries=2,
     )
 
+    # Debug log: request to LLM
+    if logger.isEnabledFor(logging.DEBUG):
+        roles = [m.get("role", "?") for m in openai_messages]
+        sys_len = 0
+        last_user = ""
+        for m in openai_messages:
+            if m.get("role") == "system":
+                c = m.get("content") or ""
+                sys_len = len(c)
+            if m.get("role") == "user":
+                last_user = (m.get("content") or "")[:200]
+        logger.debug(
+            "LLM request: messages=%s roles=%s system_len=%s last_user_preview=%s",
+            len(openai_messages),
+            roles,
+            sys_len,
+            repr(last_user[:80] + "..." if len(last_user) > 80 else last_user),
+        )
+
     async def stream_groq():
         text_id = f"msg_{uuid.uuid4().hex[:24]}"
         reasoning_id = None
         buffer = ""
         reasoning_sent = False
+        text_sent = False  # True once we have sent at least one text-delta (so UI shows a message)
         # Buffer for accumulating tool call chunks
         tool_calls_buffer = {}
+        # Accumulate assistant response for debug log
+        response_text_parts = []
+        response_tool_calls = []
 
         yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
 
@@ -404,6 +452,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
 
                         if cleaned_text:
                             yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
+                            text_sent = True
+                            response_text_parts.append(cleaned_text)
 
                         buffer = ""
                     else:
@@ -413,6 +463,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                                 text_id = f"msg_{uuid.uuid4().hex[:24]}"
                                 yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
                             yield _sse_line({"type": "text-delta", "id": text_id, "delta": delta.content}).encode("utf-8")
+                            text_sent = True
+                            response_text_parts.append(delta.content)
                             buffer = ""
                 
                 # Handle tool calls (Data Stream Protocol format)
@@ -474,12 +526,27 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                         text_id = f"msg_{uuid.uuid4().hex[:24]}"
                         yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
                     yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
+                    text_sent = True
+                    response_text_parts.append(cleaned_text)
+
+            # If model returned only tool calls and no text, emit a short placeholder so the UI shows a message
+            has_tool_calls = any(
+                tc.get("id") and tc.get("name") for tc in tool_calls_buffer.values()
+            )
+            if has_tool_calls and not text_sent:
+                placeholder = "Checking your workflow…"
+                text_id = f"msg_{uuid.uuid4().hex[:24]}"
+                yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+                yield _sse_line({"type": "text-delta", "id": text_id, "delta": placeholder}).encode("utf-8")
+                text_sent = True
+                response_text_parts.append(placeholder)
 
             # Emit tool-input-available for all complete tool calls
             for index, tool_call in tool_calls_buffer.items():
                 if tool_call["id"] and tool_call["name"] and tool_call["arguments"] and not tool_call["completed"]:
                     try:
                         args = json.loads(tool_call["arguments"])
+                        response_tool_calls.append({"name": tool_call["name"], "input": args})
                         yield _sse_line({
                             "type": "tool-input-available",
                             "toolCallId": tool_call["id"],
@@ -491,7 +558,18 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                         # JSON not valid yet, skip
                         pass
 
+            # Debug log: response from LLM
+            if logger.isEnabledFor(logging.DEBUG):
+                full_text = "".join(response_text_parts)
+                logger.debug(
+                    "LLM response: text_len=%s text_preview=%s tool_calls=%s",
+                    len(full_text),
+                    repr(full_text[:150] + "..." if len(full_text) > 150 else full_text),
+                    response_tool_calls,
+                )
+
         except Exception as e:
+            logger.debug("LLM request failed: %s", e, exc_info=True)
             # User-friendly message for rate limit (429); other errors pass through
             status = getattr(e, "status_code", None) or (
                 getattr(getattr(e, "response", None), "status_code", None)
@@ -504,7 +582,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             else:
                 yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
 
-        if text_id and not text_id.startswith("msg_"):
+        if text_sent and text_id:
             yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
         yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
         yield "data: [DONE]\n\n".encode("utf-8")
@@ -516,9 +594,44 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     return resp
 
 
+async def user_context_status_handler(request: web.Request) -> web.Response:
+    """GET /api/user-context/status. Returns { needsOnboarding: true } if onboarding not done."""
+    try:
+        needs = not user_context_store.get_onboarding_done()
+        return web.json_response({"needsOnboarding": needs})
+    except Exception:
+        return web.json_response({"needsOnboarding": True}, status=200)
+
+
+async def user_context_onboarding_handler(request: web.Request) -> web.Response:
+    """POST /api/user-context/onboarding. Body: { personality?, goals?, experienceLevel? } or skip."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except json.JSONDecodeError:
+        body = {}
+    try:
+        skip = body.get("skip", False)
+        if skip:
+            user_context_store.save_onboarding("", "", "")
+            return web.json_response({"ok": True})
+        personality = body.get("personality", "") or ""
+        goals = body.get("goals", "") or ""
+        experience_level = body.get("experienceLevel", "") or ""
+        user_context_store.save_onboarding(
+            personality=personality,
+            goals=goals,
+            experience_level=experience_level,
+        )
+        return web.json_response({"ok": True})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+
 # Register the chat API route (must be registered before static routes so /api/chat is handled)
 server.PromptServer.instance.app.add_routes([
     web.post("/api/chat", chat_api_handler),
+    web.get("/api/user-context/status", user_context_status_handler),
+    web.post("/api/user-context/onboarding", user_context_onboarding_handler),
 ])
 
 # Register the static route for serving our React app assets

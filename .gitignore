@@ -8,3 +8,10 @@
 
 # Keep .agents/ (main skills directory)
 !.agents/
+
+# User context (Phase 1): per-installation data, do not commit
+user_context/context.db
+user_context/SOUL.md
+user_context/goals.md
+user_context/skills/*.md
+user_context/skills/*/
