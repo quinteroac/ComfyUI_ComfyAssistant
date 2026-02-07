@@ -1,0 +1,1 @@
+{"version":3,"file":"scope.d.ts","sourceRoot":"","sources":["../../../src/primitives/assistantModal/scope.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,gBAAgB,MAAM,yBAAyB,CAAC;AAC5D,OAAO,KAAK,EAAE,KAAK,EAAE,MAAM,yBAAyB,CAAC;AAErD,eAAO,MAAM,eAAe,EAAE,UAAU,CACtC,OAAO,gBAAgB,CAAC,kBAAkB,CACH,CAAC;AAC1C,MAAM,MAAM,WAAW,CAAC,CAAC,IAAI,CAAC,GAAG;IAAE,qBAAqB,CAAC,EAAE,KAAK,CAAA;CAAE,CAAC"}

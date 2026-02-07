@@ -1,0 +1,1 @@
+{"version":3,"file":"useRemoteThreadListRuntime.d.ts","sourceRoot":"","sources":["../../../../src/legacy-runtime/runtime-cores/remote-thread-list/useRemoteThreadListRuntime.tsx"],"names":[],"mappings":"AAKA,OAAO,EAAE,uBAAuB,EAAE,mBAAgB;AAGlD,OAAO,EAAE,gBAAgB,EAAE,0CAAuC;AAiClE,eAAO,MAAM,0BAA0B,GACrC,SAAS,uBAAuB,KAC/B,gBAkBF,CAAC"}

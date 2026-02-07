@@ -1,0 +1,99 @@
+{
+  "name": "use-effect-event",
+  "version": "2.0.3",
+  "description": "Ponyfill of the experimental `React.useEffectEvent` hook",
+  "keywords": [
+    "useEffectEvent",
+    "useEvent",
+    "hooks",
+    "react",
+    "react18",
+    "react19",
+    "sanity",
+    "sanity-io",
+    "typescript",
+    "effect",
+    "use"
+  ],
+  "bugs": {
+    "url": "https://github.com/sanity-io/use-effect-event/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanity-io/use-effect-event.git"
+  },
+  "license": "MIT",
+  "author": "Sanity.io <hello@sanity.io>",
+  "contributors": [
+    "Cody Olsen <stipsan@gmail.com> (https://github.com/stipsan)"
+  ],
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pkg build --strict --clean --check",
+    "format": "prettier --cache --write .",
+    "lint": "eslint --cache .",
+    "prepare": "pnpm build",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "watch": "pnpm build -- --watch"
+  },
+  "browserslist": "extends @sanity/browserslist-config",
+  "prettier": "@sanity/prettier-config",
+  "devDependencies": {
+    "@sanity/pkg-utils": "^7.8.2",
+    "@sanity/prettier-config": "^1.0.5",
+    "@sanity/semantic-release-preset": "^5.0.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.15.23",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@typescript-eslint/eslint-plugin": "^8.34.1",
+    "@typescript-eslint/parser": "^8.34.1",
+    "@vitejs/plugin-react": "^4.5.2",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.5.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "0.0.0-experimental-f9ae0a4c-20250527",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-packagejson": "^2.5.15",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "semantic-release": "^24.2.5",
+    "typescript": "5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "react": "^18.3 || ^19.0.0-0"
+  },
+  "packageManager": "pnpm@10.12.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowAny": [
+        "react",
+        "react-dom"
+      ]
+    }
+  }
+}

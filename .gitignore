@@ -1,0 +1,10 @@
+# Local env (contains secrets)
+.env
+
+# IDE/Editor specific directories (use .agents/ instead)
+.cursor/
+.claude/
+.vscode/
+
+# Keep .agents/ (main skills directory)
+!.agents/

@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+/* ============================================
+   shadcn/ui + assistant-ui CSS Variables - Dark Theme
+   Compatible with both libraries
+   ============================================ */
+#comfyui-react-example-root {
+  /* Core colors (shadcn format) */
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+
+  /* Card & Popover */
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+
+  /* Primary (accent color for main actions) */
+  --primary: 210 40% 98%;
+  --primary-foreground: 222 47% 11%;
+
+  /* Secondary & Muted (backgrounds, subtle elements) */
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+
+  /* Accent (hover states, highlights) */
+  --accent: 217 33% 22%;
+  --accent-foreground: 210 40% 98%;
+
+  /* Destructive (errors, warnings) */
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+
+  /* Borders & Inputs */
+  --border: 217 33% 22%;
+  --input: 217 33% 17%;
+  --ring: 224 71% 63%;
+
+  /* Border radius */
+  --radius: 0.5rem;
+
+  /* assistant-ui specific variables (aliased to shadcn) */
+  --aui-background: var(--background);
+  --aui-foreground: var(--foreground);
+  --aui-primary: var(--primary);
+  --aui-primary-foreground: var(--primary-foreground);
+  --aui-muted: var(--muted);
+  --aui-muted-foreground: var(--muted-foreground);
+  --aui-accent: var(--accent);
+  --aui-accent-foreground: var(--accent-foreground);
+  --aui-border: var(--border);
+  --aui-input: var(--input);
+  --aui-ring: var(--ring);
+  --aui-destructive: var(--destructive);
+  --aui-destructive-foreground: var(--destructive-foreground);
+}
+
+/* ============================================
+   Light Theme Overrides
+   ============================================ */
+:root.comfy-theme-light #comfyui-react-example-root {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 222 47% 11%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 222 47% 11%;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+#comfyui-react-example-root {
+  height: 100%;
+  min-height: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  overflow: hidden;
+}
+
+#comfyui-react-example-root *,
+#comfyui-react-example-root *::before,
+#comfyui-react-example-root *::after {
+  box-sizing: border-box;
+}
+
+/* ============================================
+   Custom Scrollbar Styling
+   ============================================ */
+#comfyui-react-example-root ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#comfyui-react-example-root ::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+#comfyui-react-example-root ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+#comfyui-react-example-root ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Firefox scrollbar */
+#comfyui-react-example-root * {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
+}
+
+/* ============================================
+   Tailwind Theme Extension
+   ============================================ */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}

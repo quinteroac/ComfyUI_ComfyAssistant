@@ -1,0 +1,1 @@
+{"version":3,"file":"WebSpeechSynthesisAdapter.d.ts","sourceRoot":"","sources":["../../../../../src/legacy-runtime/runtime-cores/adapters/speech/WebSpeechSynthesisAdapter.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,sBAAsB,EAAE,gCAA6B;AAE9D,qBAAa,yBAA0B,YAAW,sBAAsB;IACtE,KAAK,CAAC,IAAI,EAAE,MAAM,GAAG,sBAAsB,CAAC,SAAS;CA4CtD"}

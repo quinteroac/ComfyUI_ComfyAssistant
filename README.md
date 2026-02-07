@@ -1,0 +1,313 @@
+# ComfyUI React Extension Template
+
+![react-example-demo](https://github.com/Comfy-Org/ComfyUI-React-Extension-Template/blob/assets-branch/docs/demo.gif)
+
+![demo pic](https://github.com/Comfy-Org/ComfyUI-React-Extension-Template/blob/assets-branch/react-example-demo.png)
+
+A minimal template for creating React/TypeScript frontend extensions for ComfyUI, with complete boilerplate setup.
+
+📚 **[ComfyUI JavaScript Developer Documentation](https://docs.comfy.org/custom-nodes/js/javascript_overview)** - Learn how to use ComfyUI's powerful extension APIs.
+
+## Quick Start
+
+🚀 **[Quick Start Guide](QUICKSTART.md)** - Get up and running with the AI assistant in 5 minutes!
+
+The assistant uses text-based tool calling to interact with ComfyUI. Just chat naturally:
+- "Add a KSampler node"
+- "Create a basic text-to-image workflow"
+- "What nodes are in my workflow?"
+
+**[See Full Testing Guide →](TEXT_BASED_TOOLS_TESTING.md)**
+
+## Features
+
+- **React & TypeScript Integration**: Ready-to-use setup for creating modern UI components within ComfyUI
+- **Agentic AI Assistant**: Chat interface with tool calling capabilities to interact with ComfyUI
+- **Tool System**: Pre-built tools for adding nodes, connecting workflows, and managing the canvas
+- **Groq LLM Integration**: Fast AI responses using Groq's OpenAI-compatible API
+- **Internationalization Framework**: Built-in i18n support with English and Chinese examples
+- **ComfyUI API Integration**: Properly typed access to ComfyUI's internal API
+- **Full TypeScript Support**: Type-safe code using ComfyUI's official type definitions
+- **Auto-Reload Development**: Watch mode for seamless development experience
+
+## Installation
+
+### From ComfyUI Registry (Recommended)
+
+The easiest way to install this extension is through the ComfyUI Manager:
+
+1. Open ComfyUI and go to the Manager
+2. Search for "React Extension Template"
+3. Click Install
+
+### Manual Installation
+
+If you want to install directly from GitHub for development purposes:
+
+```bash
+# Go to your ComfyUI custom_nodes directory
+cd ComfyUI/custom_nodes
+
+# Clone the repository
+git clone https://github.com/Comfy-Org/ComfyUI-React-Extension-Template.git
+
+# Build the React application
+cd ComfyUI-React-Extension-Template/ui
+npm install
+npm run build
+
+# Restart ComfyUI
+```
+
+⚠️ **Important**: When installing manually from GitHub, you **must** run `npm run build` in the `ui/` directory before the extension will work. The extension requires the compiled React code in the `dist/` folder to function properly in ComfyUI.
+
+## Usage
+
+This extension provides an AI assistant that can interact with ComfyUI through natural language. After installation:
+
+1. Look for the "ComfyUI Assistant" tab in the ComfyUI sidebar
+2. Click to open the chat interface
+3. Configure your Groq API key (see Configuration below)
+4. Start chatting and ask the assistant to help with your workflow
+
+### Configuration
+
+To enable the AI assistant, you need to configure your Groq API key:
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and add your Groq API key:
+   ```
+   GROQ_API_KEY=your_api_key_here
+   GROQ_MODEL=llama-3.3-70b-versatile
+   ```
+
+3. Restart ComfyUI
+
+### Available Tools
+
+The assistant can perform these actions:
+
+- **Add Node**: Add any ComfyUI node to the canvas
+- **Remove Node**: Remove nodes by ID
+- **Connect Nodes**: Connect outputs to inputs between nodes
+- **Get Workflow Info**: Retrieve information about the current workflow
+
+### Examples
+
+Try asking the assistant:
+
+- "Add a KSampler node to the workflow"
+- "Connect the output of node 5 to the input of node 6"
+- "Show me all the nodes in my current workflow"
+- "Remove node 3 from the canvas"
+
+For detailed information about the tool system, see:
+- `TOOLS_SETUP_GUIDE.md`: Complete setup and testing guide
+- `BACKEND_TOOLS_IMPLEMENTATION.md`: Backend implementation details
+- `.agents/skills/tools/`: AI agent documentation
+
+### Customizing Agent Behavior
+
+The assistant's personality and tool usage patterns can be customized by modifying the system prompts in `agent_prompts.py`. This allows you to:
+
+- Adjust when and how tools are used
+- Change the agent's communication style
+- Add custom node type knowledge
+- Include domain-specific examples
+- Optimize token usage
+
+**Key features:**
+- **System Prompts**: Define agent personality and behavior
+- **Tool Usage Guidelines**: Control when each tool should be used
+- **Node Reference**: Teach the agent about ComfyUI nodes
+- **Few-Shot Examples**: Improve agent performance with examples
+
+For detailed customization instructions, see:
+- `AGENT_PROMPTS_GUIDE.md`: Complete guide to customizing agent behavior
+- `agent_prompts.py`: System prompt definitions
+
+**Quick customization example:**
+
+```python
+# In agent_prompts.py, modify SYSTEM_PROMPT
+SYSTEM_PROMPT = """You are ComfyUI Assistant...
+
+## Communication Style
+- Be concise and technical  # Your custom style
+- Focus on efficiency
+- Assume user expertise
+"""
+```
+
+## Development
+
+### Setup Development Environment
+
+```bash
+# Go to the UI directory
+cd ui
+
+# Install dependencies
+npm install
+
+# Start development mode (watches for changes)
+npm run watch
+```
+
+### Available ComfyUI Extension APIs
+
+This template provides access to ComfyUI's powerful JavaScript APIs through the official type definitions. You can use these APIs to build rich extensions:
+
+- **Sidebar Tabs**: Create custom sidebar panels like this template demonstrates
+- **Bottom Bar Panels**: Add panels to the bottom of the UI
+- **Top Menu Items**: Add custom entries to the top menu
+- **Context Menus**: Create custom context menus for the graph
+- **Settings**: Add settings to the ComfyUI settings panel
+- **Toasts**: Display notification messages
+- **Commands**: Create and register custom commands
+- **Hotkeys/Keybindings**: Register custom keyboard shortcuts
+- **About Panel Badges**: Add badges to the about panel
+- **App Events**: Listen to and respond to app events
+- **Graph Manipulation**: Programmatically manipulate the workflow graph
+
+For comprehensive documentation on all available APIs, see the [ComfyUI JavaScript Developer Documentation](https://docs.comfy.org/custom-nodes/js/javascript_overview).
+
+### File Structure
+
+```
+ComfyUI-React-Extension-Template/
+├── .github/                    # GitHub configurations
+│   └── workflows/
+│       └── react-build.yml     # Automatic build and publishing workflow
+├── __init__.py                 # Python entry point for ComfyUI integration
+├── pyproject.toml              # Project metadata for ComfyUI Registry
+├── dist/                       # Built extension files (generated)
+└── ui/                         # React application
+    ├── public/
+    │   └── locales/            # Internationalization files
+    │       ├── en/
+    │       │   └── main.json   # English translations
+    │       └── zh/
+    │           └── main.json   # Chinese translations
+    ├── src/
+    │   ├── App.tsx             # Main React component with example UI
+    │   ├── App.css             # Styles for the example UI
+    │   ├── index.css           # Global styles and theme variables
+    │   ├── main.tsx            # Entry point for React app
+    │   ├── vite-env.d.ts       # Vite environment types
+    │   ├── setupTests.ts       # Testing environment setup
+    │   ├── __tests__/          # Unit tests for components
+    │   │   └── dummy.test.tsx  # Example test
+    │   └── utils/
+    │       └── i18n.ts         # Internationalization setup
+    ├── eslint.config.js        # ESLint configuration
+    ├── jest.config.js          # Jest testing configuration
+    ├── jest.setup.js           # Jest setup file
+    ├── package.json            # npm dependencies
+    ├── tsconfig.json           # TypeScript configuration
+    ├── tsconfig.node.json      # TypeScript configuration for Node
+    └── vite.config.ts          # Build configuration
+```
+
+### TypeScript Support
+
+This extension uses the official `@comfyorg/comfyui-frontend-types` package for type-safe interaction with ComfyUI APIs. To install it:
+
+```bash
+cd ui
+npm install -D @comfyorg/comfyui-frontend-types
+```
+
+## Publishing to ComfyUI Registry
+
+### Prerequisites
+
+1. Set up a [Registry](https://registry.comfy.org) account
+2. Create an API key at https://registry.comfy.org/nodes
+
+### Steps to Publish
+
+1. Install the comfy-cli tool:
+   ```bash
+   pip install comfy-cli
+   ```
+
+2. Verify your pyproject.toml has the correct metadata:
+   ```toml
+   [project]
+   name = "your_extension_name"  # Use a unique name for your extension
+   description = "Your extension description here."
+   version = "0.1.0"  # Increment this with each update
+
+   [tool.comfy]
+   PublisherId = "your_publisher_id"  # Your Registry publisher ID
+   DisplayName = "Your Extension Display Name"
+   includes = ["dist/"]  # Include built React code (normally ignored by .gitignore)
+   ```
+
+3. Publish your extension:
+   ```bash
+   comfy-cli publish
+   ```
+
+4. When prompted, enter your API key
+
+### Automatic Publishing with GitHub Actions
+
+This template includes a GitHub Actions workflow that automatically publishes to the ComfyUI Registry whenever you update the version in pyproject.toml:
+
+1. Go to your repository's Settings > Secrets and variables > Actions
+2. Create a new repository secret called `REGISTRY_ACCESS_TOKEN` with your API key
+3. Commit and push an update to pyproject.toml (e.g., increment the version number)
+4. The GitHub Action will automatically run and publish your extension
+
+The workflow configuration is set up in `.github/workflows/react-build.yml` and will trigger when:
+- The `pyproject.toml` file is modified and pushed to the `main` branch
+
+The workflow automatically:
+1. Sets up Node.js environment
+2. Installs dependencies (`npm install`)
+3. Builds the React extension (`npm run build`)
+4. Publishes the extension to the ComfyUI Registry
+
+## Unit Testing
+
+This template includes a basic setup for unit testing with Jest and React Testing Library:
+
+```bash
+# Run tests
+npm test
+
+# Run tests in watch mode during development
+npm run test:watch
+```
+
+Example tests can be found in the `src/__tests__` directory. The setup includes:
+
+- Jest for running tests
+- React Testing Library for testing components
+- Mock implementation of the ComfyUI window.app object
+
+## Resources
+
+- [ComfyUI JS Extension Documentation](https://docs.comfy.org/custom-nodes/js/javascript_overview) - Official documentation for ComfyUI JavaScript Extensions
+- [ComfyUI Registry Documentation](https://docs.comfy.org/registry/publishing) - Learn how to publish your extension
+- [ComfyUI Frontend Repository](https://github.com/Comfy-Org/ComfyUI-Frontend) - The main ComfyUI frontend codebase
+- [Official ComfyUI Frontend Types](https://www.npmjs.com/package/@comfyorg/comfyui-frontend-types) - TypeScript definitions for ComfyUI
+- [React Extension Guide](REACT_EXTENSION_GUIDE.md) - Detailed guide for creating React extensions
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+- [React Documentation](https://react.dev/reference/react)
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests to improve this template.
+
+## License
+
+MIT

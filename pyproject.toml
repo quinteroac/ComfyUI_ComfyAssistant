@@ -1,0 +1,19 @@
+[project]
+name = "comfyui_react_extension_template"
+description = "A minimal template for creating React/TypeScript frontend extensions for ComfyUI, with complete boilerplate setup including internationalization and unit testing."
+version = "0.1.0"
+license = {file = "LICENSE"}
+dependencies = [
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Repository = "https://github.com/Comfy-Org/ComfyUI-React-Extension-Template"
+
+# Used by Comfy Registry https://comfyregistry.org
+[tool.comfy]
+PublisherId = "your_publisher_id" # Change this to your actual publisher ID
+DisplayName = "ComfyUI React Extension Template"
+Icon = ""
+includes = ["dist/"]

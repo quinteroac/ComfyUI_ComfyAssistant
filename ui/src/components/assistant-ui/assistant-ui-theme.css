@@ -1,0 +1,685 @@
+/* ============================================
+   assistant-ui Standard Theme
+   Following official conventions and CSS variables
+   ============================================ */
+
+/* ============================================
+   Root Container
+   ============================================ */
+#comfyui-react-example-root {
+  /* assistant-ui standard CSS variables */
+
+  /* Primary colors */
+  --aui-primary: 210 40% 98%;
+  --aui-primary-foreground: 222 47% 11%;
+
+  /* Background colors */
+  --aui-background: 222 47% 11%;
+  --aui-foreground: 210 40% 98%;
+
+  /* Surface colors */
+  --aui-surface: 217 33% 17%;
+  --aui-surface-foreground: 210 40% 98%;
+
+  /* Muted colors */
+  --aui-muted: 217 33% 17%;
+  --aui-muted-foreground: 215 20% 65%;
+
+  /* Accent colors */
+  --aui-accent: 217 33% 22%;
+  --aui-accent-foreground: 210 40% 98%;
+
+  /* Border colors */
+  --aui-border: 217 33% 22%;
+  --aui-input: 217 33% 17%;
+  --aui-ring: 224 71% 63%;
+
+  /* Destructive colors */
+  --aui-destructive: 0 63% 31%;
+  --aui-destructive-foreground: 210 40% 98%;
+
+  /* Messages */
+  --aui-user-message-bg: 217 33% 17%;
+  --aui-assistant-message-bg: transparent;
+
+  /* Borders & Radius */
+  --aui-border-radius: 0.5rem;
+  --aui-border-radius-lg: 1rem;
+  --aui-border-radius-sm: 0.375rem;
+
+  /* Typography */
+  --aui-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --aui-font-size: 0.875rem;
+  --aui-line-height: 1.5;
+
+  /* Spacing */
+  --aui-spacing-xs: 0.25rem;
+  --aui-spacing-sm: 0.5rem;
+  --aui-spacing-md: 1rem;
+  --aui-spacing-lg: 1.5rem;
+  --aui-spacing-xl: 2rem;
+
+  /* Animation */
+  --aui-transition-fast: 150ms ease;
+  --aui-transition-base: 200ms ease;
+  --aui-transition-slow: 300ms ease;
+}
+
+/* Light mode overrides */
+:root.comfy-theme-light #comfyui-react-example-root {
+  --aui-primary: 222 47% 11%;
+  --aui-primary-foreground: 210 40% 98%;
+  --aui-background: 0 0% 100%;
+  --aui-foreground: 222 47% 11%;
+  --aui-surface: 210 40% 96%;
+  --aui-muted: 210 40% 96%;
+  --aui-muted-foreground: 215 16% 47%;
+  --aui-accent: 210 40% 96%;
+  --aui-accent-foreground: 222 47% 11%;
+  --aui-border: 214 32% 91%;
+  --aui-input: 214 32% 91%;
+  --aui-destructive: 0 84% 60%;
+  --aui-user-message-bg: 210 40% 96%;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+#comfyui-react-example-root {
+  font-family: var(--aui-font-family);
+  font-size: var(--aui-font-size);
+  line-height: var(--aui-line-height);
+  color: hsl(var(--aui-foreground));
+  background: hsl(var(--aui-background));
+}
+
+/* ============================================
+   Thread Root (aui-root)
+   ============================================ */
+#comfyui-react-example-root .aui-root {
+  background: hsl(var(--aui-background));
+  color: hsl(var(--aui-foreground));
+}
+
+/* ============================================
+   Thread Viewport (aui-thread-viewport)
+   ============================================ */
+#comfyui-react-example-root .aui-thread-viewport {
+  background: hsl(var(--aui-background));
+  scroll-behavior: smooth;
+}
+
+/* ============================================
+   Messages (aui-message)
+   ============================================ */
+
+/* User Message */
+#comfyui-react-example-root .aui-user-message-root {
+  --message-bg: var(--aui-user-message-bg);
+  --message-fg: var(--aui-foreground);
+}
+
+#comfyui-react-example-root .aui-user-message-content {
+  background: hsl(var(--message-bg));
+  color: hsl(var(--message-fg));
+  border-radius: var(--aui-border-radius-lg);
+  padding: var(--aui-spacing-md) var(--aui-spacing-lg);
+}
+
+/* Assistant Message */
+#comfyui-react-example-root .aui-assistant-message-root {
+  --message-bg: var(--aui-assistant-message-bg);
+  --message-fg: var(--aui-foreground);
+}
+
+#comfyui-react-example-root .aui-assistant-message-content {
+  background: hsl(var(--message-bg));
+  color: hsl(var(--message-fg));
+  padding: var(--aui-spacing-sm) var(--aui-spacing-md);
+}
+
+/* ============================================
+   Composer (aui-composer)
+   ============================================ */
+#comfyui-react-example-root .aui-composer-root {
+  background: hsl(var(--aui-background));
+  padding: 0.75rem;
+}
+
+#comfyui-react-example-root .aui-composer-attachment-dropzone {
+  background: hsl(var(--aui-input));
+  border: 1.5px solid hsl(var(--aui-border));
+  border-radius: var(--aui-border-radius-lg);
+  transition: all var(--aui-transition-base);
+  box-shadow: 0 1px 2px hsl(var(--aui-foreground) / 0.05);
+}
+
+#comfyui-react-example-root .aui-composer-attachment-dropzone:hover {
+  border-color: hsl(var(--aui-muted-foreground) / 0.3);
+}
+
+#comfyui-react-example-root .aui-composer-attachment-dropzone:focus-within {
+  border-color: hsl(var(--aui-ring));
+  box-shadow:
+    0 0 0 3px hsl(var(--aui-ring) / 0.1),
+    0 2px 4px hsl(var(--aui-foreground) / 0.05);
+  background: hsl(var(--aui-background));
+}
+
+#comfyui-react-example-root .aui-composer-input {
+  background: transparent;
+  color: hsl(var(--aui-foreground));
+  transition: opacity var(--aui-transition-fast);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+#comfyui-react-example-root .aui-composer-input::placeholder {
+  color: hsl(var(--aui-muted-foreground));
+  opacity: 0.6;
+}
+
+/* Composer action wrapper */
+#comfyui-react-example-root .aui-composer-action-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* ============================================
+   Buttons (aui-button)
+   ============================================ */
+
+/* Base button styles */
+#comfyui-react-example-root button {
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--aui-transition-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  user-select: none;
+}
+
+#comfyui-react-example-root button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary Button (Send, main actions) */
+#comfyui-react-example-root .aui-button-primary,
+#comfyui-react-example-root .aui-composer-send,
+#comfyui-react-example-root .aui-composer-send button,
+#comfyui-react-example-root button[data-variant="default"] {
+  background: linear-gradient(135deg, hsl(var(--aui-primary)) 0%, hsl(var(--aui-primary) / 0.9) 100%);
+  color: hsl(var(--aui-primary-foreground));
+  border: none;
+  border-radius: 9999px;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  box-shadow:
+    0 1px 3px hsl(var(--aui-foreground) / 0.1),
+    0 1px 2px hsl(var(--aui-foreground) / 0.06);
+}
+
+#comfyui-react-example-root .aui-composer-send button,
+#comfyui-react-example-root .aui-composer-cancel button {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.5rem;
+}
+
+#comfyui-react-example-root .aui-button-primary:hover,
+#comfyui-react-example-root .aui-composer-send:hover button,
+#comfyui-react-example-root button[data-variant="default"]:hover {
+  background: linear-gradient(135deg, hsl(var(--aui-primary) / 0.95) 0%, hsl(var(--aui-primary) / 0.85) 100%);
+  box-shadow:
+    0 4px 6px hsl(var(--aui-foreground) / 0.1),
+    0 2px 4px hsl(var(--aui-foreground) / 0.06);
+  transform: translateY(-1px);
+}
+
+#comfyui-react-example-root .aui-button-primary:active,
+#comfyui-react-example-root .aui-composer-send:active button {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px hsl(var(--aui-foreground) / 0.1);
+}
+
+/* Cancel Button */
+#comfyui-react-example-root .aui-composer-cancel button {
+  background: hsl(var(--aui-destructive));
+  color: hsl(var(--aui-destructive-foreground));
+}
+
+#comfyui-react-example-root .aui-composer-cancel:hover button {
+  background: hsl(var(--aui-destructive) / 0.9);
+}
+
+/* Secondary/Ghost Button */
+#comfyui-react-example-root .aui-button-secondary,
+#comfyui-react-example-root .aui-button-ghost,
+#comfyui-react-example-root button[data-variant="outline"],
+#comfyui-react-example-root button[data-variant="ghost"] {
+  background: hsl(var(--aui-background));
+  border: 1px solid hsl(var(--aui-border));
+  color: hsl(var(--aui-foreground));
+  border-radius: var(--aui-border-radius);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+#comfyui-react-example-root .aui-button-secondary:hover,
+#comfyui-react-example-root .aui-button-ghost:hover,
+#comfyui-react-example-root button[data-variant="outline"]:hover,
+#comfyui-react-example-root button[data-variant="ghost"]:hover {
+  background: hsl(var(--aui-accent));
+  border-color: hsl(var(--aui-border));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px hsl(var(--aui-foreground) / 0.05);
+}
+
+/* Icon Buttons (small, circular) */
+#comfyui-react-example-root button[class*="icon"],
+#comfyui-react-example-root .aui-action-bar-root button {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: none;
+  color: hsl(var(--aui-muted-foreground));
+}
+
+#comfyui-react-example-root button[class*="icon"]:hover,
+#comfyui-react-example-root .aui-action-bar-root button:hover {
+  background: hsl(var(--aui-accent));
+  color: hsl(var(--aui-foreground));
+  transform: none;
+  box-shadow: none;
+}
+
+/* Thread list buttons */
+#comfyui-react-example-root .aui-thread-list-new button,
+#comfyui-react-example-root .aui-thread-welcome-suggestion button {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+
+#comfyui-react-example-root .aui-thread-welcome-suggestion button {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+/* Scroll to bottom button */
+#comfyui-react-example-root .aui-thread-scroll-to-bottom button {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.625rem;
+  background: hsl(var(--aui-background));
+  border: 1px solid hsl(var(--aui-border));
+  box-shadow:
+    0 4px 6px hsl(var(--aui-foreground) / 0.1),
+    0 2px 4px hsl(var(--aui-foreground) / 0.06);
+}
+
+#comfyui-react-example-root .aui-thread-scroll-to-bottom button:hover {
+  background: hsl(var(--aui-accent));
+  box-shadow:
+    0 6px 8px hsl(var(--aui-foreground) / 0.15),
+    0 3px 6px hsl(var(--aui-foreground) / 0.1);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   Icons & SVG
+   ============================================ */
+#comfyui-react-example-root svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+#comfyui-react-example-root button svg {
+  transition: all var(--aui-transition-fast);
+}
+
+/* Icon sizes */
+#comfyui-react-example-root .aui-composer-send svg,
+#comfyui-react-example-root .aui-composer-cancel svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+#comfyui-react-example-root .aui-action-bar-root svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+#comfyui-react-example-root .aui-thread-scroll-to-bottom svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Icon hover effects */
+#comfyui-react-example-root button:hover svg {
+  transform: scale(1.1);
+}
+
+#comfyui-react-example-root .aui-composer-send:hover svg {
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   Action Bar (aui-action-bar)
+   ============================================ */
+#comfyui-react-example-root .aui-action-bar-root {
+  display: flex;
+  gap: 0.25rem;
+}
+
+#comfyui-react-example-root .aui-action-bar-root button {
+  color: hsl(var(--aui-muted-foreground));
+  transition: all var(--aui-transition-fast);
+  border-radius: 0.375rem;
+}
+
+#comfyui-react-example-root .aui-action-bar-root button:hover {
+  background: hsl(var(--aui-accent));
+  color: hsl(var(--aui-foreground));
+}
+
+/* Floating action bar */
+#comfyui-react-example-root .aui-action-bar-root[data-floating="true"] {
+  background: hsl(var(--aui-background));
+  border: 1px solid hsl(var(--aui-border));
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  box-shadow:
+    0 4px 6px hsl(var(--aui-foreground) / 0.1),
+    0 2px 4px hsl(var(--aui-foreground) / 0.06);
+}
+
+/* ============================================
+   Branch Picker
+   ============================================ */
+#comfyui-react-example-root .aui-branch-picker-root {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+#comfyui-react-example-root .aui-branch-picker-root button {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+}
+
+/* ============================================
+   Thinking/Reasoning Blocks
+   ============================================ */
+#comfyui-react-example-root [data-part-type="reasoning"],
+#comfyui-react-example-root .aui-reasoning-root,
+#comfyui-react-example-root details[data-part="reasoning"] {
+  margin: 1rem 0;
+  border: 1.5px solid hsl(var(--aui-border));
+  border-left: 4px solid hsl(224 71% 63%);
+  border-radius: var(--aui-border-radius);
+  background: hsl(var(--aui-muted) / 0.3);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: all var(--aui-transition-base);
+}
+
+#comfyui-react-example-root details[data-part="reasoning"]:hover {
+  border-color: hsl(var(--aui-border));
+  background: hsl(var(--aui-muted) / 0.4);
+  box-shadow: 0 2px 8px hsl(var(--aui-foreground) / 0.05);
+}
+
+/* Thinking summary/header */
+#comfyui-react-example-root details[data-part="reasoning"] summary,
+#comfyui-react-example-root .aui-reasoning-header {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  color: hsl(224 71% 63%);
+  background: hsl(var(--aui-muted) / 0.2);
+  transition: all var(--aui-transition-fast);
+  list-style: none;
+}
+
+#comfyui-react-example-root details[data-part="reasoning"] summary::-webkit-details-marker {
+  display: none;
+}
+
+#comfyui-react-example-root details[data-part="reasoning"] summary::before {
+  content: "🧠";
+  font-size: 1.125rem;
+  display: inline-block;
+  transition: transform var(--aui-transition-base);
+}
+
+#comfyui-react-example-root details[data-part="reasoning"][open] summary::before {
+  transform: rotate(15deg) scale(1.1);
+}
+
+#comfyui-react-example-root details[data-part="reasoning"] summary:hover {
+  background: hsl(var(--aui-muted) / 0.4);
+  color: hsl(224 71% 70%);
+}
+
+#comfyui-react-example-root details[data-part="reasoning"] summary::after {
+  content: "▼";
+  margin-left: auto;
+  font-size: 0.75rem;
+  transition: transform var(--aui-transition-base);
+  opacity: 0.6;
+}
+
+#comfyui-react-example-root details[data-part="reasoning"][open] summary::after {
+  transform: rotate(180deg);
+}
+
+/* Thinking content */
+#comfyui-react-example-root details[data-part="reasoning"] .aui-reasoning-content,
+#comfyui-react-example-root [data-part-type="reasoning"] > div {
+  padding: 1rem;
+  color: hsl(var(--aui-muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1.6;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: hsl(var(--aui-background) / 0.5);
+  border-top: 1px solid hsl(var(--aui-border) / 0.5);
+}
+
+/* Animation for opening */
+#comfyui-react-example-root details[data-part="reasoning"] {
+  animation: aui-scale-in var(--aui-transition-slow) ease-out;
+}
+
+#comfyui-react-example-root details[data-part="reasoning"][open] .aui-reasoning-content {
+  animation: aui-fade-in 0.3s ease-out;
+}
+
+/* Alternative flat style if details not used */
+#comfyui-react-example-root .aui-thinking,
+#comfyui-react-example-root [data-type="thinking"] {
+  margin: 1rem 0;
+  padding: 1rem;
+  border-left: 4px solid hsl(224 71% 63%);
+  border-radius: var(--aui-border-radius);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--aui-muted) / 0.3) 0%,
+    hsl(var(--aui-muted) / 0.1) 100%
+  );
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--aui-muted-foreground));
+  position: relative;
+}
+
+#comfyui-react-example-root .aui-thinking::before {
+  content: "💭 Thinking";
+  display: block;
+  font-weight: 600;
+  color: hsl(224 71% 63%);
+  margin-bottom: 0.5rem;
+  font-family: var(--aui-font-family);
+}
+
+/* ============================================
+   Markdown Content (aui-md)
+   ============================================ */
+#comfyui-react-example-root .aui-md {
+  color: hsl(var(--aui-foreground));
+  line-height: 1.7;
+}
+
+#comfyui-react-example-root .aui-md code {
+  background: hsl(var(--aui-muted) / 0.5);
+  border: 1px solid hsl(var(--aui-border) / 0.5);
+  border-radius: var(--aui-border-radius-sm);
+  padding: 0.125rem 0.375rem;
+  font-size: 0.875em;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+#comfyui-react-example-root .aui-md pre {
+  background: hsl(var(--aui-muted) / 0.3);
+  border: 1px solid hsl(var(--aui-border) / 0.5);
+  border-radius: var(--aui-border-radius);
+  padding: var(--aui-spacing-md);
+  overflow-x: auto;
+}
+
+#comfyui-react-example-root .aui-md pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Code header */
+#comfyui-react-example-root .aui-code-header-root {
+  background: hsl(var(--aui-muted) / 0.5);
+  border: 1px solid hsl(var(--aui-border) / 0.5);
+  border-bottom: none;
+  border-radius: var(--aui-border-radius) var(--aui-border-radius) 0 0;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#comfyui-react-example-root .aui-code-header-language {
+  color: hsl(var(--aui-muted-foreground));
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================
+   Error Messages
+   ============================================ */
+#comfyui-react-example-root .aui-message-error-root {
+  background: hsl(var(--aui-destructive) / 0.1);
+  border: 1px solid hsl(var(--aui-destructive));
+  color: hsl(var(--aui-destructive-foreground));
+  border-radius: var(--aui-border-radius);
+  padding: var(--aui-spacing-sm) var(--aui-spacing-md);
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes aui-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aui-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes aui-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes aui-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+#comfyui-react-example-root .aui-message-root {
+  animation: aui-slide-in var(--aui-transition-slow) ease-out;
+}
+
+#comfyui-react-example-root .aui-thread-welcome-root {
+  animation: aui-fade-in 0.5s ease-out;
+}
+
+#comfyui-react-example-root .aui-composer-root {
+  animation: aui-slide-in 0.4s ease-out;
+}
+
+/* Loading indicator */
+#comfyui-react-example-root .aui-loading,
+#comfyui-react-example-root [data-state="loading"] {
+  animation: aui-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================
+   Focus States (Accessibility)
+   ============================================ */
+#comfyui-react-example-root button:focus-visible,
+#comfyui-react-example-root input:focus-visible,
+#comfyui-react-example-root textarea:focus-visible {
+  outline: 2px solid hsl(var(--aui-ring));
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  #comfyui-react-example-root * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

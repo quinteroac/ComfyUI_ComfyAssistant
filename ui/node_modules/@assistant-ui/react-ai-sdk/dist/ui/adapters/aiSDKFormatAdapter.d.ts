@@ -1,0 +1,5 @@
+import type { UIMessage } from "ai";
+import { MessageFormatAdapter } from "@assistant-ui/react";
+export type AISDKStorageFormat = Omit<UIMessage, "id">;
+export declare const aiSDKV6FormatAdapter: MessageFormatAdapter<UIMessage, AISDKStorageFormat>;
+//# sourceMappingURL=aiSDKFormatAdapter.d.ts.map
