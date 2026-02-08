@@ -56,17 +56,20 @@ export async function executeSetNodeWidgetValue(
       }
     }
 
+    // Unwrap array values (some LLMs send ["value"] instead of "value" for combo widgets)
+    const resolvedValue = Array.isArray(params.value) ? params.value[0] : params.value
+
     const previousValue = widget.value
-    widget.value = params.value
+    widget.value = resolvedValue
 
     // Trigger widget callbacks so the node updates properly
     if (typeof widget.callback === 'function') {
-      widget.callback(params.value)
+      widget.callback(resolvedValue)
     }
     if (typeof (node as any).onWidgetChanged === 'function') {
       ;(node as any).onWidgetChanged(
         params.widgetName,
-        params.value,
+        resolvedValue,
         previousValue,
         widget
       )
@@ -80,7 +83,7 @@ export async function executeSetNodeWidgetValue(
         nodeId: params.nodeId,
         widgetName: params.widgetName,
         previousValue,
-        newValue: params.value
+        newValue: resolvedValue
       }
     }
   } catch (error) {

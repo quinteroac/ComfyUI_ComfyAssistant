@@ -14,6 +14,8 @@ import {
   removeNodeDefinition,
   connectNodesDefinition,
   getWorkflowInfoDefinition,
+  setNodeWidgetValueDefinition,
+  fillPromptNodeDefinition,
 } from '@/tools/definitions'
 
 import {
@@ -21,6 +23,8 @@ import {
   executeRemoveNode,
   executeConnectNodes,
   executeGetWorkflowInfo,
+  executeSetNodeWidgetValue,
+  executeFillPromptNode,
 } from '@/tools/implementations'
 
 import type { ToolContext } from '@/tools/types'
@@ -81,6 +85,28 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeGetWorkflowInfo(args, ctx)
+    },
+  })
+
+  useAssistantTool({
+    toolName: setNodeWidgetValueDefinition.name,
+    description: setNodeWidgetValueDefinition.description,
+    parameters: setNodeWidgetValueDefinition.parameters,
+    execute: async (args) => {
+      const ctx = getToolContext()
+      if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
+      return executeSetNodeWidgetValue(args, ctx)
+    },
+  })
+
+  useAssistantTool({
+    toolName: fillPromptNodeDefinition.name,
+    description: fillPromptNodeDefinition.description,
+    parameters: fillPromptNodeDefinition.parameters,
+    execute: async (args) => {
+      const ctx = getToolContext()
+      if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
+      return executeFillPromptNode(args, ctx)
     },
   })
 }

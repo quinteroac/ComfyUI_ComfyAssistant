@@ -8,6 +8,7 @@ interface WidgetInfo {
   name: string;
   type: string;
   value: unknown;
+  options?: string[];
 }
 
 /**
@@ -79,11 +80,17 @@ export async function executeGetWorkflowInfo(
           const widgets: WidgetInfo[] = [];
           for (const widget of node.widgets) {
             if (widget.type === 'button') continue;
-            widgets.push({
+            const info: WidgetInfo = {
               name: widget.name,
               type: widget.type,
               value: widget.value,
-            });
+            };
+            // Expose available options for combo/dropdown widgets
+            const opts = (widget as any).options?.values;
+            if (widget.type === 'combo' && Array.isArray(opts)) {
+              info.options = opts;
+            }
+            widgets.push(info);
           }
           if (widgets.length > 0) {
             nodeInfo.widgets = widgets;

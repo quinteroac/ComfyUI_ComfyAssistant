@@ -11,8 +11,13 @@ export const setNodeWidgetValueSchema = z.object({
       "Name of the widget (e.g., 'steps', 'cfg', 'seed', 'text', 'sampler_name')"
     ),
   value: z
-    .union([z.string(), z.number(), z.boolean()])
-    .describe('New value for the widget')
+    .union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.array(z.union([z.string(), z.number(), z.boolean()]))
+    ])
+    .describe('New value for the widget (pass a single value, not an array)')
 })
 
 /**
