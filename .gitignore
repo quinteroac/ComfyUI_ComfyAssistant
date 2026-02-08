@@ -1,7 +1,14 @@
 # Local env (contains secrets)
 .env
 
-# IDE/Editor specific directories (use .agents/ instead)
+# Python bytecode cache
+__pycache__/
+*.pyc
+
+# Frontend build output
+dist/
+
+# IDE/Editor specific directories (use .agents/ instead) directories (use .agents/ instead)
 .cursor/
 .claude/
 .vscode/
