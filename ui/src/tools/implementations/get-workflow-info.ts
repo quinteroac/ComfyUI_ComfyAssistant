@@ -2,6 +2,15 @@ import type { ToolContext, ToolResult } from '../types';
 import type { GetWorkflowInfoParams } from '../definitions/get-workflow-info';
 
 /**
+ * Widget information exposed when includeNodeDetails is true
+ */
+interface WidgetInfo {
+  name: string;
+  type: string;
+  value: unknown;
+}
+
+/**
  * Summary information of a node
  */
 interface NodeInfo {
@@ -10,6 +19,7 @@ interface NodeInfo {
   position: [number, number];
   size?: [number, number];
   title?: string;
+  widgets?: WidgetInfo[];
 }
 
 /**
@@ -63,6 +73,22 @@ export async function executeGetWorkflowInfo(
       if (params.includeNodeDetails) {
         nodeInfo.size = node.size as [number, number];
         nodeInfo.title = node.title;
+
+        // Populate widget info (filter out non-configurable widgets like buttons)
+        if (node.widgets) {
+          const widgets: WidgetInfo[] = [];
+          for (const widget of node.widgets) {
+            if (widget.type === 'button') continue;
+            widgets.push({
+              name: widget.name,
+              type: widget.type,
+              value: widget.value,
+            });
+          }
+          if (widgets.length > 0) {
+            nodeInfo.widgets = widgets;
+          }
+        }
       }
 
       nodes.push(nodeInfo);

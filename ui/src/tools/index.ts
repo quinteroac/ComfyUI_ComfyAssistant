@@ -10,7 +10,9 @@ import {
   addNodeDefinition,
   removeNodeDefinition,
   getWorkflowInfoDefinition,
-  connectNodesDefinition
+  connectNodesDefinition,
+  setNodeWidgetValueDefinition,
+  fillPromptNodeDefinition
 } from './definitions';
 
 // Import implementations
@@ -18,7 +20,9 @@ import {
   executeAddNode,
   executeRemoveNode,
   executeGetWorkflowInfo,
-  executeConnectNodes
+  executeConnectNodes,
+  executeSetNodeWidgetValue,
+  executeFillPromptNode
 } from './implementations';
 
 /**
@@ -45,6 +49,16 @@ export function createTools(context: ToolContext): Record<string, Tool> {
       description: connectNodesDefinition.description,
       parameters: connectNodesDefinition.parameters,
       execute: async (params) => executeConnectNodes(params as any, context)
+    },
+    [setNodeWidgetValueDefinition.name]: {
+      description: setNodeWidgetValueDefinition.description,
+      parameters: setNodeWidgetValueDefinition.parameters,
+      execute: async (params) => executeSetNodeWidgetValue(params as any, context)
+    },
+    [fillPromptNodeDefinition.name]: {
+      description: fillPromptNodeDefinition.description,
+      parameters: fillPromptNodeDefinition.parameters,
+      execute: async (params) => executeFillPromptNode(params as any, context)
     }
   };
 }

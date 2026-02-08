@@ -126,11 +126,60 @@ TOOLS_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "getWorkflowInfo",
-            "description": "Get information about the current workflow state",
+            "description": "Get information about the current workflow state, including nodes, connections, and optionally widget names/values",
             "parameters": {
                 "type": "object",
-                "properties": {},
-                "required": []
+                "properties": {
+                    "includeNodeDetails": {
+                        "type": "boolean",
+                        "description": "If true, includes full details of each node including widget names, types, and current values. Defaults to false for faster responses"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "setNodeWidgetValue",
+            "description": "Sets the value of a widget (parameter) on a node. Use getWorkflowInfo with includeNodeDetails first to see available widget names.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nodeId": {
+                        "type": "number",
+                        "description": "ID of the node whose widget to set"
+                    },
+                    "widgetName": {
+                        "type": "string",
+                        "description": "Name of the widget (e.g., 'steps', 'cfg', 'seed', 'text', 'sampler_name')"
+                    },
+                    "value": {
+                        "description": "New value for the widget (string, number, or boolean)"
+                    }
+                },
+                "required": ["nodeId", "widgetName", "value"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fillPromptNode",
+            "description": "Sets the text of a prompt node (CLIPTextEncode). Shorthand for setNodeWidgetValue with widgetName='text'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nodeId": {
+                        "type": "number",
+                        "description": "ID of the CLIPTextEncode (or similar prompt) node"
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "The prompt text to set"
+                    }
+                },
+                "required": ["nodeId", "text"]
             }
         }
     }
@@ -360,7 +409,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     if not (system_context_text or "").strip():
         system_context_text = (
             "You are ComfyUI Assistant. Help users with ComfyUI workflows. "
-            "Use getWorkflowInfo, addNode, removeNode, connectNodes when needed. "
+            "Use getWorkflowInfo, addNode, removeNode, connectNodes, setNodeWidgetValue, fillPromptNode when needed. "
             "Reply in the user's language. For greetings only, reply with text; do not call tools."
         )
 
@@ -540,9 +589,6 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     response_text_parts.append(cleaned_text)
 
             # Do NOT emit placeholder text when model returns only tool calls.
-            # A text part after tool-input-start would become the last part in the
-            # UIMessage, causing shouldResubmitAfterToolResult to return false
-            # (it checks lastPart.type !== "text") and breaking the agentic loop.
             # assistant-ui already renders tool-call parts, so the UI won't be empty.
 
             # Close text part before tool calls so the client can finalize the message and run tools

@@ -92,7 +92,9 @@ stream = await client.chat.completions.create(
 | `addNode` | Add node to workflow | ✅ Implemented |
 | `removeNode` | Remove node from workflow | ✅ Implemented |
 | `connectNodes` | Connect two nodes | ✅ Implemented |
-| `getWorkflowInfo` | Get workflow information | ✅ Implemented |
+| `getWorkflowInfo` | Get workflow information (with widget data) | ✅ Implemented |
+| `setNodeWidgetValue` | Set any widget value on a node | ✅ Implemented |
+| `fillPromptNode` | Set prompt text on CLIPTextEncode | ✅ Implemented |
 
 ## Folder Structure
 
@@ -104,12 +106,16 @@ ui/src/tools/
 │   ├── add-node.ts
 │   ├── remove-node.ts
 │   ├── connect-nodes.ts
-│   └── get-workflow-info.ts
+│   ├── get-workflow-info.ts
+│   ├── set-node-widget-value.ts
+│   └── fill-prompt-node.ts
 └── implementations/      # Execution logic
     ├── add-node.ts
     ├── remove-node.ts
     ├── connect-nodes.ts
-    └── get-workflow-info.ts
+    ├── get-workflow-info.ts
+    ├── set-node-widget-value.ts
+    └── fill-prompt-node.ts
 
 tools_definitions.py      # Backend tool declarations
 ```

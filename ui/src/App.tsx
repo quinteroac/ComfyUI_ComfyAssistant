@@ -30,8 +30,14 @@ declare global {
 }
 
 /**
- * Resubmit when the last assistant message has tool calls with results,
- * but NOT when the message already contains a text part (model responded).
+ * Resubmit when the last assistant message has completed tool calls AND
+ * the LLM hasn't responded to them yet.
+ *
+ * useChatRuntime appends the follow-up LLM response to the SAME message,
+ * so after the LLM responds the parts look like:
+ *   [text, tool-invocation(result), text]   ← last part is text → stop
+ * vs right after tool execution:
+ *   [text, tool-invocation(result)]          ← last part is tool → resubmit
  */
 function shouldResubmitAfterToolResult({
   messages,
@@ -39,11 +45,11 @@ function shouldResubmitAfterToolResult({
   messages: UIMessage[]
 }): boolean {
   if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false
-  const msg = messages[messages.length - 1]
-  const parts = msg?.parts ?? []
-  const hasTextPart = parts.some((p) => p.type === 'text')
-  if (hasTextPart) return false
-  return true
+  const lastMsg = messages[messages.length - 1]
+  const parts = lastMsg?.parts ?? []
+  if (parts.length === 0) return false
+  // If the last part is text, the LLM has already responded to the tool results
+  return parts[parts.length - 1].type !== 'text'
 }
 
 // Inner component that has access to runtime context

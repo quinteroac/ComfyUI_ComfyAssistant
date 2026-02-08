@@ -92,15 +92,60 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "getWorkflowInfo",
-            "description": "Gets information about the current ComfyUI workflow, including the list of nodes, connections, and general configuration.",
+            "description": "Gets information about the current ComfyUI workflow, including the list of nodes, connections, and optionally widget names/values for each node.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "includeNodeDetails": {
                         "type": "boolean",
-                        "description": "If true, includes full details of each node. Defaults to false for faster responses"
+                        "description": "If true, includes full details of each node including widget names, types, and current values. Defaults to false for faster responses"
                     }
                 }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "setNodeWidgetValue",
+            "description": "Sets the value of a widget (parameter) on a node. Use getWorkflowInfo with includeNodeDetails first to see available widget names and their current values.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nodeId": {
+                        "type": "number",
+                        "description": "ID of the node whose widget to set"
+                    },
+                    "widgetName": {
+                        "type": "string",
+                        "description": "Name of the widget (e.g., 'steps', 'cfg', 'seed', 'text', 'sampler_name')"
+                    },
+                    "value": {
+                        "description": "New value for the widget (string, number, or boolean)"
+                    }
+                },
+                "required": ["nodeId", "widgetName", "value"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fillPromptNode",
+            "description": "Sets the text of a prompt node (CLIPTextEncode). Shorthand for setNodeWidgetValue with widgetName='text'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nodeId": {
+                        "type": "number",
+                        "description": "ID of the CLIPTextEncode (or similar prompt) node"
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "The prompt text to set"
+                    }
+                },
+                "required": ["nodeId", "text"]
             }
         }
     }

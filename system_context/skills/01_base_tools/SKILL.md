@@ -1,6 +1,6 @@
 ---
 name: base-tools
-description: Base graph tools (addNode, removeNode, connectNodes, getWorkflowInfo). Use when modifying workflows or when the user asks about the canvas.
+description: Base graph tools (addNode, removeNode, connectNodes, getWorkflowInfo, setNodeWidgetValue, fillPromptNode). Use when modifying workflows or when the user asks about the canvas.
 ---
 
 # Base tools (always available)
@@ -10,7 +10,9 @@ You have access to tools that let you directly interact with the ComfyUI canvas:
 1. **addNode**: Add any ComfyUI node to the workflow
 2. **removeNode**: Remove nodes by their ID
 3. **connectNodes**: Connect outputs to inputs between nodes
-4. **getWorkflowInfo**: Get information about the current workflow state
+4. **getWorkflowInfo**: Get information about the current workflow state (including widget names/values when `includeNodeDetails: true`)
+5. **setNodeWidgetValue**: Set the value of any widget on a node (steps, cfg, seed, sampler_name, etc.)
+6. **fillPromptNode**: Set the text of a prompt node (CLIPTextEncode) — shorthand for setNodeWidgetValue with widgetName='text'
 
 ## How to Use Tools
 
@@ -41,6 +43,18 @@ Keep your responses SHORT and ACTIONABLE. Users see tool execution results in re
 - User explicitly asks to remove or delete a node
 - User says "remove node X" or "delete the sampler"
 - Cleaning up or replacing nodes in a workflow
+
+### Use `setNodeWidgetValue` when:
+- User asks to change a node parameter (steps, cfg, seed, scheduler, denoise, width, height, etc.)
+- User says "set steps to 30" or "change cfg to 7"
+- Configuring nodes after adding them to the workflow
+- **IMPORTANT**: Always call `getWorkflowInfo` with `includeNodeDetails: true` first to verify widget names and current values
+
+### Use `fillPromptNode` when:
+- User provides prompt text for a CLIPTextEncode node
+- User says "set the prompt to 'a cat'" or "write 'sunset over mountains' in the positive prompt"
+- Filling in positive or negative prompts during workflow creation
+- Simpler than setNodeWidgetValue when you only need to set the text widget
 
 ### Use `connectNodes` when:
 - User asks to connect specific nodes
@@ -75,3 +89,7 @@ User: "Qué nodos tengo?" → You: "Revisando tu workflow actual..." [Then getWo
 User: "Crea un workflow de text-to-image" → You: "Perfecto, voy a crear un workflow completo con CheckpointLoader, prompts, sampler y decodificador." [Then addNode multiple times]
 
 User: "Connect the checkpoint to the sampler" → You: "First, let me check your workflow to find the correct node IDs. Then I'll connect them together."
+
+User: "Set steps to 30 on the KSampler" → You: "Let me check your workflow first, then I'll update the steps." [Then getWorkflowInfo with includeNodeDetails, then setNodeWidgetValue]
+
+User: "Create a txt2img workflow with prompt 'a cat'" → You: "I'll create a complete txt2img workflow and set the prompt for you." [Then addNode multiple times, connectNodes, fillPromptNode]
