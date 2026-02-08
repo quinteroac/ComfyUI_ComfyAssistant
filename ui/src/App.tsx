@@ -43,12 +43,31 @@ function ChatWithTools() {
   )
 }
 
+/**
+ * Resubmit when last assistant message has tool calls with results,
+ * BUT NOT if the last part is text (model already responded) — avoids infinite loops.
+ */
+function shouldResubmitAfterToolResult({
+  messages,
+}: {
+  messages: { role: string; parts?: Array<{ type?: string }> }[];
+}): boolean {
+  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false
+  const msg = messages[messages.length - 1]
+  const parts = msg?.parts ?? []
+  const lastPart = parts[parts.length - 1] as { type?: string } | undefined
+  if (lastPart?.type === "text") return false
+  return true
+}
+
 function AppContent() {
   const runtime = useChatRuntime({
     transport: new AssistantChatTransport({
       api: "/api/chat",
     }),
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    sendAutomaticallyWhen: shouldResubmitAfterToolResult,
+    // Throttle UI updates during streaming to avoid blocking the main thread
+    experimental_throttle: 150,
   })
 
   return (

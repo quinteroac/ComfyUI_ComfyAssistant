@@ -20,13 +20,13 @@ import { cn } from "@/lib/utils";
 const MarkdownTextImpl = () => {
   const message = useMessage();
 
-  // Combinar TODAS las partes de texto en un solo string
-  const fullText = message.content
-    .filter((part) => part.type === "text")
-    .map((part) => (part as any).text)
-    .join("");
+  // Usar solo la ÚLTIMA parte de texto para evitar repeticiones (placeholder + análisis duplicados tras tool loops)
+  const textParts = message.content.filter((part) => part.type === "text");
+  const fullText =
+    textParts.length > 0
+      ? (textParts[textParts.length - 1] as { text: string }).text
+      : "";
 
-  // Parsear todo el texto junto como markdown usando ReactMarkdown directamente
   return (
     <div className="aui-md">
       <ReactMarkdown

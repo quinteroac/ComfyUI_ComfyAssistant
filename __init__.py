@@ -401,12 +401,15 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         buffer = ""
         reasoning_sent = False
         text_sent = False  # True once we have sent at least one text-delta (so UI shows a message)
+        text_start_emitted = False  # True after we emit text-start (only once per message)
         text_end_sent = False  # True after we emit text-end (must be before tool-input-available for client)
         # Buffer for accumulating tool call chunks
         tool_calls_buffer = {}
         # Accumulate assistant response for debug log
         response_text_parts = []
         response_tool_calls = []
+        # Capture finish_reason from the LLM streaming response (last chunk)
+        llm_finish_reason = None
 
         yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
 
@@ -423,7 +426,11 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 choice = chunk.choices[0] if chunk.choices else None
                 if not choice:
                     continue
-                
+
+                # Last chunk carries finish_reason (e.g. "stop", "tool_calls")
+                if choice.finish_reason:
+                    llm_finish_reason = choice.finish_reason
+
                 delta = choice.delta
                 
                 # Handle text content
@@ -446,10 +453,10 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                             yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
                             reasoning_sent = False
 
-                        # Start text part for cleaned content
-                        if cleaned_text and not text_id:
-                            text_id = f"msg_{uuid.uuid4().hex[:24]}"
+                        # Start text part for cleaned content (only once)
+                        if cleaned_text and not text_start_emitted:
                             yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+                            text_start_emitted = True
 
                         if cleaned_text:
                             yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
@@ -460,9 +467,9 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     else:
                         # Stream normally if no complete thinking blocks yet
                         if not '<think>' in buffer:
-                            if not text_id or text_id.startswith("msg_"):
-                                text_id = f"msg_{uuid.uuid4().hex[:24]}"
+                            if not text_start_emitted:
                                 yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+                                text_start_emitted = True
                             yield _sse_line({"type": "text-delta", "id": text_id, "delta": delta.content}).encode("utf-8")
                             text_sent = True
                             response_text_parts.append(delta.content)
@@ -523,24 +530,18 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
 
                 if cleaned_text:
-                    if not text_id or text_id.startswith("msg_"):
-                        text_id = f"msg_{uuid.uuid4().hex[:24]}"
+                    if not text_start_emitted:
                         yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+                        text_start_emitted = True
                     yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
                     text_sent = True
                     response_text_parts.append(cleaned_text)
 
-            # If model returned only tool calls and no text, emit a short placeholder so the UI shows a message
-            has_tool_calls = any(
-                tc.get("id") and tc.get("name") for tc in tool_calls_buffer.values()
-            )
-            if has_tool_calls and not text_sent:
-                placeholder = "Checking your workflow…"
-                text_id = f"msg_{uuid.uuid4().hex[:24]}"
-                yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                yield _sse_line({"type": "text-delta", "id": text_id, "delta": placeholder}).encode("utf-8")
-                text_sent = True
-                response_text_parts.append(placeholder)
+            # Do NOT emit placeholder text when model returns only tool calls.
+            # A text part after tool-input-start would become the last part in the
+            # UIMessage, causing shouldResubmitAfterToolResult to return false
+            # (it checks lastPart.type !== "text") and breaking the agentic loop.
+            # assistant-ui already renders tool-call parts, so the UI won't be empty.
 
             # Close text part before tool calls so the client can finalize the message and run tools
             if text_sent and text_id and not text_end_sent:
@@ -590,7 +591,15 @@ async def chat_api_handler(request: web.Request) -> web.Response:
 
         if text_sent and text_id and not text_end_sent:
             yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-        yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+        # Map OpenAI finish_reason to AI SDK format (underscore → hyphen)
+        finish_reason_map = {
+            "stop": "stop",
+            "tool_calls": "tool-calls",
+            "length": "length",
+            "content_filter": "content-filter",
+        }
+        ai_finish = finish_reason_map.get(llm_finish_reason or "stop", "stop")
+        yield _sse_line({"type": "finish", "finishReason": ai_finish}).encode("utf-8")
         yield "data: [DONE]\n\n".encode("utf-8")
 
     resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
