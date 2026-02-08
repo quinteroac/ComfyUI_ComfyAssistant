@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
-    "precommit": "npm run typecheck && npm run lint && npm test"
+    "precommit": "npm run typecheck && npm run lint && npm test",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.25",
@@ -70,6 +71,7 @@
     "ts-jest": "^29.3.4",
     "typescript": "^5.4.2",
     "typescript-eslint": "^8.32.1",
-    "vite": "^5.2.10"
+    "vite": "^5.2.10",
+    "patch-package": "^8.0.0"
   }
 }

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import logging
@@ -46,6 +47,11 @@ OPENAI_API_BASE_URL = os.environ.get(
     "OPENAI_API_BASE_URL",
     "https://api.groq.com/openai/v1",
 ).rstrip("/")
+
+# Delay in seconds before each LLM request to avoid rate limits (e.g. Groq 429)
+LLM_REQUEST_DELAY_SECONDS = float(
+    os.environ.get("LLM_REQUEST_DELAY_SECONDS", "1.0")
+)
 
 # AI SDK UI Message Stream headers (required by AssistantChatTransport)
 UI_MESSAGE_STREAM_HEADERS = {
@@ -192,9 +198,12 @@ def _ui_messages_to_openai(messages: list) -> list:
             if content:
                 openai_msg["content"] = content
 
-            # Extract tool calls and results from parts
+            # Extract tool calls and results from parts (deduplicate by id so
+            # we never send duplicate tool_calls/tool_results to the LLM)
             tool_calls = []
+            tool_calls_seen: set[str] = set()
             tool_results = []
+            tool_results_seen: set[str] = set()
             parts = msg.get("parts", [])
 
             for part in parts:
@@ -210,42 +219,51 @@ def _ui_messages_to_openai(messages: list) -> list:
                     state = part.get("state", "")
                     args = part.get("input", {})
 
-                    # Add tool call to assistant message
-                    tool_calls.append({
-                        "id": tool_call_id,
-                        "type": "function",
-                        "function": {
-                            "name": tool_name,
-                            "arguments": json.dumps(args) if args else "{}"
-                        }
-                    })
+                    # Add tool call only once per id
+                    if tool_call_id and tool_call_id not in tool_calls_seen:
+                        tool_calls_seen.add(tool_call_id)
+                        tool_calls.append({
+                            "id": tool_call_id,
+                            "type": "function",
+                            "function": {
+                                "name": tool_name,
+                                "arguments": json.dumps(args) if args else "{}"
+                            }
+                        })
 
-                    # If the tool has completed, add a tool result message
+                    # If the tool has completed, add a tool result message (once per id)
                     if state == "output-available" and "output" in part:
-                        tool_results.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call_id,
-                            "content": json.dumps(part.get("output", {}))
-                        })
-                    elif state == "output-error":
-                        tool_results.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call_id,
-                            "content": json.dumps({
-                                "error": part.get("errorText", "Unknown error")
+                        if tool_call_id and tool_call_id not in tool_results_seen:
+                            tool_results_seen.add(tool_call_id)
+                            tool_results.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call_id,
+                                "content": json.dumps(part.get("output", {}))
                             })
-                        })
+                    elif state == "output-error":
+                        if tool_call_id and tool_call_id not in tool_results_seen:
+                            tool_results_seen.add(tool_call_id)
+                            tool_results.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call_id,
+                                "content": json.dumps({
+                                    "error": part.get("errorText", "Unknown error")
+                                })
+                            })
 
                 # Legacy format: type == 'tool-call'
                 elif part_type == "tool-call":
-                    tool_calls.append({
-                        "id": part.get("toolCallId", ""),
-                        "type": "function",
-                        "function": {
-                            "name": part.get("toolName", ""),
-                            "arguments": json.dumps(part.get("args", {}))
-                        }
-                    })
+                    tid = part.get("toolCallId", "")
+                    if tid and tid not in tool_calls_seen:
+                        tool_calls_seen.add(tid)
+                        tool_calls.append({
+                            "id": tid,
+                            "type": "function",
+                            "function": {
+                                "name": part.get("toolName", ""),
+                                "arguments": json.dumps(part.get("args", {}))
+                            }
+                        })
 
             if tool_calls:
                 openai_msg["tool_calls"] = tool_calls
@@ -414,6 +432,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
 
         try:
+            await asyncio.sleep(LLM_REQUEST_DELAY_SECONDS)
             stream = await client.chat.completions.create(
                 model=GROQ_MODEL,
                 messages=openai_messages,
@@ -486,38 +505,21 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                                 "id": "",
                                 "name": "",
                                 "arguments": "",
-                                "started": False,
-                                "completed": False
+                                "completed": False,
                             }
-                        
                         tool_call_data = tool_calls_buffer[index]
-                        
-                        # Accumulate tool call data
                         if tool_call_delta.id:
                             tool_call_data["id"] = tool_call_delta.id
                         if tool_call_delta.function:
                             if tool_call_delta.function.name:
                                 tool_call_data["name"] = tool_call_delta.function.name
                             if tool_call_delta.function.arguments:
-                                args_delta = tool_call_delta.function.arguments
-                                tool_call_data["arguments"] += args_delta
-                                
-                                # Emit tool-input-start if this is the first chunk
-                                if not tool_call_data["started"] and tool_call_data["id"] and tool_call_data["name"]:
-                                    yield _sse_line({
-                                        "type": "tool-input-start",
-                                        "toolCallId": tool_call_data["id"],
-                                        "toolName": tool_call_data["name"]
-                                    }).encode("utf-8")
-                                    tool_call_data["started"] = True
-                                
-                                # Emit tool-input-delta for argument chunks
-                                if tool_call_data["started"]:
-                                    yield _sse_line({
-                                        "type": "tool-input-delta",
-                                        "toolCallId": tool_call_data["id"],
-                                        "inputTextDelta": args_delta
-                                    }).encode("utf-8")
+                                tool_call_data["arguments"] += tool_call_delta.function.arguments
+                        # Do not emit tool-input-start / tool-input-delta here. Emitting
+                        # only tool-input-available at the end avoids duplicate keys in
+                        # assistant-ui (Duplicate key toolCallId-... in tapResources),
+                        # which can occur when the client processes tool-input-available
+                        # before the part from tool-input-start is committed.
 
             # Process any remaining buffer
             if buffer:

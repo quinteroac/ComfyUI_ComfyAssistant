@@ -14,7 +14,7 @@
 import { ComfyApp } from '@comfyorg/comfyui-frontend-types'
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk"
-import { lastAssistantMessageIsCompleteWithToolCalls } from "ai"
+import { lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai'
 import { useEffect, useState } from "react"
 import { ThreadList } from "@/components/assistant-ui/thread-list"
 import { Thread } from "@/components/assistant-ui/thread"
@@ -27,6 +27,23 @@ declare global {
   interface Window {
     app?: ComfyApp
   }
+}
+
+/**
+ * Resubmit when the last assistant message has tool calls with results,
+ * but NOT when the message already contains a text part (model responded).
+ */
+function shouldResubmitAfterToolResult({
+  messages,
+}: {
+  messages: UIMessage[]
+}): boolean {
+  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false
+  const msg = messages[messages.length - 1]
+  const parts = msg?.parts ?? []
+  const hasTextPart = parts.some((p) => p.type === 'text')
+  if (hasTextPart) return false
+  return true
 }
 
 // Inner component that has access to runtime context
@@ -43,22 +60,6 @@ function ChatWithTools() {
   )
 }
 
-/**
- * Resubmit when last assistant message has tool calls with results,
- * BUT NOT if the last part is text (model already responded) — avoids infinite loops.
- */
-function shouldResubmitAfterToolResult({
-  messages,
-}: {
-  messages: { role: string; parts?: Array<{ type?: string }> }[];
-}): boolean {
-  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false
-  const msg = messages[messages.length - 1]
-  const parts = msg?.parts ?? []
-  const lastPart = parts[parts.length - 1] as { type?: string } | undefined
-  if (lastPart?.type === "text") return false
-  return true
-}
 
 function AppContent() {
   const runtime = useChatRuntime({
@@ -66,8 +67,6 @@ function AppContent() {
       api: "/api/chat",
     }),
     sendAutomaticallyWhen: shouldResubmitAfterToolResult,
-    // Throttle UI updates during streaming to avoid blocking the main thread
-    experimental_throttle: 150,
   })
 
   return (

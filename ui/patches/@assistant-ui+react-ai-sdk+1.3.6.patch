@@ -1,0 +1,52 @@
+diff --git a/node_modules/@assistant-ui/react-ai-sdk/dist/ui/utils/convertMessage.js b/node_modules/@assistant-ui/react-ai-sdk/dist/ui/utils/convertMessage.js
+index 0679a04..419a9b2 100644
+--- a/node_modules/@assistant-ui/react-ai-sdk/dist/ui/utils/convertMessage.js
++++ b/node_modules/@assistant-ui/react-ai-sdk/dist/ui/utils/convertMessage.js
+@@ -7,8 +7,18 @@ const convertParts = (message, metadata) => {
+     if (!message.parts || message.parts.length === 0) {
+         return [];
+     }
+-    return message.parts
+-        .filter((p) => p.type !== "step-start" && p.type !== "file")
++    const seenToolCallIds = new Set();
++    const partsFiltered = message.parts.filter((p) => {
++        if (p.type === "step-start" || p.type === "file")
++            return false;
++        if (isToolUIPart(p) && p.toolCallId != null) {
++            if (seenToolCallIds.has(p.toolCallId))
++                return false;
++            seenToolCallIds.add(p.toolCallId);
++        }
++        return true;
++    });
++    return partsFiltered
+         .map((part) => {
+         const type = part.type;
+         // Handle text parts
+diff --git a/node_modules/@assistant-ui/react-ai-sdk/src/ui/utils/convertMessage.ts b/node_modules/@assistant-ui/react-ai-sdk/src/ui/utils/convertMessage.ts
+index f036bbb..42f1dc6 100644
+--- a/node_modules/@assistant-ui/react-ai-sdk/src/ui/utils/convertMessage.ts
++++ b/node_modules/@assistant-ui/react-ai-sdk/src/ui/utils/convertMessage.ts
+@@ -25,8 +25,20 @@ const convertParts = (
+     return [];
+   }
+ 
+-  return message.parts
+-    .filter((p) => p.type !== "step-start" && p.type !== "file")
++  // Deduplicate only by toolCallId: same id = same call (stream/state bug).
++  // Different ids = different calls; same tool name/args but different ids are
++  // kept (e.g. two addNode for two Text Encode nodes).
++  const seenToolCallIds = new Set<string>();
++  const partsFiltered = message.parts.filter((p) => {
++    if (p.type === "step-start" || p.type === "file") return false;
++    if (isToolUIPart(p) && p.toolCallId != null) {
++      if (seenToolCallIds.has(p.toolCallId)) return false;
++      seenToolCallIds.add(p.toolCallId);
++    }
++    return true;
++  });
++
++  return partsFiltered
+     .map((part) => {
+       const type = part.type;
+ 

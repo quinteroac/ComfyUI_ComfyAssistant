@@ -1,0 +1,178 @@
+diff --git a/node_modules/@assistant-ui/react/dist/client/ThreadMessageClient.js b/node_modules/@assistant-ui/react/dist/client/ThreadMessageClient.js
+index 68abbb5..b0b01c3 100644
+--- a/node_modules/@assistant-ui/react/dist/client/ThreadMessageClient.js
++++ b/node_modules/@assistant-ui/react/dist/client/ThreadMessageClient.js
+@@ -37,7 +37,7 @@ export const ThreadMessageClient = resource(({ message, index, isLast = true, br
+     const [isCopiedState, setIsCopied] = tapState(false);
+     const [isHoveringState, setIsHovering] = tapState(false);
+     const parts = tapClientLookup(() => message.content.map((part, idx) => withKey("toolCallId" in part && part.toolCallId != null
+-        ? `toolCallId-${part.toolCallId}`
++        ? `toolCallId-${part.toolCallId}-${idx}`
+         : `index-${idx}`, ThreadMessagePartClient({ part }))), [message.content]);
+     const attachments = tapClientLookup(() => (message.attachments ?? []).map((attachment) => withKey(attachment.id, ThreadMessageAttachmentClient({ attachment }))), [message.attachments]);
+     const composer = tapInlineResource(NoOpComposerClient({ type: "edit" }));
+@@ -77,7 +77,11 @@ export const ThreadMessageClient = resource(({ message, index, isLast = true, br
+                     return parts.get({ index: selector.index });
+                 }
+                 else {
+-                    return parts.get({ key: `toolCallId-${selector.toolCallId}` });
++                    const idx = message.content.findIndex((p) => "toolCallId" in p && p.toolCallId != null && p.toolCallId === selector.toolCallId);
++                    if (idx === -1) {
++                        throw new Error(`tapClientLookup: Part with toolCallId "${selector.toolCallId}" not found`);
++                    }
++                    return parts.get({ index: idx });
+                 }
+             },
+             attachment: (selector) => {
+diff --git a/node_modules/@assistant-ui/react/dist/legacy-runtime/client/MessageRuntimeClient.js b/node_modules/@assistant-ui/react/dist/legacy-runtime/client/MessageRuntimeClient.js
+index 59e2e3b..a7743aa 100644
+--- a/node_modules/@assistant-ui/react/dist/legacy-runtime/client/MessageRuntimeClient.js
++++ b/node_modules/@assistant-ui/react/dist/legacy-runtime/client/MessageRuntimeClient.js
+@@ -26,9 +26,22 @@ export const MessageClient = resource(({ runtime, threadIdRef, }) => {
+         threadIdRef,
+         messageIdRef,
+     }));
+-    const parts = tapClientLookup(() => runtimeState.content.map((part, idx) => withKey("toolCallId" in part && part.toolCallId != null
+-        ? `toolCallId-${part.toolCallId}`
+-        : `index-${idx}`, MessagePartByIndex({ runtime, index: idx }))), [runtimeState.content, runtime]);
++    const displayIndices = tapMemo(() => {
++        const content = runtimeState.content;
++        const seenToolCallIds = new Set();
++        const indices = [];
++        for (let idx = 0; idx < content.length; idx++) {
++            const part = content[idx];
++            if (part && "toolCallId" in part && part.toolCallId != null) {
++                if (seenToolCallIds.has(part.toolCallId))
++                    continue;
++                seenToolCallIds.add(part.toolCallId);
++            }
++            indices.push(idx);
++        }
++        return indices;
++    }, [runtimeState.content]);
++    const parts = tapClientLookup(() => displayIndices.map((contentIdx, displayIdx) => withKey(`index-${contentIdx}`, MessagePartByIndex({ runtime, index: contentIdx }))), [displayIndices, runtime]);
+     const attachments = tapClientLookup(() => (runtimeState.attachments ?? []).map((attachment, idx) => withKey(attachment.id, MessageAttachmentClientByIndex({ runtime, index: idx }))), [runtimeState.attachments, runtime]);
+     const state = tapMemo(() => {
+         return {
+@@ -61,7 +74,15 @@ export const MessageClient = resource(({ runtime, threadIdRef, }) => {
+                     return parts.get({ index: selector.index });
+                 }
+                 else {
+-                    return parts.get({ key: `toolCallId-${selector.toolCallId}` });
++                    const contentIdx = runtimeState.content.findIndex((p) => "toolCallId" in p && p.toolCallId != null && p.toolCallId === selector.toolCallId);
++                    if (contentIdx === -1) {
++                        throw new Error(`tapClientLookup: Part with toolCallId "${selector.toolCallId}" not found`);
++                    }
++                    const displayIdx = displayIndices.indexOf(contentIdx);
++                    if (displayIdx === -1) {
++                        throw new Error(`tapClientLookup: Part with toolCallId "${selector.toolCallId}" not found`);
++                    }
++                    return parts.get({ index: displayIdx });
+                 }
+             },
+             attachment: (selector) => {
+diff --git a/node_modules/@assistant-ui/react/src/client/ThreadMessageClient.tsx b/node_modules/@assistant-ui/react/src/client/ThreadMessageClient.tsx
+index e8b7d13..d9aa7ab 100644
+--- a/node_modules/@assistant-ui/react/src/client/ThreadMessageClient.tsx
++++ b/node_modules/@assistant-ui/react/src/client/ThreadMessageClient.tsx
+@@ -81,7 +81,7 @@ export const ThreadMessageClient = resource(
+         message.content.map((part, idx) =>
+           withKey(
+             "toolCallId" in part && part.toolCallId != null
+-              ? `toolCallId-${part.toolCallId}`
++              ? `toolCallId-${part.toolCallId}-${idx}`
+               : `index-${idx}`,
+             ThreadMessagePartClient({ part }),
+           ),
+@@ -135,7 +135,18 @@ export const ThreadMessageClient = resource(
+           if ("index" in selector) {
+             return parts.get({ index: selector.index });
+           } else {
+-            return parts.get({ key: `toolCallId-${selector.toolCallId}` });
++            const idx = message.content.findIndex(
++              (p) =>
++                "toolCallId" in p &&
++                p.toolCallId != null &&
++                p.toolCallId === selector.toolCallId,
++            );
++            if (idx === -1) {
++              throw new Error(
++                `tapClientLookup: Part with toolCallId "${selector.toolCallId}" not found`,
++              );
++            }
++            return parts.get({ index: idx });
+           }
+         },
+         attachment: (selector) => {
+diff --git a/node_modules/@assistant-ui/react/src/legacy-runtime/client/MessageRuntimeClient.ts b/node_modules/@assistant-ui/react/src/legacy-runtime/client/MessageRuntimeClient.ts
+index 6f6f2dc..f118366 100644
+--- a/node_modules/@assistant-ui/react/src/legacy-runtime/client/MessageRuntimeClient.ts
++++ b/node_modules/@assistant-ui/react/src/legacy-runtime/client/MessageRuntimeClient.ts
+@@ -70,17 +70,35 @@ export const MessageClient = resource(
+       }),
+     );
+ 
++    // Deduplicate by toolCallId for display so the same tool call is only shown once
++    const displayIndices = tapMemo(() => {
++      const content = runtimeState.content;
++      const seenToolCallIds = new Set<string>();
++      const indices: number[] = [];
++      for (let idx = 0; idx < content.length; idx++) {
++        const part = content[idx];
++        if (
++          part &&
++          "toolCallId" in part &&
++          part.toolCallId != null
++        ) {
++          if (seenToolCallIds.has(part.toolCallId)) continue;
++          seenToolCallIds.add(part.toolCallId);
++        }
++        indices.push(idx);
++      }
++      return indices;
++    }, [runtimeState.content]);
++
+     const parts = tapClientLookup(
+       () =>
+-        runtimeState.content.map((part, idx) =>
++        displayIndices.map((contentIdx, displayIdx) =>
+           withKey(
+-            "toolCallId" in part && part.toolCallId != null
+-              ? `toolCallId-${part.toolCallId}`
+-              : `index-${idx}`,
+-            MessagePartByIndex({ runtime, index: idx }),
++            `index-${contentIdx}`,
++            MessagePartByIndex({ runtime, index: contentIdx }),
+           ),
+         ),
+-      [runtimeState.content, runtime],
++      [displayIndices, runtime],
+     );
+ 
+     const attachments = tapClientLookup(
+@@ -129,7 +147,24 @@ export const MessageClient = resource(
+           if ("index" in selector) {
+             return parts.get({ index: selector.index });
+           } else {
+-            return parts.get({ key: `toolCallId-${selector.toolCallId}` });
++            const contentIdx = runtimeState.content.findIndex(
++              (p) =>
++                "toolCallId" in p &&
++                p.toolCallId != null &&
++                p.toolCallId === selector.toolCallId,
++            );
++            if (contentIdx === -1) {
++              throw new Error(
++                `tapClientLookup: Part with toolCallId "${selector.toolCallId}" not found`,
++              );
++            }
++            const displayIdx = displayIndices.indexOf(contentIdx);
++            if (displayIdx === -1) {
++              throw new Error(
++                `tapClientLookup: Part with toolCallId "${selector.toolCallId}" not found`,
++              );
++            }
++            return parts.get({ index: displayIdx });
+           }
+         },
+ 
