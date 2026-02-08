@@ -66,7 +66,7 @@ This extension enables users to:
 ```
 ComfyUI_ComfyAssistant/
 ├── .agents/                    # Agent skills and documentation
-│   └── skills/                 # 7 skill modules
+│   └── skills/                 # 8 skill modules
 │       ├── assistant-ui/       # assistant-ui architecture
 │       ├── primitives/         # UI primitives
 │       ├── runtime/            # Runtime patterns
@@ -112,6 +112,17 @@ ComfyUI_ComfyAssistant/
 ├── user_context_store.py     # SQLite store for rules, preferences, onboarding
 ├── user_context_loader.py     # load_system_context(system_context/), load_user_context(user_context/), skills
 ├── tools_definitions.py       # Backend tool declarations ⭐
+├── doc/                       # User and developer documentation
+│   ├── README.md              # Index
+│   ├── installation.md       # Install (Manager / manual)
+│   ├── configuration.md      # API, onboarding, user context
+│   ├── skills.md             # User skills usage
+│   ├── base-tools.md         # Base tools and natural language
+│   ├── roadmap.md            # Development phases (done + planned)
+│   └── dev_docs/             # Developer docs (standards + vibecoders)
+│       ├── README.md          # Index
+│       ├── standards-and-conventions.md  # Summary; full: .agents/conventions.md
+│       └── vibecoders-guide.md           # What to ask agents to review
 ├── .env.example               # Environment template
 ├── pyproject.toml             # Python project metadata
 └── README.md                  # Documentation
@@ -298,6 +309,7 @@ data: [DONE]
 The `.agents/` directory contains comprehensive documentation and guides for AI agents working on this project:
 
 - **assistant-ui**: Architecture and component patterns
+- **documentation**: When and how to update docs (architecture, patterns, features, phases)
 - **primitives**: UI primitive components usage
 - **runtime**: Runtime patterns and state management
 - **setup**: Setup and configuration guides

@@ -8,6 +8,8 @@ AI assistant for ComfyUI that lets you control and explore workflows with natura
 
 📚 **[ComfyUI JavaScript Developer Documentation](https://docs.comfy.org/custom-nodes/js/javascript_overview)** — ComfyUI extension APIs.
 
+**User documentation:** [doc/](doc/README.md) — Installation, configuration, user skills, base tools, roadmap, and [developer docs](doc/dev_docs/README.md) (standards, vibecoders guide).
+
 ## Quick Start
 
 🚀 **[Quick Start Guide](QUICKSTART.md)** — Get the assistant running in minutes.
