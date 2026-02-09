@@ -22,6 +22,4 @@ export const getAvailableModelsDefinition = {
   parameters: getAvailableModelsSchema
 }
 
-export type GetAvailableModelsParams = z.infer<
-  typeof getAvailableModelsSchema
->
+export type GetAvailableModelsParams = z.infer<typeof getAvailableModelsSchema>

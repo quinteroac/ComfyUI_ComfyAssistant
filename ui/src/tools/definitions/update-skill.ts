@@ -9,10 +9,7 @@ export const updateSkillSchema = z.object({
     .string()
     .optional()
     .describe('Optional new human-readable name for the skill'),
-  description: z
-    .string()
-    .optional()
-    .describe('Optional new brief description'),
+  description: z.string().optional().describe('Optional new brief description'),
   instructions: z
     .string()
     .optional()

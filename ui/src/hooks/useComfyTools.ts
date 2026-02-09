@@ -10,10 +10,11 @@ import { useAssistantTool } from '@assistant-ui/react'
 
 import {
   addNodeDefinition,
+  applyWorkflowJsonDefinition,
   connectNodesDefinition,
   createSkillDefinition,
   deleteSkillDefinition,
-  updateSkillDefinition,
+  executeWorkflowDefinition,
   fillPromptNodeDefinition,
   getAvailableModelsDefinition,
   getWorkflowInfoDefinition,
@@ -21,14 +22,16 @@ import {
   refreshEnvironmentDefinition,
   removeNodeDefinition,
   searchInstalledNodesDefinition,
-  setNodeWidgetValueDefinition
+  setNodeWidgetValueDefinition,
+  updateSkillDefinition
 } from '@/tools/definitions'
 import {
   executeAddNode,
+  executeApplyWorkflowJson,
   executeConnectNodes,
   executeCreateSkill,
   executeDeleteSkill,
-  executeUpdateSkill,
+  executeExecuteWorkflow,
   executeFillPromptNode,
   executeGetAvailableModels,
   executeGetWorkflowInfo,
@@ -36,7 +39,8 @@ import {
   executeRefreshEnvironment,
   executeRemoveNode,
   executeSearchInstalledNodes,
-  executeSetNodeWidgetValue
+  executeSetNodeWidgetValue,
+  executeUpdateSkill
 } from '@/tools/implementations'
 import type { ToolContext } from '@/tools/types'
 
@@ -181,6 +185,28 @@ export function useComfyTools() {
     parameters: getAvailableModelsDefinition.parameters,
     execute: async (args) => {
       return executeGetAvailableModels(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: executeWorkflowDefinition.name,
+    description: executeWorkflowDefinition.description,
+    parameters: executeWorkflowDefinition.parameters,
+    execute: async (args) => {
+      const ctx = getToolContext()
+      if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
+      return executeExecuteWorkflow(args, ctx)
+    }
+  })
+
+  useAssistantTool({
+    toolName: applyWorkflowJsonDefinition.name,
+    description: applyWorkflowJsonDefinition.description,
+    parameters: applyWorkflowJsonDefinition.parameters,
+    execute: async (args) => {
+      const ctx = getToolContext()
+      if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
+      return executeApplyWorkflowJson(args, ctx)
     }
   })
 }
