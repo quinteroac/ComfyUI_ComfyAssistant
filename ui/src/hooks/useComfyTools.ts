@@ -11,17 +11,31 @@ import { useAssistantTool } from '@assistant-ui/react'
 import {
   addNodeDefinition,
   connectNodesDefinition,
+  createSkillDefinition,
+  deleteSkillDefinition,
+  updateSkillDefinition,
   fillPromptNodeDefinition,
+  getAvailableModelsDefinition,
   getWorkflowInfoDefinition,
+  readDocumentationDefinition,
+  refreshEnvironmentDefinition,
   removeNodeDefinition,
+  searchInstalledNodesDefinition,
   setNodeWidgetValueDefinition
 } from '@/tools/definitions'
 import {
   executeAddNode,
   executeConnectNodes,
+  executeCreateSkill,
+  executeDeleteSkill,
+  executeUpdateSkill,
   executeFillPromptNode,
+  executeGetAvailableModels,
   executeGetWorkflowInfo,
+  executeReadDocumentation,
+  executeRefreshEnvironment,
   executeRemoveNode,
+  executeSearchInstalledNodes,
   executeSetNodeWidgetValue
 } from '@/tools/implementations'
 import type { ToolContext } from '@/tools/types'
@@ -104,6 +118,69 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeFillPromptNode(args, ctx)
+    }
+  })
+
+  useAssistantTool({
+    toolName: createSkillDefinition.name,
+    description: createSkillDefinition.description,
+    parameters: createSkillDefinition.parameters,
+    execute: async (args) => {
+      return executeCreateSkill(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: deleteSkillDefinition.name,
+    description: deleteSkillDefinition.description,
+    parameters: deleteSkillDefinition.parameters,
+    execute: async (args) => {
+      return executeDeleteSkill(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: updateSkillDefinition.name,
+    description: updateSkillDefinition.description,
+    parameters: updateSkillDefinition.parameters,
+    execute: async (args) => {
+      return executeUpdateSkill(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: refreshEnvironmentDefinition.name,
+    description: refreshEnvironmentDefinition.description,
+    parameters: refreshEnvironmentDefinition.parameters,
+    execute: async () => {
+      return executeRefreshEnvironment()
+    }
+  })
+
+  useAssistantTool({
+    toolName: searchInstalledNodesDefinition.name,
+    description: searchInstalledNodesDefinition.description,
+    parameters: searchInstalledNodesDefinition.parameters,
+    execute: async (args) => {
+      return executeSearchInstalledNodes(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: readDocumentationDefinition.name,
+    description: readDocumentationDefinition.description,
+    parameters: readDocumentationDefinition.parameters,
+    execute: async (args) => {
+      return executeReadDocumentation(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: getAvailableModelsDefinition.name,
+    description: getAvailableModelsDefinition.description,
+    parameters: getAvailableModelsDefinition.parameters,
+    execute: async (args) => {
+      return executeGetAvailableModels(args)
     }
   })
 }

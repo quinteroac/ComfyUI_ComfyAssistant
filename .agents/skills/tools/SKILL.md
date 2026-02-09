@@ -95,6 +95,12 @@ stream = await client.chat.completions.create(
 | `getWorkflowInfo` | Get workflow information (with widget data) | ✅ Implemented |
 | `setNodeWidgetValue` | Set any widget value on a node | ✅ Implemented |
 | `fillPromptNode` | Set prompt text on CLIPTextEncode | ✅ Implemented |
+| `refreshEnvironment` | Rescan installed nodes, packages, models | ✅ Implemented |
+| `searchInstalledNodes` | Search installed node types | ✅ Implemented |
+| `readDocumentation` | Fetch documentation for a topic | ✅ Implemented |
+| `createSkill` | Create a persistent user skill | ✅ Implemented |
+| `deleteSkill` | Delete a user skill by slug | ✅ Implemented |
+| `updateSkill` | Update a user skill by slug (name, description, instructions) | ✅ Implemented |
 
 ## Folder Structure
 
@@ -108,16 +114,28 @@ ui/src/tools/
 │   ├── connect-nodes.ts
 │   ├── get-workflow-info.ts
 │   ├── set-node-widget-value.ts
-│   └── fill-prompt-node.ts
+│   ├── fill-prompt-node.ts
+│   ├── create-skill.ts
+│   ├── delete-skill.ts
+│   ├── update-skill.ts
+│   ├── refresh-environment.ts
+│   ├── search-installed-nodes.ts
+│   └── read-documentation.ts
 └── implementations/      # Execution logic
     ├── add-node.ts
     ├── remove-node.ts
     ├── connect-nodes.ts
     ├── get-workflow-info.ts
     ├── set-node-widget-value.ts
-    └── fill-prompt-node.ts
+    ├── fill-prompt-node.ts
+    ├── create-skill.ts
+    ├── delete-skill.ts
+    ├── update-skill.ts
+    ├── refresh-environment.ts
+    ├── search-installed-nodes.ts
+    └── read-documentation.ts
 
-tools_definitions.py      # Backend tool declarations
+tools_definitions.py      # Backend tool declarations (single source of truth)
 ```
 
 ## Key Concepts
