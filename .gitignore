@@ -1,5 +1,9 @@
 # Local env (contains secrets)
 .env
+.env.local
+.env.*
+ui/.env
+ui/.env.local
 
 # Python bytecode cache
 __pycache__/

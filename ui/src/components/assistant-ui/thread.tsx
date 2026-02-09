@@ -1,15 +1,4 @@
 import {
-  ComposerAddAttachment,
-  ComposerAttachments,
-  UserMessageAttachments,
-} from "@/components/assistant-ui/attachment";
-import { MarkdownText } from "@/components/assistant-ui/markdown-text";
-import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
-import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import "./assistant-ui-theme.css";
-import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,
   AuiIf,
@@ -18,8 +7,8 @@ import {
   ErrorPrimitive,
   MessagePrimitive,
   SuggestionPrimitive,
-  ThreadPrimitive,
-} from "@assistant-ui/react";
+  ThreadPrimitive
+} from '@assistant-ui/react'
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -31,22 +20,33 @@ import {
   MoreHorizontalIcon,
   PencilIcon,
   RefreshCwIcon,
-  SquareIcon,
-} from "lucide-react";
-import type { FC } from "react";
+  SquareIcon
+} from 'lucide-react'
+import type { FC } from 'react'
+
+import {
+  ComposerAddAttachment,
+  ComposerAttachments,
+  UserMessageAttachments
+} from '@/components/assistant-ui/attachment'
+import { MarkdownText } from '@/components/assistant-ui/markdown-text'
+import { ToolFallback } from '@/components/assistant-ui/tool-fallback'
+import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+import './assistant-ui-theme.css'
 
 export const Thread: FC = () => {
   return (
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full min-h-0 flex-col bg-background"
       style={{
-        ["--thread-max-width" as string]: "44rem",
+        ['--thread-max-width' as string]: '44rem'
       }}
     >
       {/* Viewport: solo mensajes. Composer fuera para evitar loop de scroll al escribir */}
-      <ThreadPrimitive.Viewport
-        className="aui-thread-viewport relative flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto scroll-smooth px-4 pt-4"
-      >
+      <ThreadPrimitive.Viewport className="aui-thread-viewport relative flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto scroll-smooth px-4 pt-4">
         <AuiIf condition={({ thread }) => thread.isEmpty}>
           <ThreadWelcome />
         </AuiIf>
@@ -55,7 +55,7 @@ export const Thread: FC = () => {
           components={{
             UserMessage,
             EditComposer,
-            AssistantMessage,
+            AssistantMessage
           }}
         />
 
@@ -69,8 +69,8 @@ export const Thread: FC = () => {
         <Composer />
       </div>
     </ThreadPrimitive.Root>
-  );
-};
+  )
+}
 
 const ThreadScrollToBottom: FC = () => {
   return (
@@ -83,8 +83,8 @@ const ThreadScrollToBottom: FC = () => {
         <ArrowDownIcon />
       </TooltipIconButton>
     </ThreadPrimitive.ScrollToBottom>
-  );
-};
+  )
+}
 
 const ThreadWelcome: FC = () => {
   return (
@@ -101,20 +101,20 @@ const ThreadWelcome: FC = () => {
       </div>
       <ThreadSuggestions />
     </div>
-  );
-};
+  )
+}
 
 const ThreadSuggestions: FC = () => {
   return (
     <div className="aui-thread-welcome-suggestions grid w-full @md:grid-cols-2 gap-2 pb-4">
       <ThreadPrimitive.Suggestions
         components={{
-          Suggestion: ThreadSuggestionItem,
+          Suggestion: ThreadSuggestionItem
         }}
       />
     </div>
-  );
-};
+  )
+}
 
 const ThreadSuggestionItem: FC = () => {
   return (
@@ -133,8 +133,8 @@ const ThreadSuggestionItem: FC = () => {
         </Button>
       </SuggestionPrimitive.Trigger>
     </div>
-  );
-};
+  )
+}
 
 const Composer: FC = () => {
   return (
@@ -146,12 +146,12 @@ const Composer: FC = () => {
             placeholder="Send a message..."
             rows={3}
             style={{
-              height: "4.5rem",
-              minHeight: "4.5rem",
-              maxHeight: "4.5rem",
-              resize: "none",
-              border: "none",
-              outline: "none",
+              height: '4.5rem',
+              minHeight: '4.5rem',
+              maxHeight: '4.5rem',
+              resize: 'none',
+              border: 'none',
+              outline: 'none'
             }}
             className="aui-composer-input m-0 w-full overflow-y-auto border-0 bg-transparent px-4 pt-3 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus:border-0 focus:outline-none"
             aria-label="Message input"
@@ -160,8 +160,8 @@ const Composer: FC = () => {
         <ComposerAction />
       </ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
-  );
-};
+  )
+}
 
 const ComposerAction: FC = () => {
   return (
@@ -196,8 +196,8 @@ const ComposerAction: FC = () => {
         </ComposerPrimitive.Cancel>
       </AuiIf>
     </div>
-  );
-};
+  )
+}
 
 const MessageError: FC = () => {
   return (
@@ -206,8 +206,8 @@ const MessageError: FC = () => {
         <ErrorPrimitive.Message className="aui-message-error-message line-clamp-2" />
       </ErrorPrimitive.Root>
     </MessagePrimitive.Error>
-  );
-};
+  )
+}
 
 const AssistantMessage: FC = () => {
   return (
@@ -228,12 +228,10 @@ const AssistantMessage: FC = () => {
                 <summary className="aui-reasoning-header">
                   Chain of Thought
                 </summary>
-                <div className="aui-reasoning-content">
-                  {props.text}
-                </div>
+                <div className="aui-reasoning-content">{props.text}</div>
               </details>
             ),
-            tools: { Fallback: ToolFallback },
+            tools: { Fallback: ToolFallback }
           }}
         />
         <MessageError />
@@ -244,8 +242,8 @@ const AssistantMessage: FC = () => {
         <AssistantActionBar />
       </div>
     </MessagePrimitive.Root>
-  );
-};
+  )
+}
 
 const AssistantActionBar: FC = () => {
   return (
@@ -293,8 +291,8 @@ const AssistantActionBar: FC = () => {
         </ActionBarMorePrimitive.Content>
       </ActionBarMorePrimitive.Root>
     </ActionBarPrimitive.Root>
-  );
-};
+  )
+}
 
 const UserMessage: FC = () => {
   return (
@@ -315,8 +313,8 @@ const UserMessage: FC = () => {
 
       <BranchPicker className="aui-user-branch-picker col-span-full col-start-1 row-start-3 -mr-1 justify-end" />
     </MessagePrimitive.Root>
-  );
-};
+  )
+}
 
 const UserActionBar: FC = () => {
   return (
@@ -331,8 +329,8 @@ const UserActionBar: FC = () => {
         </TooltipIconButton>
       </ActionBarPrimitive.Edit>
     </ActionBarPrimitive.Root>
-  );
-};
+  )
+}
 
 const EditComposer: FC = () => {
   return (
@@ -354,8 +352,8 @@ const EditComposer: FC = () => {
         </div>
       </ComposerPrimitive.Root>
     </MessagePrimitive.Root>
-  );
-};
+  )
+}
 
 const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
   className,
@@ -365,8 +363,8 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
       className={cn(
-        "aui-branch-picker-root mr-2 -ml-2 inline-flex items-center text-muted-foreground text-xs",
-        className,
+        'aui-branch-picker-root mr-2 -ml-2 inline-flex items-center text-muted-foreground text-xs',
+        className
       )}
       {...rest}
     >
@@ -384,5 +382,5 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
         </TooltipIconButton>
       </BranchPickerPrimitive.Next>
     </BranchPickerPrimitive.Root>
-  );
-};
+  )
+}

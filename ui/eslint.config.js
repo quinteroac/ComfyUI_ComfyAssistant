@@ -9,13 +9,16 @@ export default [
     files: ['src/**/*.{js,mjs,cjs,ts,tsx}']
   },
   {
+    ignores: ['*.config.js', 'jest.setup.js']
+  },
+  {
     languageOptions: {
       globals: {
         ...globals.browser
       },
       parser: tseslint.parser,
       parserOptions: {
-        project: './tsconfig.json',
+        project: ['./tsconfig.json', './tsconfig.node.json'],
         ecmaVersion: 2020,
         sourceType: 'module'
       }

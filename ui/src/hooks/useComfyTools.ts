@@ -6,27 +6,24 @@
  * parts, sends results back via addToolResult, and resubmits for the
  * next LLM response — no manual interception or text-based hacks needed.
  */
-
 import { useAssistantTool } from '@assistant-ui/react'
 
 import {
   addNodeDefinition,
-  removeNodeDefinition,
   connectNodesDefinition,
-  getWorkflowInfoDefinition,
-  setNodeWidgetValueDefinition,
   fillPromptNodeDefinition,
+  getWorkflowInfoDefinition,
+  removeNodeDefinition,
+  setNodeWidgetValueDefinition
 } from '@/tools/definitions'
-
 import {
   executeAddNode,
-  executeRemoveNode,
   executeConnectNodes,
-  executeGetWorkflowInfo,
-  executeSetNodeWidgetValue,
   executeFillPromptNode,
+  executeGetWorkflowInfo,
+  executeRemoveNode,
+  executeSetNodeWidgetValue
 } from '@/tools/implementations'
-
 import type { ToolContext } from '@/tools/types'
 
 /**
@@ -52,7 +49,7 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeAddNode(args, ctx)
-    },
+    }
   })
 
   useAssistantTool({
@@ -63,7 +60,7 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeRemoveNode(args, ctx)
-    },
+    }
   })
 
   useAssistantTool({
@@ -74,7 +71,7 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeConnectNodes(args, ctx)
-    },
+    }
   })
 
   useAssistantTool({
@@ -85,7 +82,7 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeGetWorkflowInfo(args, ctx)
-    },
+    }
   })
 
   useAssistantTool({
@@ -96,7 +93,7 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeSetNodeWidgetValue(args, ctx)
-    },
+    }
   })
 
   useAssistantTool({
@@ -107,6 +104,6 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeFillPromptNode(args, ctx)
-    },
+    }
   })
 }

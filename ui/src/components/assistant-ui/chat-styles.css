@@ -53,7 +53,8 @@
   box-shadow: 0 0 0 3px hsl(var(--ring) / 0.1);
 }
 
-#comfyui-react-example-root .aui-composer-attachment-dropzone[data-dragging="true"] {
+#comfyui-react-example-root
+  .aui-composer-attachment-dropzone[data-dragging='true'] {
   border-color: hsl(var(--ring));
   border-style: dashed;
   background: hsl(var(--accent) / 0.5);
@@ -96,7 +97,7 @@
 #comfyui-react-example-root .aui-composer-send,
 #comfyui-react-example-root .aui-composer-send button,
 #comfyui-react-example-root .aui-composer-cancel,
-#comfyui-react-example-root button[data-variant="default"] {
+#comfyui-react-example-root button[data-variant='default'] {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border: none;
@@ -105,14 +106,14 @@
 
 #comfyui-react-example-root .aui-composer-send:hover,
 #comfyui-react-example-root .aui-composer-cancel:hover,
-#comfyui-react-example-root button[data-variant="default"]:hover {
+#comfyui-react-example-root button[data-variant='default']:hover {
   opacity: 0.9;
   transform: scale(1.05);
 }
 
 #comfyui-react-example-root .aui-composer-send:active,
 #comfyui-react-example-root .aui-composer-cancel:active,
-#comfyui-react-example-root button[data-variant="default"]:active {
+#comfyui-react-example-root button[data-variant='default']:active {
   transform: scale(0.95);
 }
 
@@ -121,8 +122,8 @@
 #comfyui-react-example-root .aui-thread-list-new button,
 #comfyui-react-example-root .aui-thread-welcome-suggestion button,
 #comfyui-react-example-root .aui-thread-scroll-to-bottom button,
-#comfyui-react-example-root button[data-variant="outline"],
-#comfyui-react-example-root button[data-variant="ghost"] {
+#comfyui-react-example-root button[data-variant='outline'],
+#comfyui-react-example-root button[data-variant='ghost'] {
   background: transparent;
   border: 1px solid hsl(var(--border));
   color: hsl(var(--foreground));
@@ -131,8 +132,8 @@
 
 #comfyui-react-example-root .aui-thread-list-new:hover,
 #comfyui-react-example-root .aui-thread-welcome-suggestion button:hover,
-#comfyui-react-example-root button[data-variant="outline"]:hover,
-#comfyui-react-example-root button[data-variant="ghost"]:hover {
+#comfyui-react-example-root button[data-variant='outline']:hover,
+#comfyui-react-example-root button[data-variant='ghost']:hover {
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
   border-color: hsl(var(--border));
@@ -241,7 +242,7 @@
 }
 
 #comfyui-react-example-root .aui-thread-list-item:hover,
-#comfyui-react-example-root .aui-thread-list-item[data-active="true"] {
+#comfyui-react-example-root .aui-thread-list-item[data-active='true'] {
   background: hsl(var(--accent));
 }
 
@@ -285,9 +286,16 @@
 }
 
 @keyframes errorShake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 /* ============================================
@@ -339,8 +347,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ============================================
@@ -363,7 +376,7 @@
    Accessibility
    ============================================ */
 #comfyui-react-example-root button:focus-visible,
-#comfyui-react-example-root [role="button"]:focus-visible {
+#comfyui-react-example-root [role='button']:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }

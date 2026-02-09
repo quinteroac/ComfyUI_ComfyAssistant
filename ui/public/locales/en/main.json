@@ -1,7 +1,7 @@
 {
   "app": {
-    "title": "React Example Extension",
-    "description": "Shows statistics about nodes in the current workflow",
+    "title": "ComfyUI Assistant",
+    "description": "AI assistant for ComfyUI workflows",
     "noNodes": "No nodes in the workflow",
     "nodeList": {
       "title": "Node List",

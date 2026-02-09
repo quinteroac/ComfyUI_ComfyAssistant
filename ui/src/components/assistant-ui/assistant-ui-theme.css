@@ -48,8 +48,9 @@
   --aui-border-radius-sm: 0.375rem;
 
   /* Typography */
-  --aui-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --aui-font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   --aui-font-size: 0.875rem;
   --aui-line-height: 1.5;
 
@@ -214,8 +215,12 @@
 #comfyui-react-example-root .aui-button-primary,
 #comfyui-react-example-root .aui-composer-send,
 #comfyui-react-example-root .aui-composer-send button,
-#comfyui-react-example-root button[data-variant="default"] {
-  background: linear-gradient(135deg, hsl(var(--aui-primary)) 0%, hsl(var(--aui-primary) / 0.9) 100%);
+#comfyui-react-example-root button[data-variant='default'] {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--aui-primary)) 0%,
+    hsl(var(--aui-primary) / 0.9) 100%
+  );
   color: hsl(var(--aui-primary-foreground));
   border: none;
   border-radius: 9999px;
@@ -235,8 +240,12 @@
 
 #comfyui-react-example-root .aui-button-primary:hover,
 #comfyui-react-example-root .aui-composer-send:hover button,
-#comfyui-react-example-root button[data-variant="default"]:hover {
-  background: linear-gradient(135deg, hsl(var(--aui-primary) / 0.95) 0%, hsl(var(--aui-primary) / 0.85) 100%);
+#comfyui-react-example-root button[data-variant='default']:hover {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--aui-primary) / 0.95) 0%,
+    hsl(var(--aui-primary) / 0.85) 100%
+  );
   box-shadow:
     0 4px 6px hsl(var(--aui-foreground) / 0.1),
     0 2px 4px hsl(var(--aui-foreground) / 0.06);
@@ -246,8 +255,7 @@
 #comfyui-react-example-root .aui-button-primary:active,
 #comfyui-react-example-root .aui-composer-send:active button {
   transform: translateY(0);
-  box-shadow:
-    0 1px 2px hsl(var(--aui-foreground) / 0.1);
+  box-shadow: 0 1px 2px hsl(var(--aui-foreground) / 0.1);
 }
 
 /* Cancel Button */
@@ -263,8 +271,8 @@
 /* Secondary/Ghost Button */
 #comfyui-react-example-root .aui-button-secondary,
 #comfyui-react-example-root .aui-button-ghost,
-#comfyui-react-example-root button[data-variant="outline"],
-#comfyui-react-example-root button[data-variant="ghost"] {
+#comfyui-react-example-root button[data-variant='outline'],
+#comfyui-react-example-root button[data-variant='ghost'] {
   background: hsl(var(--aui-background));
   border: 1px solid hsl(var(--aui-border));
   color: hsl(var(--aui-foreground));
@@ -275,8 +283,8 @@
 
 #comfyui-react-example-root .aui-button-secondary:hover,
 #comfyui-react-example-root .aui-button-ghost:hover,
-#comfyui-react-example-root button[data-variant="outline"]:hover,
-#comfyui-react-example-root button[data-variant="ghost"]:hover {
+#comfyui-react-example-root button[data-variant='outline']:hover,
+#comfyui-react-example-root button[data-variant='ghost']:hover {
   background: hsl(var(--aui-accent));
   border-color: hsl(var(--aui-border));
   transform: translateY(-1px);
@@ -284,7 +292,7 @@
 }
 
 /* Icon Buttons (small, circular) */
-#comfyui-react-example-root button[class*="icon"],
+#comfyui-react-example-root button[class*='icon'],
 #comfyui-react-example-root .aui-action-bar-root button {
   min-width: 2rem;
   min-height: 2rem;
@@ -295,7 +303,7 @@
   color: hsl(var(--aui-muted-foreground));
 }
 
-#comfyui-react-example-root button[class*="icon"]:hover,
+#comfyui-react-example-root button[class*='icon']:hover,
 #comfyui-react-example-root .aui-action-bar-root button:hover {
   background: hsl(var(--aui-accent));
   color: hsl(var(--aui-foreground));
@@ -395,7 +403,7 @@
 }
 
 /* Floating action bar */
-#comfyui-react-example-root .aui-action-bar-root[data-floating="true"] {
+#comfyui-react-example-root .aui-action-bar-root[data-floating='true'] {
   background: hsl(var(--aui-background));
   border: 1px solid hsl(var(--aui-border));
   border-radius: 0.5rem;
@@ -424,9 +432,9 @@
 /* ============================================
    Thinking/Reasoning Blocks
    ============================================ */
-#comfyui-react-example-root [data-part-type="reasoning"],
+#comfyui-react-example-root [data-part-type='reasoning'],
 #comfyui-react-example-root .aui-reasoning-root,
-#comfyui-react-example-root details[data-part="reasoning"] {
+#comfyui-react-example-root details[data-part='reasoning'] {
   margin: 1rem 0;
   border: 1.5px solid hsl(var(--aui-border));
   border-left: 4px solid hsl(224 71% 63%);
@@ -437,14 +445,14 @@
   transition: all var(--aui-transition-base);
 }
 
-#comfyui-react-example-root details[data-part="reasoning"]:hover {
+#comfyui-react-example-root details[data-part='reasoning']:hover {
   border-color: hsl(var(--aui-border));
   background: hsl(var(--aui-muted) / 0.4);
   box-shadow: 0 2px 8px hsl(var(--aui-foreground) / 0.05);
 }
 
 /* Thinking summary/header */
-#comfyui-react-example-root details[data-part="reasoning"] summary,
+#comfyui-react-example-root details[data-part='reasoning'] summary,
 #comfyui-react-example-root .aui-reasoning-header {
   padding: 0.75rem 1rem;
   cursor: pointer;
@@ -459,41 +467,49 @@
   list-style: none;
 }
 
-#comfyui-react-example-root details[data-part="reasoning"] summary::-webkit-details-marker {
+#comfyui-react-example-root
+  details[data-part='reasoning']
+  summary::-webkit-details-marker {
   display: none;
 }
 
-#comfyui-react-example-root details[data-part="reasoning"] summary::before {
-  content: "🧠";
+#comfyui-react-example-root details[data-part='reasoning'] summary::before {
+  content: '🧠';
   font-size: 1.125rem;
   display: inline-block;
   transition: transform var(--aui-transition-base);
 }
 
-#comfyui-react-example-root details[data-part="reasoning"][open] summary::before {
+#comfyui-react-example-root
+  details[data-part='reasoning'][open]
+  summary::before {
   transform: rotate(15deg) scale(1.1);
 }
 
-#comfyui-react-example-root details[data-part="reasoning"] summary:hover {
+#comfyui-react-example-root details[data-part='reasoning'] summary:hover {
   background: hsl(var(--aui-muted) / 0.4);
   color: hsl(224 71% 70%);
 }
 
-#comfyui-react-example-root details[data-part="reasoning"] summary::after {
-  content: "▼";
+#comfyui-react-example-root details[data-part='reasoning'] summary::after {
+  content: '▼';
   margin-left: auto;
   font-size: 0.75rem;
   transition: transform var(--aui-transition-base);
   opacity: 0.6;
 }
 
-#comfyui-react-example-root details[data-part="reasoning"][open] summary::after {
+#comfyui-react-example-root
+  details[data-part='reasoning'][open]
+  summary::after {
   transform: rotate(180deg);
 }
 
 /* Thinking content */
-#comfyui-react-example-root details[data-part="reasoning"] .aui-reasoning-content,
-#comfyui-react-example-root [data-part-type="reasoning"] > div {
+#comfyui-react-example-root
+  details[data-part='reasoning']
+  .aui-reasoning-content,
+#comfyui-react-example-root [data-part-type='reasoning'] > div {
   padding: 1rem;
   color: hsl(var(--aui-muted-foreground));
   font-size: 0.875rem;
@@ -504,17 +520,19 @@
 }
 
 /* Animation for opening */
-#comfyui-react-example-root details[data-part="reasoning"] {
+#comfyui-react-example-root details[data-part='reasoning'] {
   animation: aui-scale-in var(--aui-transition-slow) ease-out;
 }
 
-#comfyui-react-example-root details[data-part="reasoning"][open] .aui-reasoning-content {
+#comfyui-react-example-root
+  details[data-part='reasoning'][open]
+  .aui-reasoning-content {
   animation: aui-fade-in 0.3s ease-out;
 }
 
 /* Alternative flat style if details not used */
 #comfyui-react-example-root .aui-thinking,
-#comfyui-react-example-root [data-type="thinking"] {
+#comfyui-react-example-root [data-type='thinking'] {
   margin: 1rem 0;
   padding: 1rem;
   border-left: 4px solid hsl(224 71% 63%);
@@ -532,7 +550,7 @@
 }
 
 #comfyui-react-example-root .aui-thinking::before {
-  content: "💭 Thinking";
+  content: '💭 Thinking';
   display: block;
   font-weight: 600;
   color: hsl(224 71% 63%);
@@ -637,7 +655,8 @@
 }
 
 @keyframes aui-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -659,7 +678,7 @@
 
 /* Loading indicator */
 #comfyui-react-example-root .aui-loading,
-#comfyui-react-example-root [data-state="loading"] {
+#comfyui-react-example-root [data-state='loading'] {
   animation: aui-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 

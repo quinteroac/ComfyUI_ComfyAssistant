@@ -2,8 +2,8 @@
  * First-time onboarding: personality, goals, experience level.
  * Persisted via POST /api/user-context/onboarding; then chat is shown.
  */
-
 import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 
 const API_STATUS = '/api/user-context/status'
@@ -15,7 +15,9 @@ export type OnboardingData = {
   experienceLevel: string
 }
 
-export async function fetchOnboardingStatus(): Promise<{ needsOnboarding: boolean }> {
+export async function fetchOnboardingStatus(): Promise<{
+  needsOnboarding: boolean
+}> {
   const res = await fetch(API_STATUS)
   if (!res.ok) return { needsOnboarding: true }
   const data = await res.json()
@@ -29,8 +31,8 @@ export async function submitOnboarding(data: OnboardingData): Promise<void> {
     body: JSON.stringify({
       personality: data.personality,
       goals: data.goals,
-      experienceLevel: data.experienceLevel,
-    }),
+      experienceLevel: data.experienceLevel
+    })
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -42,7 +44,7 @@ export async function skipOnboarding(): Promise<void> {
   const res = await fetch(API_ONBOARDING, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ skip: true }),
+    body: JSON.stringify({ skip: true })
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -58,7 +60,7 @@ const EXPERIENCE_OPTIONS = [
   { value: '', label: 'Select…' },
   { value: 'novice', label: 'Novice' },
   { value: 'intermediate', label: 'Intermediate' },
-  { value: 'advanced', label: 'Advanced' },
+  { value: 'advanced', label: 'Advanced' }
 ]
 
 export function OnboardingView({ onComplete }: OnboardingViewProps) {
@@ -99,7 +101,8 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
       <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
         <h2 className="text-xl font-semibold">Welcome to ComfyUI Assistant</h2>
         <p className="text-muted-foreground text-sm">
-          Optional: set your preferences so the assistant can adapt. You can skip and edit later in the user_context folder.
+          Optional: set your preferences so the assistant can adapt. You can
+          skip and edit later in the user_context folder.
         </p>
 
         <div className="space-y-2">
@@ -139,9 +142,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
           </select>
         </div>
 
-        {error && (
-          <p className="text-destructive text-sm">{error}</p>
-        )}
+        {error && <p className="text-destructive text-sm">{error}</p>}
 
         <div className="flex gap-2">
           <Button onClick={handleSubmit} disabled={loading}>

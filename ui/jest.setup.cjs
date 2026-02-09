@@ -1,5 +1,5 @@
-// Import jest-dom additions
-import '@testing-library/jest-dom';
+// Import jest-dom additions (CommonJS for Jest compatibility with "type": "module")
+require('@testing-library/jest-dom')
 
 // Mock window.app for ComfyUI integration testing
 global.window.app = {
@@ -13,4 +13,4 @@ global.window.app = {
   canvas: {
     centerOnNode: jest.fn()
   }
-};
+}

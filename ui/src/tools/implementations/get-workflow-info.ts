@@ -1,46 +1,46 @@
-import type { ToolContext, ToolResult } from '../types';
-import type { GetWorkflowInfoParams } from '../definitions/get-workflow-info';
+import type { GetWorkflowInfoParams } from '../definitions/get-workflow-info'
+import type { ToolContext, ToolResult } from '../types'
 
 /**
  * Widget information exposed when includeNodeDetails is true
  */
 interface WidgetInfo {
-  name: string;
-  type: string;
-  value: unknown;
-  options?: string[];
+  name: string
+  type: string
+  value: unknown
+  options?: string[]
 }
 
 /**
  * Summary information of a node
  */
 interface NodeInfo {
-  id: string | number;
-  type: string;
-  position: [number, number];
-  size?: [number, number];
-  title?: string;
-  widgets?: WidgetInfo[];
+  id: string | number
+  type: string
+  position: [number, number]
+  size?: [number, number]
+  title?: string
+  widgets?: WidgetInfo[]
 }
 
 /**
  * Information about a connection between nodes
  */
 interface ConnectionInfo {
-  sourceNodeId: string | number;
-  sourceSlot: number;
-  targetNodeId: string | number;
-  targetSlot: number;
+  sourceNodeId: string | number
+  sourceSlot: number
+  targetNodeId: string | number
+  targetSlot: number
 }
 
 /**
  * Result of getting workflow information
  */
 interface WorkflowInfo {
-  nodeCount: number;
-  nodes: NodeInfo[];
-  connections: ConnectionInfo[];
-  canvasSize?: { width: number; height: number };
+  nodeCount: number
+  nodes: NodeInfo[]
+  connections: ConnectionInfo[]
+  canvasSize?: { width: number; height: number }
 }
 
 /**
@@ -50,70 +50,70 @@ export async function executeGetWorkflowInfo(
   params: GetWorkflowInfoParams,
   context: ToolContext
 ): Promise<ToolResult<WorkflowInfo>> {
-  const { app } = context;
-  
+  const { app } = context
+
   if (!app?.graph) {
     return {
       success: false,
-      error: "ComfyUI app is not available"
-    };
+      error: 'ComfyUI app is not available'
+    }
   }
 
   try {
-    const nodes: NodeInfo[] = [];
-    const connections: ConnectionInfo[] = [];
+    const nodes: NodeInfo[] = []
+    const connections: ConnectionInfo[] = []
 
     // Collect node information
     for (const node of app.graph._nodes) {
       const nodeInfo: NodeInfo = {
         id: node.id,
         type: node.type,
-        position: node.pos as [number, number],
-      };
+        position: node.pos as [number, number]
+      }
 
       if (params.includeNodeDetails) {
-        nodeInfo.size = node.size as [number, number];
-        nodeInfo.title = node.title;
+        nodeInfo.size = node.size as [number, number]
+        nodeInfo.title = node.title
 
         // Populate widget info (filter out non-configurable widgets like buttons)
         if (node.widgets) {
-          const widgets: WidgetInfo[] = [];
+          const widgets: WidgetInfo[] = []
           for (const widget of node.widgets) {
-            if (widget.type === 'button') continue;
+            if (widget.type === 'button') continue
             const info: WidgetInfo = {
               name: widget.name,
               type: widget.type,
-              value: widget.value,
-            };
-            // Expose available options for combo/dropdown widgets
-            const opts = (widget as any).options?.values;
-            if (widget.type === 'combo' && Array.isArray(opts)) {
-              info.options = opts;
+              value: widget.value
             }
-            widgets.push(info);
+            // Expose available options for combo/dropdown widgets
+            const opts = (widget as any).options?.values
+            if (widget.type === 'combo' && Array.isArray(opts)) {
+              info.options = opts
+            }
+            widgets.push(info)
           }
           if (widgets.length > 0) {
-            nodeInfo.widgets = widgets;
+            nodeInfo.widgets = widgets
           }
         }
       }
 
-      nodes.push(nodeInfo);
+      nodes.push(nodeInfo)
 
       // Collect connections (outputs)
       if (node.outputs) {
         for (let i = 0; i < node.outputs.length; i++) {
-          const output = node.outputs[i];
+          const output = node.outputs[i]
           if (output.links) {
             for (const linkId of output.links) {
-              const link = app.graph.links[linkId];
+              const link = app.graph.links[linkId]
               if (link) {
                 connections.push({
                   sourceNodeId: node.id,
                   sourceSlot: i,
                   targetNodeId: link.target_id,
                   targetSlot: link.target_slot
-                });
+                })
               }
             }
           }
@@ -127,16 +127,21 @@ export async function executeGetWorkflowInfo(
         nodeCount: nodes.length,
         nodes,
         connections,
-        canvasSize: app.canvas ? {
-          width: app.canvas.canvas.width,
-          height: app.canvas.canvas.height
-        } : undefined
+        canvasSize: app.canvas
+          ? {
+              width: app.canvas.canvas.width,
+              height: app.canvas.canvas.height
+            }
+          : undefined
       }
-    };
+    }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error getting workflow information"
-    };
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unknown error getting workflow information'
+    }
   }
 }

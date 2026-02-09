@@ -10,16 +10,23 @@
  * Phase 1: optional first-time onboarding; on first load we check
  * /api/user-context/status and show onboarding UI if needed.
  */
-
+import { AssistantRuntimeProvider } from '@assistant-ui/react'
+import {
+  AssistantChatTransport,
+  useChatRuntime
+} from '@assistant-ui/react-ai-sdk'
 import { ComfyApp } from '@comfyorg/comfyui-frontend-types'
-import { AssistantRuntimeProvider } from "@assistant-ui/react"
-import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk"
-import { lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai'
-import { useEffect, useState } from "react"
-import { ThreadList } from "@/components/assistant-ui/thread-list"
-import { Thread } from "@/components/assistant-ui/thread"
-import { OnboardingView, fetchOnboardingStatus } from "@/components/assistant-ui/onboarding"
-import { useComfyTools } from "@/hooks/useComfyTools"
+import { type UIMessage, lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
+import { useEffect, useState } from 'react'
+
+import {
+  OnboardingView,
+  fetchOnboardingStatus
+} from '@/components/assistant-ui/onboarding'
+import { Thread } from '@/components/assistant-ui/thread'
+import { ThreadList } from '@/components/assistant-ui/thread-list'
+import { useComfyTools } from '@/hooks/useComfyTools'
+
 import './App.css'
 
 // Type definitions for the global ComfyUI objects
@@ -40,7 +47,7 @@ declare global {
  *   [text, tool-invocation(result)]          ← last part is tool → resubmit
  */
 function shouldResubmitAfterToolResult({
-  messages,
+  messages
 }: {
   messages: UIMessage[]
 }): boolean {
@@ -66,13 +73,12 @@ function ChatWithTools() {
   )
 }
 
-
 function AppContent() {
   const runtime = useChatRuntime({
     transport: new AssistantChatTransport({
-      api: "/api/chat",
+      api: '/api/chat'
     }),
-    sendAutomaticallyWhen: shouldResubmitAfterToolResult,
+    sendAutomaticallyWhen: shouldResubmitAfterToolResult
   })
 
   return (
@@ -100,11 +106,7 @@ function App() {
   }
 
   if (needsOnboarding) {
-    return (
-      <OnboardingView
-        onComplete={() => setNeedsOnboarding(false)}
-      />
-    )
+    return <OnboardingView onComplete={() => setNeedsOnboarding(false)} />
   }
 
   return <AppContent />

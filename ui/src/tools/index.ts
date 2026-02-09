@@ -1,29 +1,27 @@
 /**
  * Central registry of all tools available to the assistant
  */
-
-import type { ToolContext } from './types';
-import type { Tool } from '@assistant-ui/react';
+import type { Tool } from '@assistant-ui/react'
 
 // Import definitions
 import {
   addNodeDefinition,
-  removeNodeDefinition,
-  getWorkflowInfoDefinition,
   connectNodesDefinition,
-  setNodeWidgetValueDefinition,
-  fillPromptNodeDefinition
-} from './definitions';
-
+  fillPromptNodeDefinition,
+  getWorkflowInfoDefinition,
+  removeNodeDefinition,
+  setNodeWidgetValueDefinition
+} from './definitions'
 // Import implementations
 import {
   executeAddNode,
-  executeRemoveNode,
-  executeGetWorkflowInfo,
   executeConnectNodes,
-  executeSetNodeWidgetValue,
-  executeFillPromptNode
-} from './implementations';
+  executeFillPromptNode,
+  executeGetWorkflowInfo,
+  executeRemoveNode,
+  executeSetNodeWidgetValue
+} from './implementations'
+import type { ToolContext } from './types'
 
 /**
  * Creates the tools object with implementations injected with context
@@ -53,16 +51,17 @@ export function createTools(context: ToolContext): Record<string, Tool> {
     [setNodeWidgetValueDefinition.name]: {
       description: setNodeWidgetValueDefinition.description,
       parameters: setNodeWidgetValueDefinition.parameters,
-      execute: async (params) => executeSetNodeWidgetValue(params as any, context)
+      execute: async (params) =>
+        executeSetNodeWidgetValue(params as any, context)
     },
     [fillPromptNodeDefinition.name]: {
       description: fillPromptNodeDefinition.description,
       parameters: fillPromptNodeDefinition.parameters,
       execute: async (params) => executeFillPromptNode(params as any, context)
     }
-  };
+  }
 }
 
 // Re-export definitions for use in the backend
-export * from './definitions';
-export * from './types';
+export * from './definitions'
+export * from './types'

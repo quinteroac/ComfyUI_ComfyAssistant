@@ -57,7 +57,9 @@ export async function executeSetNodeWidgetValue(
     }
 
     // Unwrap array values (some LLMs send ["value"] instead of "value" for combo widgets)
-    const resolvedValue = Array.isArray(params.value) ? params.value[0] : params.value
+    const resolvedValue = Array.isArray(params.value)
+      ? params.value[0]
+      : params.value
 
     const previousValue = widget.value
     widget.value = resolvedValue
