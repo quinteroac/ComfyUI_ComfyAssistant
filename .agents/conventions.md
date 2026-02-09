@@ -444,6 +444,17 @@ window.app.graph.clear() // Might crash
 
 ## Git Conventions
 
+### Feature Branches and Pull Requests
+
+**For each development phase or major change, use a feature branch and merge via Pull Request.**
+
+- **When starting** a development phase (e.g. phase_3) or any major change (new feature, large refactor, breaking change), create a **feature branch** from the current base (e.g. `main`).
+- **Do not merge** feature work directly into `main` (or the default branch). All such work **must go through a PR**.
+- Open a Pull Request when the branch is ready for review; get review/approval if required by the project; then merge (squash or merge commit per project preference).
+- Branch naming: use descriptive names (see [Branch Naming](#branch-naming) below), e.g. `feature/phase-3-user-skills`, `feature/add-widget-tool`.
+
+This keeps main stable, makes changes reviewable, and preserves a clear history of what was done per phase or feature.
+
 ### Commit Before Significant Changes
 
 **Each important change must be preceded by a commit.** Before starting a substantial change (refactor, new feature, risky fix), ensure the current state is committed. This keeps history clear, makes rollback easy, and allows diffing against a known good state.
@@ -509,6 +520,7 @@ my-work
 
 ### Pull Requests
 
+- **Feature branches and development phases must be merged via PR** — see [Feature Branches and Pull Requests](#feature-branches-and-pull-requests) above.
 - Write clear PR descriptions
 - Reference related issues
 - Include testing instructions
