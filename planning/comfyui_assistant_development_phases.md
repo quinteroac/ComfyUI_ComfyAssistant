@@ -120,6 +120,26 @@ This document defines a **phased development plan** from the current MVP to the 
 
 ---
 
+## Phase 6 — Risk mitigation (post–Phase 3 review)
+
+**Goal:** Address risks identified in the Phase 3 PR review (e.g. Bugbot — Medium Risk): new backend APIs, background scanning, prompt injection (environment summary), and the `@assistant-ui/react-ai-sdk` tool-call patch. Document and, where applicable, implement mitigations so the model’s context and tool execution remain bounded and maintainable.
+
+**Deliverables:**
+
+1. **Risks document** — `development/phase_6/risks_from_phase_3.md`: four risk areas (APIs, background scan, prompt injection, patch) with concrete mitigations and checklists.
+2. **Backend APIs** — Confirm Phase 3 endpoints follow the same access policy as the rest of the backend; document route list and assumptions (e.g. same origin, no new public exposure).
+3. **Background scanning** — Ensure scan failure does not block startup; optional: make auto-scan configurable; define or enforce limits (scan duration, cache/summary size).
+4. **Prompt injection** — Document that the environment summary is from our controlled cache (not raw user input); keep or define a strict size limit for the injected summary; document in security/context docs.
+5. **Patch to assistant-ui** — Document in `ui/patches/` what the patch fixes (streamed tool-call execution and result return) and what it does not change; add a note for future upgrades (re-apply or re-evaluate patch, smoke test tool execution).
+
+**Success criteria:** All four risk areas documented with mitigations applied or explicitly accepted. At minimum: route assumptions documented; environment summary size bounded and documented; patch purpose and upgrade plan documented. No regression in Phase 3 behaviour.
+
+**Dependencies:** Phase 3 done. Can be done after or in parallel with Phase 4/5.
+
+**Reference:** [development/phase_6/risks_from_phase_3.md](../development/phase_6/risks_from_phase_3.md) for the detailed checklist.
+
+---
+
 ## Summary table
 
 | Phase | Focus | Key deliverables |
@@ -130,11 +150,12 @@ This document defines a **phased development plan** from the current MVP to the 
 | **3** | Back agent & environment | .agents/ layer, refresh_environment, read_documentation, search_installed/documented_custom_nodes, **create_skill** (integrated with back) |
 | **4** | Execution & complex workflows | execute_workflow (with UI feedback), apply_workflow_json |
 | **5** | NFRs & polish | ComfyUI Manager install, multi-provider config UI, security, multi-language, docs |
+| **6** | Risk mitigation (post–Phase 3) | Document and mitigate Phase 3 risks: APIs, scan, prompt injection, assistant-ui patch |
 
 ---
 
 ## Notes
 
-- **Order:** Phases 1 → 2 → 3 → 4 are sequential by dependency. Phase 5 can start in parallel (e.g. Manager metadata, i18n) and be completed after Phase 4.
+- **Order:** Phases 1 → 2 → 3 → 4 are sequential by dependency. Phase 5 can start in parallel (e.g. Manager metadata, i18n) and be completed after Phase 4. Phase 6 (risk mitigation) depends on Phase 3 and can run after or in parallel with Phase 4/5.
 - **Scope per phase:** Each phase should be shippable (e.g. "Phase 1 release" = MVP + user context and manually created skills). Avoid moving to the next phase until the current one is stable and tested. Agent-driven **create_skill** is delivered in Phase 3 with the back agent.
 - **References:** For detailed tool/skill behavior, see [comfyui_assistant_tools.md](comfyui_assistant_tools.md) and [comfyui_assistant_skills.md](comfyui_assistant_skills.md). For architecture and security, see [comfyui_assistant_design.md](comfyui_assistant_design.md) and [comfyui_assistant_non_functional_features.md](comfyui_assistant_non_functional_features.md).
