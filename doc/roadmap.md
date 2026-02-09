@@ -9,7 +9,7 @@ This document summarizes the development roadmap for ComfyUI Assistant. The proj
 | **0** | Done     | MVP: chat + graph tools |
 | **1** | Done     | User context and manual skills |
 | **2** | Done     | Node configuration and prompts |
-| **3** | Planned  | Back agent, environment awareness, create_skill |
+| **3** | Done     | Environment awareness, search, create_skill |
 | **4** | Planned  | Workflow execution and complex workflows |
 | **5** | Planned  | Polish and non-functional requirements |
 
@@ -62,19 +62,21 @@ See [Base tools](base-tools.md).
 
 ---
 
-## Phase 3 — Back agent and environment awareness — Planned
+## Phase 3 — Environment awareness, search, and create_skill — Done
 
-**Goal:** A **back agent** (or backend process) that scans the ComfyUI installation and exposes context to the assistant. Add **create_skill** so the assistant can create and save user skills when you ask it to “remember” something.
+**Goal:** Backend modules that scan the ComfyUI installation and expose context to the assistant. **create_skill** so the assistant can create and save user skills when you ask it to "remember" something.
 
-**Planned deliverables:**
+**Delivered:**
 
-- **Shared context layer** (e.g. `.agents/`) — Back agent writes environment data (installed nodes, models, doc excerpts); the assistant uses it when needed.
-- **refresh_environment** — Tool to rescan the installation and update context (e.g. after installing a new custom node).
-- **read_documentation** — Tool to fetch documentation for a node or topic on demand.
-- **search_installed_custom_nodes** / **search_documented_custom_nodes** — So the assistant can answer “what custom nodes do I have?” and “how do I use X?”.
-- **create_skill** — The assistant can create and persist a user skill (e.g. “remember to always use Preview Image instead of Save Image”) into `user_context/skills/`.
+- **Environment scanner** — Backend Python module that scans `nodes.NODE_CLASS_MAPPINGS`, `custom_nodes/` directory, and `folder_paths` models. Results cached to `user_context/environment/*.json` with a brief summary injected into the system prompt.
+- **refreshEnvironment** — Tool to rescan the installation and update cached context.
+- **searchInstalledNodes** — Search installed node types by name, category, or package.
+- **readDocumentation** — Fetch documentation for a node type or topic (from `NODE_CLASS_MAPPINGS`, custom node READMEs, system context).
+- **createSkill** — The assistant can create and persist a user skill (e.g. "remember to always use Preview Image instead of Save Image") into `user_context/skills/`.
+- **Auto-scan on startup** — Non-blocking initial scan after ComfyUI loads.
+- **API handlers extracted** to `api_handlers.py` for maintainability.
 
-**Success criteria (target):** You ask “what custom nodes do I have?” or “how do I use ADetailer?” and get correct answers. You say “remember to always use Preview Image” and the assistant creates a skill and applies it later.
+See [Phase 3 implementation notes](../development/phase_3/implemented.md).
 
 ---
 
@@ -120,5 +122,5 @@ Each phase is designed to be **shippable** on its own (e.g. “Phase 1 release�
 
 ## More detail
 
-- Implementation notes for completed phases: [development/](../development/) (e.g. `phase_0/implemented.md`, `phase_1/implemented.md`, `phase_2/implemented.md`).
+- Implementation notes for completed phases: [development/](../development/) (e.g. `phase_0/implemented.md`, `phase_1/implemented.md`, `phase_2/implemented.md`, `phase_3/implemented.md`).
 - Full phase definitions and success criteria: [planning/comfyui_assistant_development_phases.md](../planning/comfyui_assistant_development_phases.md).
