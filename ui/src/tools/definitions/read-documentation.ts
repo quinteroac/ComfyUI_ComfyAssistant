@@ -23,7 +23,7 @@ export const readDocumentationSchema = z.object({
 export const readDocumentationDefinition = {
   name: 'readDocumentation',
   description:
-    "Fetches documentation for a node type, custom node package, or topic. Returns node inputs/outputs, README excerpts, and any available documentation.",
+    'Fetches documentation for a node type, custom node package, or topic. Returns node inputs/outputs, README excerpts, and any available documentation.',
   parameters: readDocumentationSchema
 }
 

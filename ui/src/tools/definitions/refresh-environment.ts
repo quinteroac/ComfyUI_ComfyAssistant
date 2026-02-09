@@ -15,6 +15,4 @@ export const refreshEnvironmentDefinition = {
   parameters: refreshEnvironmentSchema
 }
 
-export type RefreshEnvironmentParams = z.infer<
-  typeof refreshEnvironmentSchema
->
+export type RefreshEnvironmentParams = z.infer<typeof refreshEnvironmentSchema>

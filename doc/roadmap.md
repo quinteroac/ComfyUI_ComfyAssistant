@@ -10,7 +10,7 @@ This document summarizes the development roadmap for ComfyUI Assistant. The proj
 | **1** | Done     | User context and manual skills |
 | **2** | Done     | Node configuration and prompts |
 | **3** | Done     | Environment awareness, search, create_skill |
-| **4** | Planned  | Workflow execution and complex workflows |
+| **4** | Done     | Workflow execution and complex workflows |
 | **5** | Planned  | Polish and non-functional requirements |
 
 ---
@@ -80,17 +80,17 @@ See [Phase 3 implementation notes](../development/phase_3/implemented.md).
 
 ---
 
-## Phase 4 — Workflow execution and complex workflows — Planned
+## Phase 4 — Workflow execution and complex workflows — Done
 
 **Goal:** Run the workflow from the assistant and load full workflows from a description or JSON.
 
-**Planned deliverables:**
+**Delivered:**
 
-- **execute_workflow** — Trigger execution of the current graph via ComfyUI (queue), with progress and result feedback in the UI.
-- **apply_workflow_json** — Build and load a full workflow (JSON) in one go for complex setups.
-- System prompt updates so the assistant knows when to run the workflow or apply a full workflow and how to report results.
+- **executeWorkflow** — Queue the current workflow, wait for completion via ComfyUI events (`executed`, `execution_success`, `execution_error`, `execution_interrupted`), return status and output summary (images, errors, timing).
+- **applyWorkflowJson** — Load a complete API-format workflow in one call, replacing the current graph. Pre-validates node types against `LiteGraph.registered_node_types`. Ensures `_meta.title` is present.
+- System prompt skill (`05_workflow_execution/SKILL.md`) with API format specification, example txt2img workflow, build-then-run pattern, and guidelines for verifying node types and models before generating workflows.
 
-**Success criteria (target):** You say “run the workflow” and get progress and a result summary. You ask for “a full img2img workflow with upscale” and the system can build and load it.
+See [Phase 4 implementation notes](../development/phase_4/implemented.md).
 
 ---
 

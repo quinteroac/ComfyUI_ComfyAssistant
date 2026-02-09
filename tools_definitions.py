@@ -294,6 +294,62 @@ TOOLS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "executeWorkflow",
+            "description": "Queues the current ComfyUI workflow for execution, waits for completion, and returns status and output summary (images, errors). Use when the user says 'run', 'execute', 'generate', or 'queue the workflow'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "timeout": {
+                        "type": "number",
+                        "description": "Maximum time in seconds to wait for execution to complete (default: 300)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "applyWorkflowJson",
+            "description": "Loads a complete ComfyUI workflow in API format, replacing the current graph. Use for complex multi-node workflows that would take many addNode/connectNodes calls. Always call searchInstalledNodes and getAvailableModels first to verify node types and model filenames.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "workflow": {
+                        "type": "object",
+                        "description": "ComfyUI API-format workflow. Keys are string node IDs (e.g. '1', '2'). Each value has: class_type (string), inputs (object with scalar values or [nodeId, outputIndex] links), and optional _meta.title (string).",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "class_type": {
+                                    "type": "string",
+                                    "description": "The registered node type name"
+                                },
+                                "inputs": {
+                                    "type": "object",
+                                    "description": "Node inputs: scalar values or links as [nodeId, outputIndex]"
+                                },
+                                "_meta": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {
+                                            "type": "string",
+                                            "description": "Display title for the node"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": ["class_type", "inputs"]
+                        }
+                    }
+                },
+                "required": ["workflow"]
+            }
+        }
+    },
 ]
 
 

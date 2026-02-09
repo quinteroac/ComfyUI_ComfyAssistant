@@ -22,7 +22,8 @@ export async function executeUpdateSkill(
     const body: Record<string, string> = {}
     if (params.name !== undefined) body.name = params.name
     if (params.description !== undefined) body.description = params.description
-    if (params.instructions !== undefined) body.instructions = params.instructions
+    if (params.instructions !== undefined)
+      body.instructions = params.instructions
 
     const response = await fetch(`/api/user-context/skills/${slug}`, {
       method: 'PATCH',

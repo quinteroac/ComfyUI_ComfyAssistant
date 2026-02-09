@@ -9,9 +9,7 @@ export const createSkillSchema = z.object({
     .describe(
       "Short, descriptive name for the skill (e.g., 'Use Preview Image', 'Prefer SDXL models')"
     ),
-  description: z
-    .string()
-    .describe('Brief description of what this skill does'),
+  description: z.string().describe('Brief description of what this skill does'),
   instructions: z
     .string()
     .describe(

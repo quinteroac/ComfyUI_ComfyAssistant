@@ -81,7 +81,8 @@ ComfyUI_ComfyAssistant/
 │   │   ├── 01_base_tools/SKILL.md
 │   │   ├── 02_tool_guidelines/SKILL.md
 │   │   ├── 03_node_reference/SKILL.md
-│   │   └── 04_environment_tools/SKILL.md
+│   │   ├── 04_environment_tools/SKILL.md
+│   │   └── 05_workflow_execution/SKILL.md
 │   └── README.md
 │
 ├── user_context/               # User workspace; writable by backend only
@@ -181,6 +182,8 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - `createSkill`: Create a persistent user skill from a remembered instruction (Phase 3)
 - `deleteSkill`: Delete a user skill by slug (Phase 3)
 - `updateSkill`: Update a user skill by slug — name, description, or instructions (Phase 3)
+- `executeWorkflow`: Queue the current workflow, wait for completion, return status + outputs (Phase 4)
+- `applyWorkflowJson`: Load a complete API-format workflow, replacing the current graph (Phase 4)
 
 **Architecture:**
 - Tools defined with Zod schemas (frontend)
@@ -379,7 +382,7 @@ Each skill includes:
 
 ## Future Enhancements
 
-- [ ] More workflow manipulation tools (save, load, execute)
+- [x] Workflow execution and generation (executeWorkflow, applyWorkflowJson — Phase 4)
 - [x] Node widget manipulation (setNodeWidgetValue, fillPromptNode — Phase 2)
 - [x] Environment awareness (refreshEnvironment, searchInstalledNodes, readDocumentation — Phase 3)
 - [x] Agent-driven skill creation (createSkill — Phase 3)
