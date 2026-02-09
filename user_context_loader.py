@@ -11,6 +11,7 @@ from typing import Any
 from user_context_store import (
     get_user_context_path,
     ensure_user_context_dirs,
+    ensure_environment_dirs,
     get_rules,
     get_preferences,
 )
@@ -145,6 +146,20 @@ def load_skills() -> list[tuple[str, str, bool]]:
         (slug, content if use_full else _first_paragraph_or_lines(content, 2), use_full)
         for slug, content in collected
     ]
+
+
+def load_environment_summary() -> str:
+    """Load cached environment summary text for system prompt injection.
+
+    Returns brief text like "87 custom node packages, 523 node types, 150 models."
+    Returns empty string if no cached scan exists.
+    """
+    try:
+        from environment_scanner import get_environment_summary
+        env_dir = ensure_environment_dirs()
+        return get_environment_summary(env_dir)
+    except Exception:
+        return ""
 
 
 def load_user_context() -> dict[str, Any]:

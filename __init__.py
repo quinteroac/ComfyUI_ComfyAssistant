@@ -23,6 +23,11 @@ if current_dir not in sys.path:
 import agent_prompts
 from agent_prompts import get_system_message
 import user_context_store
+import environment_scanner
+import skill_manager
+import documentation_resolver
+import api_handlers
+from tools_definitions import TOOLS
 
 
 # Load .env from extension folder
@@ -61,129 +66,8 @@ UI_MESSAGE_STREAM_HEADERS = {
     "X-Vercel-AI-UI-Message-Stream": "v1",
 }
 
-# Tools definitions for OpenAI Function Calling
-TOOLS_DEFINITIONS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "addNode",
-            "description": "Add a new node to the ComfyUI workflow",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "nodeType": {
-                        "type": "string",
-                        "description": "Node type to add (e.g., 'KSampler', 'CheckpointLoaderSimple')"
-                    },
-                    "position": {
-                        "type": "object",
-                        "properties": {
-                            "x": {"type": "number"},
-                            "y": {"type": "number"}
-                        },
-                        "description": "Optional position on canvas. Leave empty to use automatic positioning that avoids overlaps."
-                    }
-                },
-                "required": ["nodeType"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "removeNode",
-            "description": "Remove a node from the workflow",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "nodeId": {
-                        "type": "number",
-                        "description": "ID of the node to remove"
-                    }
-                },
-                "required": ["nodeId"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "connectNodes",
-            "description": "Connect output of one node to input of another",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sourceNodeId": {"type": "number"},
-                    "sourceSlot": {"type": "number"},
-                    "targetNodeId": {"type": "number"},
-                    "targetSlot": {"type": "number"}
-                },
-                "required": ["sourceNodeId", "sourceSlot", "targetNodeId", "targetSlot"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "getWorkflowInfo",
-            "description": "Get information about the current workflow state, including nodes, connections, and optionally widget names/values",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "includeNodeDetails": {
-                        "type": "boolean",
-                        "description": "If true, includes full details of each node including widget names, types, and current values. Defaults to false for faster responses"
-                    }
-                }
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "setNodeWidgetValue",
-            "description": "Sets the value of a widget (parameter) on a node. Use getWorkflowInfo with includeNodeDetails first to see available widget names.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "nodeId": {
-                        "type": "number",
-                        "description": "ID of the node whose widget to set"
-                    },
-                    "widgetName": {
-                        "type": "string",
-                        "description": "Name of the widget (e.g., 'steps', 'cfg', 'seed', 'text', 'sampler_name')"
-                    },
-                    "value": {
-                        "description": "New value for the widget (string, number, or boolean)"
-                    }
-                },
-                "required": ["nodeId", "widgetName", "value"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "fillPromptNode",
-            "description": "Sets the text of a prompt node (CLIPTextEncode). Shorthand for setNodeWidgetValue with widgetName='text'.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "nodeId": {
-                        "type": "number",
-                        "description": "ID of the CLIPTextEncode (or similar prompt) node"
-                    },
-                    "text": {
-                        "type": "string",
-                        "description": "The prompt text to set"
-                    }
-                },
-                "required": ["nodeId", "text"]
-            }
-        }
-    }
-]
+# Tools definitions: imported from tools_definitions.py (single source of truth)
+TOOLS_DEFINITIONS = TOOLS
 
 
 def _sse_line(data):
@@ -398,12 +282,14 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     from agent_prompts import get_system_message
     import user_context_loader
 
-    # Build system message: system_context + user_context + skills (same injection mechanism)
+    # Build system message: system_context + environment_summary + user_context + skills
     system_context_text = ""
     user_context = None
+    environment_summary = ""
     try:
         system_context_text = user_context_loader.load_system_context(system_context_path)
         user_context = user_context_loader.load_user_context()
+        environment_summary = user_context_loader.load_environment_summary()
     except Exception:
         pass
     if not (system_context_text or "").strip():
@@ -416,7 +302,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     # Add system message if not present
     has_system = any(msg.get("role") == "system" for msg in openai_messages)
     if not has_system:
-        openai_messages.insert(0, get_system_message(system_context_text, user_context))
+        openai_messages.insert(0, get_system_message(system_context_text, user_context, environment_summary))
     
     message_id = f"msg_{uuid.uuid4().hex}"
 
@@ -690,12 +576,49 @@ async def user_context_onboarding_handler(request: web.Request) -> web.Response:
         return web.json_response({"error": str(e)}, status=500)
 
 
+# --- Environment & Skill API handlers (extracted to api_handlers.py) ---
+
+environment_dir = os.path.join(user_context_path, "environment")
+
+_phase3_handlers = api_handlers.create_handlers(
+    environment_dir=environment_dir,
+    system_context_path=system_context_path,
+)
+
 # Register the chat API route (must be registered before static routes so /api/chat is handled)
 server.PromptServer.instance.app.add_routes([
     web.post("/api/chat", chat_api_handler),
     web.get("/api/user-context/status", user_context_status_handler),
     web.post("/api/user-context/onboarding", user_context_onboarding_handler),
 ])
+# Register Phase 3 routes (environment, docs, skills)
+api_handlers.register_routes(server.PromptServer.instance.app, _phase3_handlers)
+
+
+# --- Auto-scan environment on startup (non-blocking) ---
+
+async def _auto_scan_environment():
+    """Run initial environment scan after a delay to let other custom nodes finish loading."""
+    await asyncio.sleep(5)  # Wait for other extensions to register
+    try:
+        user_context_store.ensure_environment_dirs()
+        summary = environment_scanner.scan_environment(environment_dir)
+        logger.info(
+            "Auto-scan complete: %d node types, %d packages, %d models",
+            summary.get("node_types_count", 0),
+            summary.get("custom_packages_count", 0),
+            summary.get("models_count", 0),
+        )
+    except Exception as e:
+        logger.warning("Auto-scan failed (non-critical): %s", e)
+
+# Schedule auto-scan as a background task
+try:
+    loop = asyncio.get_event_loop()
+    loop.create_task(_auto_scan_environment())
+except RuntimeError:
+    # No event loop available yet; skip auto-scan
+    pass
 
 # Register the static route for serving our React app assets
 if os.path.exists(dist_path):

@@ -33,6 +33,14 @@ def ensure_user_context_dirs() -> str:
     return root
 
 
+def ensure_environment_dirs() -> str:
+    """Create user_context/environment/ if missing. Returns environment dir path."""
+    root = get_user_context_path()
+    env_dir = os.path.join(root, "environment")
+    os.makedirs(env_dir, exist_ok=True)
+    return env_dir
+
+
 def _get_db_path() -> str:
     return os.path.join(get_user_context_path(), "context.db")
 

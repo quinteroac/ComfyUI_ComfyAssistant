@@ -148,7 +148,152 @@ TOOLS = [
                 "required": ["nodeId", "text"]
             }
         }
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "createSkill",
+            "description": "Creates a persistent user skill (a remembered instruction or preference). Use when the user says 'remember to...', 'always do...', 'from now on...', etc. The skill will be applied in future conversations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Short, descriptive name for the skill (e.g., 'Use Preview Image', 'Prefer SDXL models')"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Brief description of what this skill does"
+                    },
+                    "instructions": {
+                        "type": "string",
+                        "description": "Full instructions for the assistant to follow when this skill is active"
+                    }
+                },
+                "required": ["name", "description", "instructions"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "deleteSkill",
+            "description": "Deletes a user skill by its slug. Use when the user asks to forget a preference, remove a remembered skill, or delete a specific skill. The slug is the identifier used in the skills list (e.g. 'use-preview-image').",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "The slug of the skill to delete (e.g. 'use-preview-image', 'prefer-sdxl-models')"
+                    }
+                },
+                "required": ["slug"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "updateSkill",
+            "description": "Updates an existing user skill by slug. Use when the user wants to change the name, description, or instructions of a skill they created earlier. Provide only the fields to change.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "The slug of the skill to update"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Optional new human-readable name for the skill"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional new brief description"
+                    },
+                    "instructions": {
+                        "type": "string",
+                        "description": "Optional new full instructions (replaces existing)"
+                    }
+                },
+                "required": ["slug"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "refreshEnvironment",
+            "description": "Rescans the ComfyUI installation to update the list of installed node types, custom node packages, and available models. Use after installing new custom nodes or models, or when the user asks about their environment.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "searchInstalledNodes",
+            "description": "Searches installed node types in the user's ComfyUI installation. Use to find available nodes by name, category, or package. If no results, try refreshEnvironment first.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search term to match against node name, category, or package (e.g., 'upscale', 'KSampler', 'impact')"
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Filter by node category (e.g., 'sampling', 'image', 'conditioning')"
+                    },
+                    "limit": {
+                        "type": "number",
+                        "description": "Maximum number of results to return (default: 20)"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "readDocumentation",
+            "description": "Fetches documentation for a node type, custom node package, or topic. Returns node inputs/outputs, README excerpts, and any available documentation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "description": "Topic to look up documentation for (e.g., 'KSampler', 'ControlNet', 'comfyui_impact_pack')"
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": ["installed", "builtin", "any"],
+                        "description": "Where to search: 'installed' (custom nodes), 'builtin' (system docs), or 'any' (default: 'any')"
+                    }
+                },
+                "required": ["topic"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "getAvailableModels",
+            "description": "Lists the user's installed model filenames by category (checkpoints, loras, vae, embeddings, etc.). Use when the user asks for model recommendations (e.g. 'what do you recommend for hyperrealistic?', 'which checkpoint for anime?') so you can suggest specific models they have.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Optional. Filter by category: 'checkpoints', 'loras', 'vae', 'embeddings', etc. If omitted, returns all categories."
+                    }
+                }
+            }
+        }
+    },
 ]
 
 
