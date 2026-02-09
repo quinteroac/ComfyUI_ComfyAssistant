@@ -8,6 +8,7 @@ This folder contains documentation for **developers and contributors** to ComfyU
 |----------|-------------|
 | [Standards and conventions](standards-and-conventions.md) | Summary of development conventions (code, Git, security, docs). Full source of truth: [.agents/conventions.md](../../.agents/conventions.md). |
 | [Vibecoders guide](vibecoders-guide.md) | What to ask AI agents to review before commit, before PR, and when changing code or docs. Prompt templates and checklists. |
+| [Health check](health-check.md) | Pre-commit check report: typecheck, lint, format, tests, build, and npm audit. Run these before committing. |
 
 ## For AI agents
 

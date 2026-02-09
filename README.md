@@ -24,7 +24,7 @@ In the assistant tab you can type for example:
 
 - **AI chat**: React interface (assistant-ui) with streaming, history, and markdown.
 - **Tool calling**: The model uses tools that run in the browser on the ComfyUI graph.
-- **Available tools**: Add nodes, remove nodes, connect nodes, get workflow info.
+- **Available tools**: Add nodes, remove nodes, connect nodes, get workflow info, set node widget values, fill prompt (CLIP text).
 - **Configurable provider**: Groq by default; any OpenAI-compatible API via `OPENAI_API_BASE_URL`.
 - **Rate limit control**: Configurable delay between LLM requests (`LLM_REQUEST_DELAY_SECONDS`) to avoid 429 errors.
 - **Context system**: Base prompts in `system_context/`, user workspace in `user_context/` (SOUL, goals, skills).
@@ -32,15 +32,7 @@ In the assistant tab you can type for example:
 
 ## Installation
 
-### From ComfyUI Manager (recommended)
-
-If published in the registry:
-
-1. Open ComfyUI → Manager.
-2. Search for "ComfyUI Assistant" (or the registered name).
-3. Install.
-
-### Manual installation
+The extension is not yet in the ComfyUI Manager registry. Install manually:
 
 ```bash
 # In your ComfyUI custom_nodes directory
@@ -58,6 +50,8 @@ cd ..
 ```
 
 Restart ComfyUI. Without `npm run build`, the extension will not have the compiled UI in `dist/`.
+
+*(Once the extension is published to the ComfyUI registry, it will be installable from Manager → search for "ComfyUI Assistant".)*
 
 ## Usage
 
@@ -89,14 +83,16 @@ After changing `.env`, restart ComfyUI.
 - **Add Node**: Add a node to the canvas by type (e.g. `KSampler`, `PreviewImage`).
 - **Remove Node**: Remove a node by ID.
 - **Connect Nodes**: Connect one node’s output to another’s input (by IDs and slots).
-- **Get Workflow Info**: Get nodes and connections in the current workflow.
+- **Get Workflow Info**: Get nodes and connections in the current workflow (optionally with widget names/values).
+- **Set Node Widget Value**: Set any widget value on a node (steps, cfg, seed, sampler_name, etc.).
+- **Fill Prompt Node**: Set the text of a CLIPTextEncode node (shorthand for setting the prompt widget).
 
 ### Customizing behavior
 
 - **System prompts**: In `agent_prompts.py` the system message is built (including `system_context/` and `user_context/`).
 - **Base context**: The `.md` files in `system_context/` (and its `skills/`) define role, tools, and node references.
 - **User context**: In `user_context/` you have SOUL (tone/personality), goals, and user skills; the backend injects them into the system.
-- **Guides**: `AGENT_PROMPTS_GUIDE.md`, `TOOLS_SETUP_GUIDE.md`, and `.agents/skills/` for development and internal docs.
+- **Guides**: [doc/](doc/README.md) (user docs), [doc/dev_docs/](doc/dev_docs/README.md) (developer docs: standards, vibecoders guide, health check), and [.agents/skills/](.agents/skills/) for development and internal docs.
 
 ## Project structure
 
@@ -120,7 +116,7 @@ ComfyUI_ComfyAssistant/
 │   │   ├── components/     # assistant-ui and base UI
 │   │   └── tools/         # Tool definitions and implementations
 │   └── package.json
-├── dist/                   # Frontend build output (generated)
+├── dist/                   # Frontend build output (generated; assets under dist/example_ext/)
 ├── pyproject.toml
 └── README.md
 ```
@@ -147,7 +143,7 @@ npm run test:watch   # watch mode
 
 1. Update `pyproject.toml` (name, description, `DisplayName`, `PublisherId`, etc.) for this project.
 2. Install `comfy-cli`, set the registry API key, and publish with `comfy-cli publish`.
-3. Optional: use the GitHub workflow (e.g. based on `.github/workflows/react-build.yml`) to publish on push.
+3. Optional: if you use CI, add a workflow (e.g. GitHub Actions) to build the frontend and run `comfy-cli publish` on release.
 
 ## Resources
 

@@ -8,18 +8,9 @@ This guide covers how to install ComfyUI Assistant as a ComfyUI custom node.
 - **Node.js** (v18 or later recommended) — required for building the frontend
 - **npm** — comes with Node.js
 
-## Option 1: Install from ComfyUI Manager (recommended)
+The extension is **not yet in the ComfyUI Manager registry**. Install manually as below. Once it is published, you will be able to install it from Manager → search for "ComfyUI Assistant".
 
-If the extension is published in the ComfyUI Manager registry:
-
-1. Open ComfyUI and go to **Manager**.
-2. Search for **ComfyUI Assistant** (or the registered name).
-3. Click **Install**.
-4. Restart ComfyUI.
-
-After installation, the **ComfyUI Assistant** tab appears in the sidebar. If the tab is missing or the UI is blank, the frontend may need to be built manually (see Option 2, step 4).
-
-## Option 2: Manual installation
+## Manual installation
 
 ### 1. Clone into custom_nodes
 
@@ -46,7 +37,7 @@ npm install
 npm run build
 ```
 
-The built files are output to `dist/`. **ComfyUI loads the extension from this folder.** Without a successful build, the Assistant tab will not work.
+The built files are output to `dist/` (assets under `dist/example_ext/`). **ComfyUI loads the extension from this folder.** Without a successful build, the Assistant tab will not work.
 
 ### 4. Restart ComfyUI
 
