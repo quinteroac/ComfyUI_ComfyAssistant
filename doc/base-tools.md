@@ -14,6 +14,13 @@ This page describes what the assistant can do (the "base tools") and how you can
 | **getWorkflowInfo** | Get the list of nodes and connections; optionally include widget names and values for each node. |
 | **setNodeWidgetValue** | Set any widget on a node (steps, cfg, seed, sampler_name, scheduler, denoise, width, height, etc.). |
 | **fillPromptNode** | Set the text of a prompt node (CLIPTextEncode) — the assistant uses this for positive/negative prompts. |
+| **refreshEnvironment** | Rescan the ComfyUI installation to update the list of installed nodes, packages, and models. |
+| **searchInstalledNodes** | Search installed node types by name, category, package, display name, or description. Uses cache first; if no results, queries ComfyUI's node API. |
+| **getAvailableModels** | List installed model filenames by category (checkpoints, loras, vae, etc.). Use when asking for model recommendations (e.g. "I want hyperrealistic, what do you recommend?"). |
+| **readDocumentation** | Fetch documentation for a node type, package, or topic. |
+| **createSkill** | Create a persistent user skill (remembered instruction or preference) that the assistant will follow in future conversations. |
+| **deleteSkill** | Delete a user skill by its slug (e.g. when the user says "forget that" or "remove that preference"). |
+| **updateSkill** | Update an existing skill's name, description, or instructions by slug. |
 
 The assistant uses **getWorkflowInfo** first when it needs to see the current workflow (e.g. to find node IDs before connecting or changing settings). It then uses **addNode**, **connectNodes**, **setNodeWidgetValue**, and **fillPromptNode** to build or modify the graph.
 
@@ -69,6 +76,34 @@ The assistant will use **fillPromptNode** on the corresponding CLIPTextEncode no
 - "Create a txt2img workflow with 20 steps and prompt 'a cat'"
 
 For "what do I have?", the assistant uses **getWorkflowInfo** and summarizes. For "create a workflow", it will add the needed nodes, connect them, and optionally set steps and prompt with the other tools.
+
+### Environment and discovery
+
+- "What custom nodes do I have?"
+- "Do I have any upscaling nodes?"
+- "How do I use KSampler?"
+- "What models are available?"
+- "I want a hyperrealistic image, what do you recommend?"
+- "Which checkpoint should I use for anime?"
+- "Scan my environment"
+
+The assistant will use **refreshEnvironment** to scan, **searchInstalledNodes** to find node types, **getAvailableModels** to list your installed models and recommend specific checkpoints/LoRAs, and **readDocumentation** to get details.
+
+### Remembering preferences
+
+- "Remember to always use Preview Image instead of Save Image"
+- "From now on, use 30 steps by default"
+- "Always use the DPM++ 2M sampler"
+
+The assistant will use **createSkill** to save the preference. It will be applied in future conversations automatically.
+
+### Forgetting or changing preferences
+
+- "Forget the preference about Preview Image"
+- "Remove the skill about 30 steps"
+- "Update my 'Use Preview Image' skill to say 'Use Preview Image for all outputs'"
+
+The assistant will use **deleteSkill** (with the skill's slug) to remove it, or **updateSkill** to change name, description, or instructions. To know the slug, the assistant may need to reason from the skill name (e.g. "Use Preview Image" → slug `use-preview-image`) or list skills if needed.
 
 ---
 

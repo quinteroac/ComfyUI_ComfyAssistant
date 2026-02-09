@@ -26,9 +26,9 @@ Keep your responses SHORT and ACTIONABLE. Users see tool execution results in re
 
 ### Use `getWorkflowInfo` when:
 - Before adding nodes or making changes (to understand the current state and avoid duplicates)
-- User asks about their current workflow
-- User asks "what nodes do I have?" or "show me my workflow"
+- User asks about their **current workflow** (nodes on the canvas): "what nodes do I have?", "show me my workflow"
 - Before connecting nodes (to verify node IDs exist)
+- **Do NOT use getWorkflowInfo** for "what node types are installed?" or "do I have X node?" — use **searchInstalledNodes** instead (see Environment tools).
 - **Do NOT call getWorkflowInfo for simple greetings.** If the user only says "hi", "hello", "hola", or similar with no question about the workflow, reply only with a short friendly greeting in text. Do not call any tools for greetings alone.
 
 ### Use `addNode` when:

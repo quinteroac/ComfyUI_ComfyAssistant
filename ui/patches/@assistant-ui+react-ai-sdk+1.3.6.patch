@@ -23,6 +23,125 @@ index 0679a04..419a9b2 100644
          .map((part) => {
          const type = part.type;
          // Handle text parts
+diff --git a/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useAISDKRuntime.tsx b/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useAISDKRuntime.tsx
+index 400a073..5665fb3 100644
+--- a/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useAISDKRuntime.tsx
++++ b/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useAISDKRuntime.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useState, useMemo } from "react";
++import { useEffect, useState, useMemo, useRef } from "react";
+ import type { UIMessage, useChat, CreateUIMessage } from "@ai-sdk/react";
+ import { isToolUIPart } from "ai";
+ import {
+@@ -53,6 +53,10 @@ export type AISDKRuntimeAdapter = {
+    * @default true
+    */
+   cancelPendingToolCallsOnSend?: boolean | undefined;
++  /** Ref used by useChatThreadRuntime to wire onToolCall: run tools from runtime and add result. */
++  onToolCallRef?: import("react").MutableRefObject<
++    ((arg: { toolCall: { toolCallId: string; toolName: string; input?: unknown } }) => void | Promise<void>) | null
++  >;
+ };
+ 
+ export const useAISDKRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
+@@ -61,9 +65,12 @@ export const useAISDKRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
+     adapters,
+     toCreateMessage: customToCreateMessage,
+     cancelPendingToolCallsOnSend = true,
++    onToolCallRef,
+   }: AISDKRuntimeAdapter = {},
+ ) => {
+   const contextAdapters = useRuntimeAdapters();
++  const chatHelpersRef = useRef(chatHelpers);
++  chatHelpersRef.current = chatHelpers;
+   const [toolStatuses, setToolStatuses] = useState<
+     Record<string, ToolExecutionStatus>
+   >({});
+@@ -264,5 +271,38 @@ export const useAISDKRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
+     isLoading,
+   });
+ 
++  useEffect(() => {
++    if (!onToolCallRef) return;
++    onToolCallRef.current = async ({
++      toolCall,
++    }: {
++      toolCall: { toolCallId: string; toolName: string; input?: unknown };
++    }) => {
++      const tools = runtimeRef.current?.thread.getModelContext().tools;
++      if (!tools) return;
++      const tool = tools[toolCall.toolName];
++      if (!tool?.execute) return;
++      const helpers = chatHelpersRef.current;
++      try {
++        const result = await tool.execute(toolCall.input);
++        helpers.addToolResult({
++          toolCallId: toolCall.toolCallId,
++          tool: toolCall.toolName,
++          output: result,
++        });
++      } catch (err) {
++        helpers.addToolOutput({
++          state: "output-error",
++          toolCallId: toolCall.toolCallId,
++          tool: toolCall.toolName,
++          errorText: err instanceof Error ? err.message : String(err),
++        });
++      }
++    };
++    return () => {
++      onToolCallRef.current = null;
++    };
++  }, [onToolCallRef]);
++
+   return runtime;
+ };
+diff --git a/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useChatRuntime.tsx b/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useChatRuntime.tsx
+index 97ef16d..d5f88e1 100644
+--- a/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useChatRuntime.tsx
++++ b/node_modules/@assistant-ui/react-ai-sdk/src/ui/use-chat/useChatRuntime.tsx
+@@ -17,6 +17,8 @@ import { ChatInit, ChatTransport } from "ai";
+ import { AssistantChatTransport } from "./AssistantChatTransport";
+ import { useEffect, useMemo, useRef } from "react";
+ 
++type ToolCallArg = { toolCall: { toolCallId: string; toolName: string; input?: unknown } };
++
+ export type UseChatRuntimeOptions<UI_MESSAGE extends UIMessage = UIMessage> =
+   ChatInit<UI_MESSAGE> & {
+     cloud?: AssistantCloud | undefined;
+@@ -54,9 +56,14 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
+     adapters,
+     transport: transportOptions,
+     toCreateMessage,
++    onToolCall: userOnToolCall,
+     ...chatOptions
+   } = options ?? {};
+ 
++  const onToolCallRef = useRef<
++    ((arg: ToolCallArg) => void | Promise<void>) | null
++  >(null);
++
+   const transport = useDynamicChatTransport(
+     transportOptions ?? new AssistantChatTransport(),
+   );
+@@ -66,10 +73,15 @@ const useChatThreadRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
+     ...chatOptions,
+     id,
+     transport,
++    onToolCall: async (arg: ToolCallArg) => {
++      await onToolCallRef.current?.(arg);
++      await userOnToolCall?.(arg);
++    },
+   });
+ 
+   const runtime = useAISDKRuntime(chat, {
+     adapters,
++    onToolCallRef,
+     ...(toCreateMessage && { toCreateMessage }),
+   });
+ 
 diff --git a/node_modules/@assistant-ui/react-ai-sdk/src/ui/utils/convertMessage.ts b/node_modules/@assistant-ui/react-ai-sdk/src/ui/utils/convertMessage.ts
 index f036bbb..42f1dc6 100644
 --- a/node_modules/@assistant-ui/react-ai-sdk/src/ui/utils/convertMessage.ts

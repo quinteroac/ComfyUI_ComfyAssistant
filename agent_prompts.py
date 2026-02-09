@@ -54,14 +54,23 @@ def format_user_context(user_context: dict) -> str:
     return "\n\n---\n\n## User context (rules and skills)\n\nApply these rules and skills when creating or modifying workflows and when answering.\n\n" + "\n\n".join(parts)
 
 
-def get_system_message(system_context_text: str, user_context: dict | None = None) -> dict:
+def get_system_message(
+    system_context_text: str,
+    user_context: dict | None = None,
+    environment_summary: str = "",
+) -> dict:
     """
     Returns the complete system message for the agent.
 
-    content = system_context + user_context (rules, SOUL, goals, skills).
+    content = system_context + environment_summary + user_context (rules, SOUL, goals, skills).
     system_context_text should come from user_context_loader.load_system_context(system_context_path).
+    environment_summary is a brief text from environment_scanner.get_environment_summary().
     """
     content_parts = [system_context_text]
+    if environment_summary:
+        content_parts.append(
+            "## Installed environment\n\n" + environment_summary
+        )
     if user_context:
         formatted = format_user_context(user_context)
         if formatted:
