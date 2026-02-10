@@ -8,7 +8,7 @@ AI assistant for ComfyUI that lets you control and explore workflows with natura
 
 📚 **[ComfyUI JavaScript Developer Documentation](https://docs.comfy.org/custom-nodes/js/javascript_overview)** — ComfyUI extension APIs.
 
-**User documentation:** [doc/](doc/README.md) — Installation, configuration, slash commands, user skills, base tools, roadmap, and [developer docs](doc/dev_docs/README.md) (standards, vibecoders guide).
+**User documentation:** [doc/](doc/README.md) — Installation, configuration, slash commands, user skills, base tools, roadmap. **Developer docs:** [doc/dev_docs/](doc/dev_docs/README.md) — Architecture, backend, frontend, tools, standards, vibecoders guide, health check.
 
 ## Quick Start
 
@@ -22,12 +22,12 @@ In the assistant tab you can type for example:
 
 ## Features
 
-- **AI chat**: React interface (assistant-ui) with streaming, history, and markdown.
-- **Tool calling**: The model uses tools that run in the browser on the ComfyUI graph.
-- **Available tools**: Add nodes, remove nodes, connect nodes, get workflow info, set node widget values, fill prompt (CLIP text).
+- **AI chat**: React interface (assistant-ui) with streaming, history, markdown, and reasoning blocks.
+- **Tool calling**: The model uses tools that run in the browser (graph) or via the backend (environment, docs). Tools can add/remove/connect nodes, set widgets, search installed nodes, get models, read docs, manage user skills, and run or load workflows.
+- **Slash commands**: `/help`, `/clear`, `/new`, `/rename`, `/session`, `/sessions` for session management (see [doc/commands.md](doc/commands.md)).
 - **Configurable provider**: Groq by default; any OpenAI-compatible API via `OPENAI_API_BASE_URL`.
 - **Rate limit control**: Configurable delay between LLM requests (`LLM_REQUEST_DELAY_SECONDS`) to avoid 429 errors.
-- **Context system**: Base prompts in `system_context/`, user workspace in `user_context/` (SOUL, goals, skills).
+- **Context system**: Base prompts in `system_context/`, user workspace in `user_context/` (SOUL, goals, user skills). Environment summary (nodes, models, packages) is injected when available.
 - **TypeScript**: Typed with ComfyUI definitions and Zod for tools.
 
 ## Installation
@@ -80,43 +80,49 @@ After changing `.env`, restart ComfyUI.
 
 ### Assistant tools
 
-- **Add Node**: Add a node to the canvas by type (e.g. `KSampler`, `PreviewImage`).
-- **Remove Node**: Remove a node by ID.
-- **Connect Nodes**: Connect one node’s output to another’s input (by IDs and slots).
-- **Get Workflow Info**: Get nodes and connections in the current workflow (optionally with widget names/values).
-- **Set Node Widget Value**: Set any widget value on a node (steps, cfg, seed, sampler_name, etc.).
-- **Fill Prompt Node**: Set the text of a CLIPTextEncode node (shorthand for setting the prompt widget).
+- **Graph**: Add node, remove node, connect nodes, get workflow info, set node widget value, fill prompt (CLIP text).
+- **Environment**: Refresh environment cache; search installed node types; get available models by category; read documentation for nodes or topics.
+- **User skills**: Create, delete, or update persistent skills (instructions the assistant remembers).
+- **Workflow**: Execute current workflow (queue and wait for result); apply a full workflow from API-format JSON.
+
+See [doc/base-tools.md](doc/base-tools.md) for natural-language examples and details.
 
 ### Customizing behavior
 
 - **System prompts**: In `agent_prompts.py` the system message is built (including `system_context/` and `user_context/`).
 - **Base context**: The `.md` files in `system_context/` (and its `skills/`) define role, tools, and node references.
 - **User context**: In `user_context/` you have SOUL (tone/personality), goals, and user skills; the backend injects them into the system.
-- **Guides**: [doc/](doc/README.md) (user docs), [doc/dev_docs/](doc/dev_docs/README.md) (developer docs: standards, vibecoders guide, health check), and [.agents/skills/](.agents/skills/) for development and internal docs.
+- **Guides**: [doc/](doc/README.md) (user docs), [doc/dev_docs/](doc/dev_docs/README.md) (developer docs: architecture, backend, frontend, tools, standards, vibecoders, health check), and [.agents/skills/](.agents/skills/) for agent/internal docs.
 
 ## Project structure
 
 ```
 ComfyUI_ComfyAssistant/
-├── __init__.py              # Node entry point, API routes, streaming
-├── agent_prompts.py         # System message construction
-├── tools_definitions.py     # Tool definitions for the LLM
-├── user_context_loader.py  # Loading system_context and user_context
-├── user_context_store.py   # Store (SQLite) for rules and preferences
+├── __init__.py              # Extension entry, API routes, chat/SSE handler
+├── agent_prompts.py         # System message assembly
+├── api_handlers.py          # Environment, docs, user-context API handlers
+├── tools_definitions.py     # Tool definitions for the LLM (backend)
+├── user_context_loader.py  # system_context + user_context + environment
+├── user_context_store.py   # SQLite: rules, preferences, onboarding
+├── environment_scanner.py   # Scan nodes, packages, models; cache in user_context/environment/
+├── skill_manager.py         # User skill create/list/delete/update
+├── documentation_resolver.py # Resolve docs for node types and topics
 ├── .env / .env.example     # Config (API key, URL, delay)
-├── system_context/         # Base prompts (role, tools, nodes)
+├── system_context/         # Base prompts (role, tools, node refs)
 │   ├── 01_role.md
-│   └── skills/             # System skills
-├── user_context/           # User workspace (SOUL, goals, skills)
-├── .agents/                # Agent documentation (skills, conventions)
+│   └── skills/             # System skills (SKILL.md per capability)
+├── user_context/           # User workspace (SOUL, goals, skills, environment cache)
+├── .agents/                # Agent docs and skills (conventions, architecture, tools, etc.)
+├── doc/                    # User and developer documentation
+│   ├── installation.md, configuration.md, commands.md, skills.md, base-tools.md, roadmap.md
+│   └── dev_docs/           # Architecture, backend, frontend, tools, standards, vibecoders, health-check
 ├── ui/                     # React + Vite frontend
 │   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
+│   │   ├── App.tsx, main.tsx
 │   │   ├── components/     # assistant-ui and base UI
-│   │   └── tools/         # Tool definitions and implementations
+│   │   └── tools/          # Definitions (Zod) and implementations
 │   └── package.json
-├── dist/                   # Frontend build output (generated; assets under dist/example_ext/)
+├── dist/                   # Frontend build (generated; assets under dist/example_ext/)
 ├── pyproject.toml
 └── README.md
 ```
