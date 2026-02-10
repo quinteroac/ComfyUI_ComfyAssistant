@@ -6,6 +6,11 @@ This folder contains documentation for **developers and contributors** to ComfyU
 
 | Document | Description |
 |----------|-------------|
+| [Architecture](architecture.md) | System overview, request flow, agentic loop |
+| [Backend](backend.md) | Python modules, API endpoints, SSE streaming |
+| [Context and environment](context-and-environment.md) | System prompt assembly, environment scanning, caching |
+| [Frontend](frontend.md) | React components, ComfyUI integration, theme, slash commands |
+| [Tools](tools.md) | Step-by-step guide for adding and modifying tools |
 | [Standards and conventions](standards-and-conventions.md) | Summary of development conventions (code, Git, security, docs). Full source of truth: [.agents/conventions.md](../../.agents/conventions.md). |
 | [Vibecoders guide](vibecoders-guide.md) | What to ask AI agents to review before commit, before PR, and when changing code or docs. Prompt templates and checklists. |
 | [Health check](health-check.md) | Pre-commit check report: typecheck, lint, format, tests, build, and npm audit. Run these before committing. |

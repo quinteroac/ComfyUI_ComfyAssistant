@@ -6,9 +6,27 @@ The project uses the same standards for humans and agents; see [Standards and co
 
 ---
 
-## The documentation skill
+## Project-specific agent skills
 
-The project has an **agent skill** that defines when and how to update documentation: [.agents/skills/documentation/SKILL.md](../../.agents/skills/documentation/SKILL.md). It includes:
+The project has agent skills under `.agents/skills/` that give agents deep context about each area of the system. When you ask an agent to work on a specific area, point it to the relevant skill so it understands the architecture, patterns, and file locations.
+
+| Skill | Topic area | When to point the agent here |
+|-------|-----------|------------------------------|
+| `architecture-overview` | System overview, request flow, agentic loop | First time working on the project; understanding the system |
+| `backend-architecture` | Python modules, API endpoints, SSE streaming | Changing backend code, adding endpoints |
+| `backend-tools-declaration` | Tool definitions, frontend/backend sync | Adding or modifying tools |
+| `system-and-user-context` | System prompt assembly, context loading | Changing prompts, user context, skill injection |
+| `environment-and-models` | Environment scanning, model discovery, caching | Changing scans, model lists, cache strategy |
+| `ui-integration` | ComfyUI extension registration, bottom panel, `window.app` | Changing extension setup, tab config, slash commands |
+| `assistant-ui` | Chat UI components, terminal theme, message rendering | Changing chat appearance, composer, onboarding |
+| `patterns-and-conventions` | Quick-reference of coding conventions | Before any code change (quick style check) |
+| `documentation` | When and how to update docs | After making changes (doc update rules) |
+
+Each skill has a corresponding human-readable developer doc in `doc/dev_docs/` -- see [architecture.md](architecture.md), [backend.md](backend.md), [context-and-environment.md](context-and-environment.md), [frontend.md](frontend.md), and [tools.md](tools.md).
+
+### The documentation skill
+
+The `documentation` skill ([.agents/skills/documentation/SKILL.md](../../.agents/skills/documentation/SKILL.md)) defines when and how to update documentation:
 
 - **When** to update docs (architecture, patterns, new features, phase work, user-facing changes)
 - **What** to update: sources of truth (project-context, conventions, skills, development/, doc/, README, tools_definitions)
@@ -64,7 +82,7 @@ Review the files I changed for security and validation: no API keys or secrets i
 ### 4. Documentation sync
 
 ```
-I changed [describe what: e.g. added a new tool, changed the context flow]. According to .agents/conventions.md (Documentation Maintenance Protocol), which files must be updated? List them and update them: .agents/project-context.md, .agents/conventions.md, .agents/skills/*, doc/*, README, development/* as applicable.
+I changed [describe what: e.g. added a new tool, changed the context flow]. According to .agents/conventions.md (Documentation Maintenance Protocol), which files must be updated? List them and update them: .agents/project-context.md, .agents/conventions.md, .agents/skills/*, doc/dev_docs/*, README, development/* as applicable. Check the project-specific skills (architecture-overview, backend-architecture, backend-tools-declaration, system-and-user-context, environment-and-models, ui-integration, assistant-ui) and update any that are affected by this change.
 ```
 
 ### 5. New tool checklist
@@ -102,6 +120,14 @@ For phase work only:
 
 ```
 I implemented [phase name]. Apply the documentation skill (.agents/skills/documentation/SKILL.md) for phase implementation: create or update development/<phase_name>/implemented.md with deliverables, files changed, and iteration log, following the format of existing phase_0/phase_1/phase_2.
+```
+
+### 9. Understand the architecture
+
+Use this when you want the agent to understand how the project works before making changes:
+
+```
+Read the architecture-overview skill (.agents/skills/architecture-overview/SKILL.md) and the relevant skills for the area I need to change: [list area, e.g. backend, tools, UI, context]. Then read the corresponding developer docs in doc/dev_docs/ (architecture.md, backend.md, tools.md, frontend.md, context-and-environment.md). Summarize how the area works and which files I need to touch for my change: [describe change].
 ```
 
 ---
@@ -142,17 +168,23 @@ Tests & build
 
 ## Tips for working with agents
 
-1. **Point to .agents/** — Say “read .agents/project-context.md and .agents/conventions.md first” so the agent uses the same rules as the project.
-2. **Scope the review** — “Review only the files in ui/src/tools/implementations/” avoids noise and focuses the agent.
-3. **Ask for docs explicitly** — Agents sometimes skip doc updates; use the "Documentation sync" or "did I miss any docs?" prompts, or ask the agent to **apply the documentation skill** (.agents/skills/documentation/SKILL.md) so it follows the project's doc-update rules (prompt 8 above).
-4. **No auto-commit** — Conventions say the agent must not run `git commit` without your explicit approval; remind the agent if needed.
-5. **Use the checklist** — Pasting the checklist (or the “Before commit” prompt) before each commit helps catch missing docs, security issues, and style problems.
+1. **Point to .agents/** — Say "read .agents/project-context.md and .agents/conventions.md first" so the agent uses the same rules as the project.
+2. **Use project-specific skills** — Before working on a specific area, point the agent to the right skill (see the table in "Project-specific agent skills" above). For example: "read the backend-architecture skill before changing the API endpoints."
+3. **Scope the review** — "Review only the files in ui/src/tools/implementations/" avoids noise and focuses the agent.
+4. **Ask for docs explicitly** — Agents sometimes skip doc updates; use the "Documentation sync" or "did I miss any docs?" prompts, or ask the agent to **apply the documentation skill** (.agents/skills/documentation/SKILL.md) so it follows the project's doc-update rules (prompt 8 above).
+5. **No auto-commit** — Conventions say the agent must not run `git commit` without your explicit approval; remind the agent if needed.
+6. **Use the checklist** — Pasting the checklist (or the "Before commit" prompt) before each commit helps catch missing docs, security issues, and style problems.
 
 ---
 
 ## Related
 
+- [Architecture](architecture.md) — System overview, request flow, agentic loop.
+- [Backend](backend.md) — Python modules, API endpoints, SSE streaming.
+- [Context and environment](context-and-environment.md) — System prompt assembly, environment scanning.
+- [Frontend](frontend.md) — React components, ComfyUI integration, theme.
+- [Tools](tools.md) — Step-by-step guide for adding and modifying tools.
 - [Standards and conventions](standards-and-conventions.md) — Summary of what agents and humans follow.
-- [.agents/conventions.md](../../.agents/conventions.md) — Full conventions (agents’ source of truth).
+- [.agents/conventions.md](../../.agents/conventions.md) — Full conventions (agents' source of truth).
 - [.agents/project-context.md](../../.agents/project-context.md) — Architecture and layout (agents read this first).
 - [.agents/skills/documentation/SKILL.md](../../.agents/skills/documentation/SKILL.md) — Documentation skill: when and how to update docs (ask the agent to apply this for doc updates).
