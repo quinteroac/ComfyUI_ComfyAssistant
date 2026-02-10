@@ -34,7 +34,7 @@ The text-based tool calling system is fully implemented and ready to test.
 ### 2. Open the Assistant
 
 1. Launch ComfyUI in your browser
-2. Find "ComfyUI Assistant" tab in the sidebar
+2. Find "ComfyUI Assistant" tab in the bottom panel
 3. Click to open the chat interface
 
 ### 3. Try It Out!

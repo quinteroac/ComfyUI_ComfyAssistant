@@ -27,3 +27,7 @@ user_context/goals.md
 user_context/skills/*.md
 user_context/skills/*/
 user_context/environment/
+
+# Vite cache
+ui/node_modules/.vite/
+ui/node_modules/.vite/deps_temp*/

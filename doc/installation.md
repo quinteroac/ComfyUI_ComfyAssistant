@@ -46,7 +46,7 @@ Restart ComfyUI so it picks up the new custom node and the built UI.
 ## Verifying the installation
 
 1. Open ComfyUI in your browser.
-2. In the sidebar, you should see a tab named **ComfyUI Assistant** (or as configured in the extension).
+2. In the bottom panel, you should see a tab named **ComfyUI Assistant** (or as configured in the extension).
 3. Open that tab. You should see the chat interface.
 4. Before the assistant can reply, you must configure the API (see [Configuration](configuration.md)).
 
@@ -65,7 +65,7 @@ With `watch` running, source changes are rebuilt automatically. Refresh the brow
 
 | Problem | What to try |
 |--------|--------------|
-| No Assistant tab in sidebar | Ensure the extension is in `custom_nodes/ComfyUI_ComfyAssistant` and that you ran `npm run build` inside `ui/`. Restart ComfyUI. |
+| No Assistant tab in bottom panel | Ensure the extension is in `custom_nodes/ComfyUI_ComfyAssistant` and that you ran `npm run build` inside `ui/`. Restart ComfyUI. |
 | Tab is empty or shows errors | Check the browser console (F12). Re-run `cd ui && npm run build` and restart ComfyUI. |
 | "Module not found" or build errors | Run `cd ui && npm install` again and then `npm run build`. |
 | Assistant does not answer | Configure the API key and (if needed) base URL in `.env` — see [Configuration](configuration.md). |

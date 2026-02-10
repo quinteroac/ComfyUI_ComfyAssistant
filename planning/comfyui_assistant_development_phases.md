@@ -4,12 +4,6 @@ This document defines a **phased development plan** from the current MVP to the 
 
 ---
 
-# ComfyUI Assistant — development phases
-
-This document defines a **phased development plan** from the current MVP to the full vision described in [features](comfyui_assistant_features.md), [design](comfyui_assistant_design.md), [tools](comfyui_assistant_tools.md), [skills](comfyui_assistant_skills.md), and [non-functional requirements](comfyui_assistant_non_functional_features.md). Each phase delivers a usable increment and sets the base for the next.
-
----
-
 ## Phase 0 — Current MVP (baseline)
 
 **Goal:** Establish the minimal assistant: chat + graph manipulation with no backend agent and no persistent context.
@@ -101,7 +95,43 @@ This document defines a **phased development plan** from the current MVP to the 
 
 ---
 
-## Phase 5 — Polish and non-functional requirements
+## Phase 5a — Bottom panel + terminal aesthetic (DONE)
+
+**Goal:** Move the assistant from a sidebar tab to a **bottom panel** (like ComfyUI's Console) with a terminal/console-style UI aesthetic. See [UI design](comfyui_assitant_ui_design.md).
+
+**Delivered:**
+
+1. **Layout and placement** — Assistant registers as a `bottomPanelTabs` entry (with sidebar fallback code). Panel opens at the bottom of the ComfyUI UI.
+2. **Terminal aesthetic** — Monospace font (JetBrains Mono stack), 13px, compact spacing, no chat bubbles, green `>` prompt prefix for user messages, `comfy>` prompt in composer.
+3. **First impression** — ASCII ComfyUI logo + "Type a message or /help to get started".
+4. **Thread list** — Horizontal tab bar instead of vertical list.
+5. **CSS consolidation** — Merged `assistant-ui-theme.css` + `chat-styles.css` into `terminal-theme.css`. Fixed root ID mismatch bug (`#comfyui-react-example-root` → `#comfyui-assistant-root`).
+
+---
+
+## Phase 5b — Slash commands and sessions (DONE)
+
+**Goal:** Add slash commands, named sessions, and integrated configuration to the terminal UI.
+
+**Delivered:**
+
+1. **Slash commands (`/`)** — Commands invokable via `/` prefix: `/help`, `/clear`, `/new`, `/rename <name>`, `/sessions`. Inline autocomplete when typing `/`.
+2. **Sessions** — Threads can be **named** via `/rename` or via the Rename option in the thread tab dropdown; `/sessions` lists all; `/new` creates and switches.
+3. **`/help`** — Shows available commands in a markdown table.
+4. **Rename in thread list** — "Rename" menu item in the thread tab's ⋮ dropdown (via `window.prompt()`).
+
+**Deferred to later:**
+- `/settings` (configuration entry points)
+- First-time configuration flow
+- Media and attachments (Phase 5 later sub-phase)
+
+**Success criteria (met):** User can use `/help`, `/clear`, `/new`, `/rename`, `/sessions`; named sessions via command or dropdown; autocomplete when typing `/`.
+
+**Dependencies:** Phase 5a.
+
+---
+
+## Phase 6 — Polish and non-functional requirements
 
 **Goal:** Harden **installability**, **configurability**, **security**, and **usability** to meet the [non-functional requirements](comfyui_assistant_non_functional_features.md) document.
 
@@ -114,13 +144,13 @@ This document defines a **phased development plan** from the current MVP to the 
 5. **Context and performance** — Confirm documentation remains on demand; optional **embeddings** layer for user context when API is available; otherwise fixed window or summary as in design.
 6. **Compatibility and maintainability** — Document **tool and skill contracts**; state supported ComfyUI version range; keep a CHANGELOG for breaking changes.
 
-**Success criteria:** User can install via Manager, add several LLM providers from the UI, use the assistant in their language, and security notes are documented. No regression on Phase 1–4 behavior.
+**Success criteria:** User can install via Manager, add several LLM providers from the UI, use the assistant in their language, and security notes are documented. No regression on Phase 1–5 behavior.
 
-**Dependencies:** Phases 1–4. Can be parallelized (e.g. Manager metadata early; security review before or after Phase 4).
+**Dependencies:** Phases 1–5. Can be parallelized (e.g. Manager metadata early; security review before or after Phase 4).
 
 ---
 
-## Phase 6 — Risk mitigation (post–Phase 3 review)
+## Phase 7 — Risk mitigation (post–Phase 3 review)
 
 **Goal:** Address risks identified in the Phase 3 PR review (e.g. Bugbot — Medium Risk): new backend APIs, background scanning, prompt injection (environment summary), and the `@assistant-ui/react-ai-sdk` tool-call patch. Document and, where applicable, implement mitigations so the model’s context and tool execution remain bounded and maintainable.
 
@@ -149,13 +179,15 @@ This document defines a **phased development plan** from the current MVP to the 
 | **2** | Node config & prompts | setNodeWidgetValue, fillPromptNode, prompt guidance in system prompt |
 | **3** | Back agent & environment | .agents/ layer, refresh_environment, read_documentation, search_installed/documented_custom_nodes, **create_skill** (integrated with back) |
 | **4** | Execution & complex workflows | execute_workflow (with UI feedback), apply_workflow_json |
-| **5** | NFRs & polish | ComfyUI Manager install, multi-provider config UI, security, multi-language, docs |
-| **6** | Risk mitigation (post–Phase 3) | Document and mitigate Phase 3 risks: APIs, scan, prompt injection, assistant-ui patch |
+| **5a** | Terminal-style UI (done) | Bottom panel, terminal aesthetic, ASCII logo + welcome, horizontal thread tabs, CSS consolidation |
+| **5b** | Slash commands & sessions (done) | `/help`, `/clear`, `/new`, `/rename`, `/sessions`; autocomplete; Rename in thread dropdown |
+| **6** | NFRs & polish | ComfyUI Manager install, multi-provider config UI, security, multi-language, docs |
+| **7** | Risk mitigation (post–Phase 3) | Document and mitigate Phase 3 risks: APIs, scan, prompt injection, assistant-ui patch |
 
 ---
 
 ## Notes
 
-- **Order:** Phases 1 → 2 → 3 → 4 are sequential by dependency. Phase 5 can start in parallel (e.g. Manager metadata, i18n) and be completed after Phase 4. Phase 6 (risk mitigation) depends on Phase 3 and can run after or in parallel with Phase 4/5.
+- **Order:** Phases 1 → 2 → 3 → 4 are sequential by dependency. Phase 5 (terminal UI) depends on Phase 0 and can be developed in parallel with or after Phase 1–4. Phase 6 (NFRs & polish) depends on Phases 1–5. Phase 7 (risk mitigation) depends on Phase 3 and can run after or in parallel with Phase 4/5/6.
 - **Scope per phase:** Each phase should be shippable (e.g. "Phase 1 release" = MVP + user context and manually created skills). Avoid moving to the next phase until the current one is stable and tested. Agent-driven **create_skill** is delivered in Phase 3 with the back agent.
 - **References:** For detailed tool/skill behavior, see [comfyui_assistant_tools.md](comfyui_assistant_tools.md) and [comfyui_assistant_skills.md](comfyui_assistant_skills.md). For architecture and security, see [comfyui_assistant_design.md](comfyui_assistant_design.md) and [comfyui_assistant_non_functional_features.md](comfyui_assistant_non_functional_features.md).

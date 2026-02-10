@@ -53,6 +53,27 @@ function waitForInit(): Promise<void> {
   })
 }
 
+// Wrapper component with i18n
+function AssistantWrapper() {
+  useTranslation()
+  return <App />
+}
+
+// Mount React app into a container element
+function mountReact(container: HTMLElement): ReactDOM.Root {
+  const root = ReactDOM.createRoot(container)
+  root.render(
+    <React.StrictMode>
+      <TooltipProvider>
+        <Suspense fallback={<div>Loading...</div>}>
+          <AssistantWrapper />
+        </Suspense>
+      </TooltipProvider>
+    </React.StrictMode>
+  )
+  return root
+}
+
 // Initialize the extension once everything is ready
 async function initializeExtension(): Promise<void> {
   try {
@@ -65,52 +86,57 @@ async function initializeExtension(): Promise<void> {
       return
     }
 
-    // Create a function component with i18n for translation
-    function SidebarWrapper() {
-      // Using useTranslation hook to initialize i18n context
-      useTranslation()
-      return <App />
-    }
+    let reactRoot: ReactDOM.Root | null = null
 
-    // Register the sidebar tab using ComfyUI's extension API
-    const sidebarTab = {
-      id: 'comfyui-assistant-sidebar',
-      icon: 'pi pi-comments', // Using PrimeVue icon for chat
-      title: 'Assistant',
-      tooltip: 'ComfyUI Assistant',
-      type: 'custom' as const,
-      render: (element: HTMLElement) => {
-        console.log('Rendering ComfyUI Assistant')
-        // Create a container for our React app
-        const container = document.createElement('div')
-        container.id = 'comfyui-assistant-root'
-        container.style.cssText =
-          'height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column'
-        element.appendChild(container)
-
-        // Mount the React app to the container
-        ReactDOM.createRoot(container).render(
-          <React.StrictMode>
-            <TooltipProvider>
-              <Suspense fallback={<div>Loading...</div>}>
-                <SidebarWrapper />
-              </Suspense>
-            </TooltipProvider>
-          </React.StrictMode>
-        )
-      }
-    }
-
-    window.app.extensionManager.registerSidebarTab(sidebarTab)
-
-    // Register extension with about page badges
+    // Register extension with bottom panel tab
     window.app.registerExtension({
-      name: 'ComfyUI_ComfyAssistant'
+      name: 'ComfyUI_ComfyAssistant',
+      bottomPanelTabs: [
+        {
+          id: 'comfyui-assistant',
+          title: 'Assistant',
+          type: 'custom' as const,
+          render: (element: HTMLElement) => {
+            console.log('Rendering ComfyUI Assistant (bottom panel)')
+            element.style.cssText =
+              'height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column'
+            const container = document.createElement('div')
+            container.id = 'comfyui-assistant-root'
+            container.style.cssText =
+              'height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column'
+            element.appendChild(container)
+            reactRoot = mountReact(container)
+          },
+          destroy: () => {
+            console.log('Destroying ComfyUI Assistant (bottom panel)')
+            reactRoot?.unmount()
+            reactRoot = null
+          }
+        }
+      ]
     })
+
+    // Fallback: if bottomPanelTabs isn't supported, register as sidebar tab
+    // Uncomment if needed for older ComfyUI versions:
+    // window.app.extensionManager.registerSidebarTab({
+    //   id: 'comfyui-assistant-sidebar',
+    //   icon: 'pi pi-comments',
+    //   title: 'Assistant',
+    //   tooltip: 'ComfyUI Assistant',
+    //   type: 'custom' as const,
+    //   render: (element: HTMLElement) => {
+    //     const container = document.createElement('div')
+    //     container.id = 'comfyui-assistant-root'
+    //     container.style.cssText =
+    //       'height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column'
+    //     element.appendChild(container)
+    //     reactRoot = mountReact(container)
+    //   }
+    // })
 
     console.log('ComfyUI Assistant initialized successfully')
   } catch (error) {
-    console.error('Failed to initialize React Example Extension:', error)
+    console.error('Failed to initialize ComfyUI Assistant:', error)
   }
 }
 
