@@ -8,6 +8,7 @@ This folder contains user-facing documentation for the ComfyUI Assistant extensi
 |----------|-------------|
 | [Installation](installation.md) | How to install the extension (Manager or manual) and build the frontend |
 | [Configuration](configuration.md) | Initial agent setup: API keys, environment variables, first-time onboarding |
+| [Slash commands](commands.md) | Local commands for session management and quick actions |
 | [User skills](skills.md) | What skills are, how to add and edit them, and how the assistant uses them |
 | [Base tools](base-tools.md) | Tools the assistant can use (add/remove/connect nodes, configure widgets, prompts) and how to ask in natural language |
 | [Roadmap](roadmap.md) | Development phases: what is done (0–2) and what is planned (3–5) |

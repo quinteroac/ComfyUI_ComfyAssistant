@@ -24,6 +24,7 @@ Edit `.env` with your preferred editor. **Do not commit `.env`** — it is liste
 | `OPENAI_API_BASE_URL` | Base URL of the API. Default is Groq. Change this to use another provider. | No (default: Groq) |
 | `GROQ_MODEL` | Model name. Optional; default depends on the provider (e.g. `llama3-70b-8192` for Groq). | No |
 | `LLM_REQUEST_DELAY_SECONDS` | Delay in seconds before each LLM request. Default `1.0`. Increase if you get 429 rate limit errors. | No |
+| `COMFY_ASSISTANT_LOG_LEVEL` | Backend log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Default `INFO`. | No |
 
 ### 3. Example configurations
 
@@ -33,6 +34,7 @@ Edit `.env` with your preferred editor. **Do not commit `.env`** — it is liste
 GROQ_API_KEY=gsk_your_groq_key_here
 OPENAI_API_BASE_URL=https://api.groq.com/openai/v1
 # GROQ_MODEL=llama3-70b-8192
+COMFY_ASSISTANT_LOG_LEVEL=INFO
 ```
 
 **OpenAI:**

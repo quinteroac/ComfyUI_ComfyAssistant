@@ -1,0 +1,703 @@
+/* ============================================
+   Terminal Theme - Consolidated CSS
+   Replaces assistant-ui-theme.css + chat-styles.css
+   ============================================ */
+
+/* ============================================
+   Root & Thread
+   ============================================ */
+#comfyui-assistant-root {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0f0f0f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  line-height: 1.4;
+}
+
+#comfyui-assistant-root .aui-root,
+#comfyui-assistant-root .aui-thread-root {
+  background: #0f0f0f;
+  color: hsl(var(--foreground));
+  min-height: 0;
+  font-size: 18px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#comfyui-assistant-root .aui-thread-viewport {
+  background: #0f0f0f;
+  scroll-behavior: smooth;
+  min-height: 0;
+  flex: 1 1 0%;
+  height: 0;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   Thread Tab Bar (horizontal)
+   ============================================ */
+#comfyui-assistant-root .aui-thread-list-root {
+  border-bottom: 1px solid hsl(var(--border));
+  background: #0f0f0f;
+}
+
+#comfyui-assistant-root .aui-thread-list-item {
+  transition: all 100ms ease;
+}
+
+#comfyui-assistant-root .aui-thread-list-item:hover,
+#comfyui-assistant-root .aui-thread-list-item[data-active='true'] {
+  background: hsl(var(--accent));
+}
+
+/* ============================================
+   Messages - Flat terminal style
+   ============================================ */
+
+/* User messages: terminal style, green > prefix */
+#comfyui-assistant-root .aui-user-message-root {
+  animation: terminal-fade-in 100ms ease-out;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0.125rem 0;
+}
+
+#comfyui-assistant-root .aui-user-message-content-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
+  background: #6c757d;
+  border: none;
+  border-radius: 0;
+  padding: 0.4rem 0.6rem;
+}
+
+#comfyui-assistant-root .aui-user-message-content {
+  background: transparent;
+  color: hsl(var(--foreground));
+  border-radius: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 18px;
+}
+
+#comfyui-assistant-root .aui-user-message-content *,
+#comfyui-assistant-root .aui-user-message-root [data-part-type='text'] {
+  font-family: inherit !important;
+}
+
+#comfyui-assistant-root .aui-user-prompt {
+  flex-shrink: 0;
+  color: hsl(var(--terminal-prompt));
+  line-height: 1.5;
+}
+
+#comfyui-assistant-root .aui-user-message-content p,
+#comfyui-assistant-root .aui-user-message-content [data-part-type='text'] {
+  margin: 0;
+  line-height: 1.5;
+}
+
+#comfyui-assistant-root .aui-user-message-attachments-end:empty {
+  display: none;
+}
+
+/* Assistant messages: flat left-aligned, terminal font */
+#comfyui-assistant-root .aui-assistant-message-root {
+  animation: terminal-fade-in 100ms ease-out;
+}
+
+#comfyui-assistant-root .aui-assistant-message-content {
+  color: hsl(var(--foreground));
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  font-family: inherit;
+  font-size: 18px;
+}
+
+#comfyui-assistant-root .aui-assistant-message-content * {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  font-family: inherit;
+}
+
+#comfyui-assistant-root .aui-assistant-prefix {
+  line-height: 1.5;
+}
+
+/* Override dot.css cursor: use terminal monospace, not sans-serif */
+#comfyui-assistant-root .aui-md[data-status='running']::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > :not(ol):not(ul):not(pre):last-child::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > pre:last-child code::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > ol:last-child > li:last-child:not(:has(* > li))::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > ul:last-child > li:last-child:not(:has(* > li))::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > ol:last-child > li:last-child > ol:last-child > li:last-child:not(:has(* > li))::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > ul:last-child > li:last-child > ul:last-child > li:last-child:not(:has(* > li))::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > ol:last-child > li:last-child > ol:last-child > li:last-child > ol:last-child > li:last-child::after,
+#comfyui-assistant-root .aui-md[data-status='running'] > ul:last-child > li:last-child > ul:last-child > li:last-child > ul:last-child > li:last-child::after {
+  font-family: inherit;
+}
+
+/* ============================================
+   Composer - Terminal prompt style
+   ============================================ */
+#comfyui-assistant-root .aui-composer-outer {
+  flex-shrink: 0;
+  width: 100%;
+  border-top: 1px solid hsl(var(--border));
+  background: #0f0f0f;
+  position: relative;
+  z-index: 10;
+}
+
+#comfyui-assistant-root .aui-composer-root {
+  background: #0f0f0f;
+  overflow: visible;
+}
+
+#comfyui-assistant-root .aui-composer-attachment-dropzone {
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0;
+  transition: border-color 100ms ease;
+  overflow: visible;
+}
+
+#comfyui-assistant-root .aui-composer-attachment-dropzone:hover {
+  border-color: hsl(var(--muted-foreground) / 0.4);
+}
+
+#comfyui-assistant-root .aui-composer-attachment-dropzone:focus-within {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 1px hsl(var(--ring) / 0.2);
+  background: transparent;
+}
+
+#comfyui-assistant-root .aui-composer-input,
+#comfyui-assistant-root textarea.aui-composer-input {
+  background: transparent;
+  color: hsl(var(--foreground));
+  resize: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-family: inherit;
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+#comfyui-assistant-root .aui-composer-input::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+#comfyui-assistant-root .aui-composer-input:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Composer action wrapper */
+#comfyui-assistant-root .aui-composer-action-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+/* ============================================
+   Buttons - Minimal terminal style
+   ============================================ */
+#comfyui-assistant-root button {
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 100ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  user-select: none;
+  font-family: inherit;
+}
+
+#comfyui-assistant-root button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Primary buttons */
+#comfyui-assistant-root .aui-composer-send,
+#comfyui-assistant-root .aui-composer-send button,
+#comfyui-assistant-root button[data-variant='default'] {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.375rem 0.5rem;
+  font-size: 12px;
+}
+
+#comfyui-assistant-root .aui-composer-send button,
+#comfyui-assistant-root .aui-composer-cancel button {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0.25rem;
+}
+
+#comfyui-assistant-root .aui-composer-send:hover button,
+#comfyui-assistant-root button[data-variant='default']:hover {
+  opacity: 0.9;
+}
+
+/* Cancel button */
+#comfyui-assistant-root .aui-composer-cancel button {
+  background: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+/* Ghost/outline buttons */
+#comfyui-assistant-root button[data-variant='outline'],
+#comfyui-assistant-root button[data-variant='ghost'] {
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  border-radius: var(--radius);
+  padding: 0.25rem 0.5rem;
+  font-size: 12px;
+}
+
+#comfyui-assistant-root button[data-variant='outline']:hover,
+#comfyui-assistant-root button[data-variant='ghost']:hover {
+  background: hsl(var(--accent));
+}
+
+/* Icon buttons */
+#comfyui-assistant-root button[class*='icon'],
+#comfyui-assistant-root .aui-action-bar-root button {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  background: transparent;
+  border: none;
+  color: hsl(var(--muted-foreground));
+}
+
+#comfyui-assistant-root button[class*='icon']:hover,
+#comfyui-assistant-root .aui-action-bar-root button:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+/* Scroll to bottom */
+#comfyui-assistant-root .aui-thread-scroll-to-bottom button {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.375rem;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+}
+
+#comfyui-assistant-root .aui-thread-scroll-to-bottom button:hover {
+  background: hsl(var(--accent));
+}
+
+/* Thread tab bar - terminal style */
+#comfyui-assistant-root .aui-thread-list-new button {
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: hsl(var(--terminal-prompt));
+}
+
+#comfyui-assistant-root .aui-thread-list-new button:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+#comfyui-assistant-root .aui-thread-list-new button[data-active='true'] {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* ============================================
+   Icons & SVG
+   ============================================ */
+#comfyui-assistant-root svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+#comfyui-assistant-root button svg {
+  transition: color 100ms ease;
+}
+
+#comfyui-assistant-root .aui-composer-send svg,
+#comfyui-assistant-root .aui-composer-cancel svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+#comfyui-assistant-root .aui-action-bar-root svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* ============================================
+   Action Bar
+   ============================================ */
+#comfyui-assistant-root .aui-action-bar-root {
+  display: flex;
+  gap: 0.125rem;
+}
+
+#comfyui-assistant-root .aui-action-bar-root button {
+  color: hsl(var(--muted-foreground));
+  transition: all 100ms ease;
+  border-radius: var(--radius);
+}
+
+#comfyui-assistant-root .aui-action-bar-root button:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+/* Floating action bar */
+#comfyui-assistant-root .aui-action-bar-root[data-floating='true'] {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 0.125rem;
+  box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
+}
+
+/* ============================================
+   Branch Picker
+   ============================================ */
+#comfyui-assistant-root .aui-branch-picker-root {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+#comfyui-assistant-root .aui-branch-picker-root button {
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+  padding: 0.125rem;
+  border-radius: var(--radius);
+}
+
+/* ============================================
+   Reasoning/Thinking Blocks - Compact
+   ============================================ */
+#comfyui-assistant-root [data-part-type='reasoning'],
+#comfyui-assistant-root .aui-reasoning-root,
+#comfyui-assistant-root details[data-part='reasoning'] {
+  margin: 0.25rem 0;
+  border: 1px solid hsl(var(--border));
+  border-left: 2px solid hsl(var(--terminal-accent));
+  border-radius: var(--radius);
+  background: hsl(var(--muted) / 0.2);
+  overflow: hidden;
+  transition: all 100ms ease;
+}
+
+/* Thinking summary/header */
+#comfyui-assistant-root details[data-part='reasoning'] summary,
+#comfyui-assistant-root .aui-reasoning-header {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 500;
+  font-size: 11px;
+  color: hsl(var(--terminal-accent));
+  transition: background 100ms ease;
+  list-style: none;
+}
+
+#comfyui-assistant-root
+  details[data-part='reasoning']
+  summary::-webkit-details-marker {
+  display: none;
+}
+
+#comfyui-assistant-root details[data-part='reasoning'] summary::before {
+  content: '[thinking...]';
+  font-size: 11px;
+  color: hsl(var(--terminal-dim));
+}
+
+#comfyui-assistant-root details[data-part='reasoning'][open] summary::before {
+  content: '[thinking]';
+}
+
+#comfyui-assistant-root details[data-part='reasoning'] summary:hover {
+  background: hsl(var(--muted) / 0.3);
+}
+
+#comfyui-assistant-root details[data-part='reasoning'] summary::after {
+  content: '\25B6';
+  margin-left: auto;
+  font-size: 8px;
+  transition: transform 100ms ease;
+  opacity: 0.5;
+}
+
+#comfyui-assistant-root details[data-part='reasoning'][open] summary::after {
+  transform: rotate(90deg);
+}
+
+/* Thinking content */
+#comfyui-assistant-root details[data-part='reasoning'] .aui-reasoning-content,
+#comfyui-assistant-root [data-part-type='reasoning'] > div {
+  padding: 0.5rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  line-height: 1.45;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* ============================================
+   Markdown Content - Terminal font
+   ============================================ */
+#comfyui-assistant-root .aui-md {
+  color: hsl(var(--foreground));
+  line-height: 1.45;
+  font-family: inherit;
+  font-size: 18px;
+}
+
+#comfyui-assistant-root .aui-md h1,
+#comfyui-assistant-root .aui-md h2,
+#comfyui-assistant-root .aui-md h3,
+#comfyui-assistant-root .aui-md h4,
+#comfyui-assistant-root .aui-md h5,
+#comfyui-assistant-root .aui-md h6,
+#comfyui-assistant-root .aui-md p,
+#comfyui-assistant-root .aui-md li,
+#comfyui-assistant-root .aui-md blockquote,
+#comfyui-assistant-root .aui-md td,
+#comfyui-assistant-root .aui-md th {
+  font-family: inherit;
+}
+
+#comfyui-assistant-root .aui-md code {
+  background: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0;
+  padding: 0.0625rem 0.25rem;
+  font-size: 0.9em;
+}
+
+#comfyui-assistant-root .aui-md pre {
+  background: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0;
+  padding: 0.5rem;
+  overflow-x: auto;
+}
+
+#comfyui-assistant-root .aui-md pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Code header */
+#comfyui-assistant-root .aui-code-header-root {
+  background: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-bottom: none;
+  border-radius: 0;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#comfyui-assistant-root .aui-code-header-language {
+  color: hsl(var(--muted-foreground));
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Tool fallback (tool calls) - terminal style */
+#comfyui-assistant-root .aui-tool-fallback-root,
+#comfyui-assistant-root .aui-tool-fallback-trigger,
+#comfyui-assistant-root .aui-tool-fallback-content,
+#comfyui-assistant-root .aui-tool-fallback-args,
+#comfyui-assistant-root .aui-tool-fallback-result,
+#comfyui-assistant-root .aui-tool-fallback-error {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-root {
+  border-radius: 0;
+  border: none;
+  background: #141414;
+  padding: 0.25rem 0.5rem;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-trigger {
+  color: hsl(var(--foreground));
+  padding: 0.25rem 0;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-content {
+  color: hsl(var(--foreground));
+}
+
+#comfyui-assistant-root .aui-tool-fallback-args-value,
+#comfyui-assistant-root .aui-tool-fallback-result-content {
+  font-family: inherit;
+  font-size: 16px;
+  background: #101010;
+  border: none;
+  border-radius: 0;
+  padding: 0.35rem 0.5rem;
+}
+
+/* Action bar in messages - terminal font */
+#comfyui-assistant-root .aui-assistant-action-bar-root,
+#comfyui-assistant-root .aui-user-action-bar-root {
+  font-family: inherit;
+}
+
+/* ============================================
+   Error Messages
+   ============================================ */
+#comfyui-assistant-root .aui-message-error-root {
+  background: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+  border-radius: var(--radius);
+  padding: 0.25rem 0.5rem;
+  font-size: 12px;
+}
+
+/* ============================================
+   Slash Command Autocomplete - Terminal style
+   ============================================ */
+#comfyui-assistant-root .aui-slash-autocomplete {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.08);
+  font-family: inherit;
+  font-size: 12px;
+  z-index: 200;
+}
+
+#comfyui-assistant-root .aui-slash-autocomplete button {
+  font-family: inherit;
+}
+
+#comfyui-assistant-root .aui-slash-autocomplete button:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+#comfyui-assistant-root .aui-slash-autocomplete button[data-selected],
+#comfyui-assistant-root .aui-slash-autocomplete button.bg-accent {
+  background: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+#comfyui-assistant-root .aui-slash-autocomplete .aui-slash-cmd-name {
+  color: hsl(var(--terminal-prompt));
+  font-weight: 500;
+}
+
+#comfyui-assistant-root .aui-slash-autocomplete .aui-slash-cmd-desc {
+  color: hsl(var(--terminal-dim));
+}
+
+/* ============================================
+   Popover / Dropdown Menus
+   ============================================ */
+#comfyui-assistant-root [data-radix-popper-content-wrapper],
+#comfyui-assistant-root .aui-thread-list-item-more-content,
+#comfyui-assistant-root .aui-action-bar-more-content {
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--popover-foreground));
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
+  border-radius: var(--radius);
+}
+
+#comfyui-assistant-root .aui-action-bar-more-item:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* ============================================
+   Welcome Screen
+   ============================================ */
+#comfyui-assistant-root .aui-thread-welcome-root {
+  animation: terminal-fade-in 200ms ease-out;
+}
+
+#comfyui-assistant-root .aui-thread-welcome-message-inner {
+  color: hsl(var(--foreground));
+}
+
+/* ============================================
+   Animations - Snappy (100ms)
+   ============================================ */
+@keyframes terminal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   Focus States (Accessibility)
+   ============================================ */
+#comfyui-assistant-root button:focus-visible,
+#comfyui-assistant-root input:focus-visible,
+#comfyui-assistant-root textarea:focus-visible {
+  outline: 1px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  #comfyui-assistant-root * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

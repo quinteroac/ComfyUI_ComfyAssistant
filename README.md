@@ -8,7 +8,7 @@ AI assistant for ComfyUI that lets you control and explore workflows with natura
 
 📚 **[ComfyUI JavaScript Developer Documentation](https://docs.comfy.org/custom-nodes/js/javascript_overview)** — ComfyUI extension APIs.
 
-**User documentation:** [doc/](doc/README.md) — Installation, configuration, user skills, base tools, roadmap, and [developer docs](doc/dev_docs/README.md) (standards, vibecoders guide).
+**User documentation:** [doc/](doc/README.md) — Installation, configuration, slash commands, user skills, base tools, roadmap, and [developer docs](doc/dev_docs/README.md) (standards, vibecoders guide).
 
 ## Quick Start
 
@@ -55,7 +55,7 @@ Restart ComfyUI. Without `npm run build`, the extension will not have the compil
 
 ## Usage
 
-1. Open the **ComfyUI Assistant** tab in the ComfyUI sidebar.
+1. Open the **ComfyUI Assistant** tab in the ComfyUI bottom panel.
 2. Configure the API (see [Configuration](#configuration)).
 3. Type in the chat; the assistant can use tools to modify the workflow.
 

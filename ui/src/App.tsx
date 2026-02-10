@@ -24,10 +24,7 @@ import {
   fetchOnboardingStatus
 } from '@/components/assistant-ui/onboarding'
 import { Thread } from '@/components/assistant-ui/thread'
-import { ThreadList } from '@/components/assistant-ui/thread-list'
 import { useComfyTools } from '@/hooks/useComfyTools'
-
-import './App.css'
 
 // Type definitions for the global ComfyUI objects
 declare global {
@@ -67,7 +64,6 @@ function ChatWithTools() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <ThreadList />
       <Thread />
     </div>
   )

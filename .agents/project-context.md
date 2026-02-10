@@ -46,7 +46,7 @@ This extension enables users to:
 1. **ComfyUI Integration**
    - Custom node extension loaded by ComfyUI
    - Access to `window.app` (ComfyUI's JavaScript API)
-   - Sidebar tab registration
+   - Bottom panel tab registration (Phase 5a)
    - Menu items and commands
 
 2. **AI Integration**
@@ -165,6 +165,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - Message threading and history
 - Markdown rendering with syntax highlighting
 - Support for reasoning blocks (`<think>` tags)
+- Console-style UI with thread list UI hidden (sessions intended for slash-command management)
 
 ### 2. Agentic Tools System
 
@@ -200,7 +201,9 @@ The **user_context/** directory is the assistant’s writable workspace (created
 
 ### 3. ComfyUI Integration
 
-- Sidebar tab for chat interface
+- Bottom panel tab for chat interface (terminal-style UI, Phase 5a)
+- **Slash commands** (Phase 5b): `/help`, `/clear`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`; inline autocomplete when typing `/`
+- Named sessions via `/rename` or Rename option in thread tab dropdown
 - Direct access to ComfyUI graph via `window.app`
 - Canvas manipulation (add/remove/connect nodes)
 - Real-time workflow monitoring

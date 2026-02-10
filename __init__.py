@@ -12,7 +12,9 @@ import importlib
 
 # Debug: log LLM request/response (set to logging.INFO to disable)
 logger = logging.getLogger("ComfyUI_ComfyAssistant.chat")
-logger.setLevel(logging.DEBUG)
+# Default to INFO; allow override via env for debugging.
+_log_level = os.getenv("COMFY_ASSISTANT_LOG_LEVEL", "INFO").upper()
+logger.setLevel(getattr(logging, _log_level, logging.INFO))
 
 # Import from current directory
 current_dir = os.path.dirname(__file__)
@@ -121,7 +123,11 @@ def _ui_messages_to_openai(messages: list) -> list:
             result.append({"role": "system", "content": _extract_content(msg)})
 
         elif role == "user":
-            result.append({"role": "user", "content": _extract_content(msg)})
+            content = _extract_content(msg)
+            if isinstance(content, str) and content.strip().startswith("/"):
+                # Slash commands are handled locally; skip if they slip into the stream.
+                continue
+            result.append({"role": "user", "content": content})
 
         elif role == "assistant":
             openai_msg = {"role": "assistant"}
@@ -264,6 +270,38 @@ def _parse_thinking_tags(text: str) -> tuple[list, str]:
     return reasoning_parts, cleaned_text
 
 
+def _get_last_user_text(messages: list) -> str:
+    """Extract the most recent user text from UI messages."""
+    for msg in reversed(messages):
+        if msg.get("role") != "user":
+            continue
+        content = msg.get("content")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts = []
+            for part in content:
+                if isinstance(part, dict) and part.get("type") == "text":
+                    text = part.get("text")
+                    if text:
+                        parts.append(text)
+            return "".join(parts)
+        return ""
+    return ""
+
+
+def _get_last_openai_user_text(messages: list) -> str:
+    """Extract the most recent user content from OpenAI-format messages."""
+    for msg in reversed(messages):
+        if msg.get("role") != "user":
+            continue
+        content = msg.get("content")
+        if isinstance(content, str):
+            return content
+        return ""
+    return ""
+
+
 async def chat_api_handler(request: web.Request) -> web.Response:
     """Handle POST /api/chat. Uses Groq when GROQ_API_KEY is set.
     Returns AI SDK UI Message Stream format for AssistantChatTransport."""
@@ -275,6 +313,22 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             status=400,
         )
     messages = body.get("messages", [])
+    # If the last message is a local slash response, do not call the LLM.
+    if messages:
+        last_msg = messages[-1]
+        if isinstance(last_msg, dict) and last_msg.get("role") == "assistant":
+            content = _extract_content(last_msg)
+            if isinstance(content, str) and "<!-- local:slash -->" in content:
+                async def stream_empty():
+                    yield _sse_line({"type": "start", "messageId": f"msg_{uuid.uuid4().hex}"}).encode("utf-8")
+                    yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+                    yield "data: [DONE]\n\n".encode("utf-8")
+
+                resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
+                await resp.prepare(request)
+                async for chunk in stream_empty():
+                    await resp.write(chunk)
+                return resp
     openai_messages = _ui_messages_to_openai(messages)
     
     # Reload agent_prompts to pick up any changes (useful during development)
@@ -317,6 +371,33 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
         await resp.prepare(request)
         async for chunk in stream_placeholder():
+            await resp.write(chunk)
+        return resp
+
+    # Slash commands are handled client-side. If one slips through, avoid calling the LLM.
+    raw_last_user = _get_last_user_text(messages).strip()
+    if raw_last_user.startswith("/"):
+        async def stream_empty():
+            yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
+            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+            yield "data: [DONE]\n\n".encode("utf-8")
+
+        resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
+        await resp.prepare(request)
+        async for chunk in stream_empty():
+            await resp.write(chunk)
+        return resp
+    # If no user message remains after filtering, do not call the LLM.
+    last_user_text = _get_last_openai_user_text(openai_messages).strip()
+    if not last_user_text:
+        async def stream_empty():
+            yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
+            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+            yield "data: [DONE]\n\n".encode("utf-8")
+
+        resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
+        await resp.prepare(request)
+        async for chunk in stream_empty():
             await resp.write(chunk)
         return resp
 

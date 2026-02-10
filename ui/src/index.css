@@ -4,7 +4,7 @@
    shadcn/ui + assistant-ui CSS Variables - Dark Theme
    Compatible with both libraries
    ============================================ */
-#comfyui-react-example-root {
+#comfyui-assistant-root {
   /* Core colors (shadcn format) */
   --background: 222 47% 11%;
   --foreground: 210 40% 98%;
@@ -39,7 +39,12 @@
   --ring: 224 71% 63%;
 
   /* Border radius */
-  --radius: 0.5rem;
+  --radius: 0.25rem;
+
+  /* Terminal-specific variables */
+  --terminal-prompt: 142 71% 45%;
+  --terminal-dim: 215 20% 50%;
+  --terminal-accent: 224 71% 63%;
 
   /* assistant-ui specific variables (aliased to shadcn) */
   --aui-background: var(--background);
@@ -60,7 +65,7 @@
 /* ============================================
    Light Theme Overrides
    ============================================ */
-:root.comfy-theme-light #comfyui-react-example-root {
+:root.comfy-theme-light #comfyui-assistant-root {
   --background: 0 0% 100%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
@@ -80,17 +85,22 @@
   --border: 214 32% 91%;
   --input: 214 32% 91%;
   --ring: 222 47% 11%;
+  --terminal-prompt: 142 71% 30%;
+  --terminal-dim: 215 16% 60%;
+  --terminal-accent: 222 47% 40%;
 }
 
 /* ============================================
    Base Styles
    ============================================ */
-#comfyui-react-example-root {
+#comfyui-assistant-root {
   height: 100%;
   min-height: 0;
   font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', 'Monaco',
+    'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
@@ -99,39 +109,37 @@
   overflow: hidden;
 }
 
-#comfyui-react-example-root *,
-#comfyui-react-example-root *::before,
-#comfyui-react-example-root *::after {
+#comfyui-assistant-root *,
+#comfyui-assistant-root *::before,
+#comfyui-assistant-root *::after {
   box-sizing: border-box;
 }
 
 /* ============================================
    Custom Scrollbar Styling
    ============================================ */
-#comfyui-react-example-root ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+#comfyui-assistant-root ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-#comfyui-react-example-root ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-  border-radius: 4px;
+#comfyui-assistant-root ::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-#comfyui-react-example-root ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+#comfyui-assistant-root ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 3px;
 }
 
-#comfyui-react-example-root ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+#comfyui-assistant-root ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
 }
 
 /* Firefox scrollbar */
-#comfyui-react-example-root * {
+#comfyui-assistant-root * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
 }
 
 /* ============================================
@@ -157,8 +165,8 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
 }
