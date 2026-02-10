@@ -957,11 +957,49 @@ These files are the **primary sources of truth** and must stay current:
 |------------------|---------|-------------|
 | `.agents/project-context.md` | Overall project understanding | Architecture, tech stack, or structure changes |
 | `.agents/conventions.md` | Development standards | Pattern or practice changes |
-| `.agents/skills/tools/` | Tools system | Tool additions or changes |
+| `.agents/skills/` | Agent skills (including vibecoding skills) | Whenever the corresponding area of the system changes (UI, backend, architecture, data model, tools) |
 | `development/` | Phase implementation docs | When implementing or iterating a phase (one folder per phase, e.g. `phase_1/implemented.md`) |
 | `planning/` | Planning, design, ideas, WIP docs | New planning/design docs go here (not at root) |
 | `README.md` | User-facing docs | Feature additions or usage changes |
 | `tools_definitions.py` | Backend tool declarations | Any tool modification |
+
+### 7.1 Mandatory use of skills for agents
+
+All agents working on this repository **MUST**:
+
+- Read the relevant skills under `.agents/skills/` before making changes to that area (UI, backend, tools, architecture, data model).
+- Follow the guidance in those skills when designing changes, choosing patterns, or editing code.
+- Update or extend the corresponding skill in the same change whenever they introduce new behaviour or significantly modify existing behaviour in that area.
+
+#### Project-specific skills
+
+| Skill | Directory | When to read |
+|-------|-----------|-------------|
+| `patterns-and-conventions` | `.agents/skills/patterns-and-conventions/` | Before any code change (quick-reference of conventions) |
+| `architecture-overview` | `.agents/skills/architecture-overview/` | First time working on the project; understanding system flow |
+| `backend-architecture` | `.agents/skills/backend-architecture/` | Changing Python backend, API endpoints, SSE streaming |
+| `backend-tools-declaration` | `.agents/skills/backend-tools-declaration/` | Adding or modifying tools (frontend or backend) |
+| `system-and-user-context` | `.agents/skills/system-and-user-context/` | Changing system prompts, user context, or skill injection |
+| `environment-and-models` | `.agents/skills/environment-and-models/` | Changing environment scanning, model discovery, or caching |
+| `ui-integration` | `.agents/skills/ui-integration/` | Changing ComfyUI extension registration, bottom panel, slash commands |
+| `assistant-ui` | `.agents/skills/assistant-ui/` | Changing chat UI components, theme, message rendering |
+
+#### Other project skills
+
+| Skill | Directory | When to read |
+|-------|-----------|-------------|
+| `tools` | `.agents/skills/tools/` | Working with the agentic tools system (definitions, implementations, registry) |
+| `documentation` | `.agents/skills/documentation/` | Understanding when and how to update project documentation |
+
+#### Generic library reference skills
+
+| Skill | Directory | When to read |
+|-------|-----------|-------------|
+| `primitives` | `.agents/skills/primitives/` | Using or customizing assistant-ui primitives |
+| `runtime` | `.agents/skills/runtime/` | Working with assistant-ui runtime and state |
+| `streaming` | `.agents/skills/streaming/` | Implementing or debugging streaming protocols |
+| `setup` | `.agents/skills/setup/` | Setting up or configuring assistant-ui |
+| `thread-list` | `.agents/skills/thread-list/` | Working with multi-thread management |
 
 ### 7. Keeping Documentation Synchronized
 

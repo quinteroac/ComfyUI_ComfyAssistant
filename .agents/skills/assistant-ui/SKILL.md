@@ -1,118 +1,115 @@
 ---
 name: assistant-ui
-description: Guide for assistant-ui library - AI chat UI components. Use when asking about architecture, debugging, or understanding the codebase.
+description: Project-specific guide for the chat UI -- components, terminal theme, message rendering, runtime setup
 version: 0.0.1
 license: MIT
 ---
 
-# assistant-ui
+# assistant-ui (Project-Specific)
 
-**Always consult [assistant-ui.com/llms.txt](https://assistant-ui.com/llms.txt) for latest API.**
+How ComfyUI Assistant uses the assistant-ui library. For generic library reference, see `./references/`.
 
-React library for building AI chat interfaces with composable primitives.
+## Component Map
+
+| File | Purpose |
+|------|---------|
+| `ui/src/components/assistant-ui/thread.tsx` | Main Thread component: messages, composer, slash command autocomplete, branch picker |
+| `ui/src/components/assistant-ui/markdown-text.tsx` | Markdown rendering for assistant messages (syntax highlighting, code blocks) |
+| `ui/src/components/assistant-ui/tool-fallback.tsx` | Renders tool call results inline (name, status, expandable details) |
+| `ui/src/components/assistant-ui/attachment.tsx` | File attachment display |
+| `ui/src/components/assistant-ui/onboarding.tsx` | First-time onboarding flow (personality, goals) |
+| `ui/src/components/assistant-ui/thread-list.tsx` | Thread list (hidden in UI; sessions managed via slash commands) |
+| `ui/src/components/assistant-ui/terminal-theme.css` | Terminal-style CSS variables and theme |
+| `ui/src/components/assistant-ui/tooltip-icon-button.tsx` | Reusable icon button with tooltip |
+
+## Console-Style Terminal Layout
+
+The chat uses a terminal aesthetic, not a typical chat bubble UI:
+
+- **User messages**: Prefix `>` (prompt character), dark background `rgba(0, 0, 0, 0.22)`
+- **Assistant messages**: Prefix `*` (bullet), no background
+- **Empty state**: ASCII logo + "Type a message or /help to get started"
+- **Font**: 15px monospace, relaxed leading
+- **Colors**: CSS variables in `terminal-theme.css`
+  - `--terminal-prompt`: prompt/accent color
+  - `--terminal-dim`: secondary/muted text
+- **Prompt column**: 2ch wide (matches "> " prefix)
+
+## Message Rendering
+
+### Assistant Messages
+1. **Text parts**: Rendered via `MarkdownText` component (hidden raw text, visible markdown)
+2. **Reasoning parts**: Collapsible `<details>` block with "Reasoning" summary
+3. **Tool parts**: Rendered via `ToolFallback` component (shows tool name, status, expandable JSON)
+
+### User Messages
+- Simple text with `>` prefix
+- Supports attachments (ComposerAttachments)
+
+### Composer
+- Auto-resizing textarea (min 1.75rem, max 4.5rem)
+- Slash command autocomplete (portal-based, positioned above input)
+- Send button (toggles to Cancel when running)
+- Shift+Enter for newline, Enter to send
+
+### Branch Picker
+- Shows "N / M" counter with Previous/Next buttons
+- Only visible when multiple branches exist
+
+## Where to Change Things
+
+| Change | File | What to Edit |
+|--------|------|-------------|
+| Message appearance | `thread.tsx` | `AssistantMessage` or `UserMessage` component |
+| Markdown rendering | `markdown-text.tsx` | `MarkdownText` component, remark/rehype plugins |
+| Tool result display | `tool-fallback.tsx` | `ToolFallback` component |
+| Theme colors | `terminal-theme.css` | CSS custom properties |
+| Empty state / ASCII logo | `thread.tsx` | `ThreadEmpty` component |
+| Composer behavior | `thread.tsx` | `Composer` component and slash command integration |
+| Onboarding flow | `onboarding.tsx` | `Onboarding` component |
+| Bottom panel config | `main.tsx` | `bottomPanelTabs` in `registerExtension()` |
+
+## Runtime Setup in `App.tsx`
+
+```
+AssistantRuntimeProvider
+  runtime = useChatRuntime({
+    transport: AssistantChatTransport({ api: '/api/chat' }),
+    sendAutomaticallyWhen: shouldResubmitAfterToolResult
+  })
+  └── ChatWithTools
+      ├── useComfyTools() → registers tools into ModelContext
+      └── Thread
+```
+
+- **Transport**: `AssistantChatTransport` handles SSE communication with `/api/chat`
+- **Auto-resubmit**: `shouldResubmitAfterToolResult` checks if the last message part is a tool invocation; if so, automatically resubmits for the next LLM response
+- **Tool registration**: `useComfyTools()` hook creates tools via `createTools(context)` and registers them
 
 ## References
 
-- [./references/architecture.md](./references/architecture.md) -- Core architecture and layered system
+- [./references/architecture.md](./references/architecture.md) -- Core assistant-ui library architecture and layered system
 - [./references/packages.md](./references/packages.md) -- Package overview and selection guide
 
-## When to Use
+## FAQ
 
-| Use Case | Best For |
-|----------|----------|
-| Chat UI from scratch | Full control over UX |
-| Existing AI backend | Connects to any streaming backend |
-| Custom message types | Tools, images, files, custom parts |
-| Multi-thread apps | Built-in thread list management |
-| Production apps | Cloud persistence, auth, analytics |
+### Where do I change how messages look?
+Edit `AssistantMessage` or `UserMessage` in `thread.tsx`. For markdown rendering, edit `markdown-text.tsx`. For tool results, edit `tool-fallback.tsx`.
 
-## Architecture
+### Where do I change the theme or colors?
+Edit `terminal-theme.css`. The main variables are `--terminal-prompt` (accent) and `--terminal-dim` (muted).
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  UI Components (Primitives)             │
-│    ThreadPrimitive, MessagePrimitive, ComposerPrimitive │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────┐
-│                   Context Hooks                         │
-│   useAssistantApi, useAssistantState, useAssistantEvent │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────┐
-│                    Runtime Layer                        │
-│  AssistantRuntime → ThreadRuntime → MessageRuntime      │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────┐
-│                   Adapters/Backend                      │
-│   AI SDK · LangGraph · Custom · Cloud Persistence       │
-└─────────────────────────────────────────────────────────┘
-```
+### How do I add a new message part type?
+Add a new component and include it in the `MessagePrimitive.Parts` rendering in `AssistantMessage` within `thread.tsx`.
 
-## Pick a Runtime
+### How do I change the bottom panel tab?
+Edit `main.tsx` -- modify the `bottomPanelTabs` configuration in `registerExtension()`. See `ui-integration` skill for details.
 
-```
-Using AI SDK?
-├─ Yes → useChatRuntime (recommended)
-└─ No
-   ├─ External state (Redux/Zustand)? → useExternalStoreRuntime
-   ├─ LangGraph agent? → useLangGraphRuntime
-   ├─ AG-UI protocol? → useAgUiRuntime
-   ├─ A2A protocol? → useA2ARuntime
-   └─ Custom API → useLocalRuntime
-```
-
-## Core Packages
-
-| Package | Purpose |
-|---------|---------|
-| `@assistant-ui/react` | UI primitives & hooks |
-| `@assistant-ui/react-ai-sdk` | Vercel AI SDK v6 adapter |
-| `@assistant-ui/react-langgraph` | LangGraph adapter |
-| `@assistant-ui/react-markdown` | Markdown rendering |
-| `@assistant-ui/styles` | Pre-built CSS |
-| `assistant-stream` | Streaming protocol |
-| `assistant-cloud` | Cloud persistence |
-
-## Quick Start
-
-```tsx
-import { AssistantRuntimeProvider, Thread } from "@assistant-ui/react";
-import { useChatRuntime, AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
-
-function App() {
-  const runtime = useChatRuntime({
-    transport: new AssistantChatTransport({ api: "/api/chat" }),
-  });
-  return (
-    <AssistantRuntimeProvider runtime={runtime}>
-      <Thread />
-    </AssistantRuntimeProvider>
-  );
-}
-```
-
-## State Access
-
-```tsx
-import { useAssistantApi, useAssistantState } from "@assistant-ui/react";
-
-const api = useAssistantApi();
-api.thread().append({ role: "user", content: [{ type: "text", text: "Hi" }] });
-api.thread().cancelRun();
-
-const messages = useAssistantState(s => s.thread.messages);
-const isRunning = useAssistantState(s => s.thread.isRunning);
-```
+### Where is the thread list?
+`thread-list.tsx` exists but the thread list is hidden in the UI. Sessions are managed via slash commands (`/new`, `/session`, `/sessions`, `/rename`).
 
 ## Related Skills
 
-- `/setup` - Installation and configuration
-- `/primitives` - UI component customization
-- `/runtime` - State management deep dive
-- `/tools` - Tool registration and UI
-- `/streaming` - Streaming protocols
-- `/cloud` - Persistence and auth
-- `/thread-list` - Multi-thread management
-- `/update` - Version updates and migrations
+- `ui-integration` -- how the React app registers with ComfyUI
+- `architecture-overview` -- runtime and agentic loop explanation
+- `backend-tools-declaration` -- tool definitions that drive ToolFallback rendering
