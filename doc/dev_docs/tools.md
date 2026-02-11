@@ -38,6 +38,7 @@ Both sides must stay in sync: same tool names, same parameter names and types.
 | `readDocumentation` | Environment | Fetch docs for a topic |
 | `executeWorkflow` | Execution | Queue workflow and wait for result |
 | `applyWorkflowJson` | Execution | Load a complete API-format workflow |
+| `getExampleWorkflow` | Research | Fetch example workflows from ComfyUI_examples |
 
 ### Tool categories
 

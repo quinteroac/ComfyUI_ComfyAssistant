@@ -43,6 +43,17 @@ description: Base graph tools (addNode, removeNode, connectNodes, getWorkflowInf
 | `skills/01_base_tools/SKILL.md` | Base tools, when to use, best practices |
 | `skills/02_tool_guidelines/SKILL.md` | Tool usage guidelines |
 | `skills/03_node_reference/SKILL.md` | Common node types and workflow reference |
+| `skills/07_workflow_guardrails/SKILL.md` | Decision order and safety checks for workflow requests |
+| `skills/08_comfyui_examples_source/SKILL.md` | Use ComfyUI_examples as the first source for workflows |
+| `skills/09_model_flux/SKILL.md` | Flux workflows from ComfyUI_examples |
+| `skills/10_model_flux2/SKILL.md` | Flux2 workflows from ComfyUI_examples |
+| `skills/11_model_lumina2/SKILL.md` | Lumina2 workflows from ComfyUI_examples |
+| `skills/12_model_qwen_image/SKILL.md` | Qwen Image workflows from ComfyUI_examples |
+| `skills/13_model_sdxl/SKILL.md` | SDXL workflows from ComfyUI_examples |
+| `skills/14_model_wan/SKILL.md` | WAN workflows from ComfyUI_examples |
+| `skills/15_model_wan22/SKILL.md` | WAN 2.2 workflows from ComfyUI_examples |
+| `skills/16_model_z_image/SKILL.md` | Z-Image workflows from ComfyUI_examples |
+| `skills/17_model_loading_rules/SKILL.md` | Rules for UNETLoader vs CheckpointLoader selection |
 
 To add a base skill: create a new directory under `skills/` (use a numeric prefix to control order) and add `SKILL.md` with frontmatter and body.
 

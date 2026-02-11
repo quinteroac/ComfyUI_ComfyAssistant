@@ -19,7 +19,6 @@ import {
   CopyIcon,
   DownloadIcon,
   MoreHorizontalIcon,
-  PencilIcon,
   RefreshCwIcon,
   SquareIcon
 } from 'lucide-react'

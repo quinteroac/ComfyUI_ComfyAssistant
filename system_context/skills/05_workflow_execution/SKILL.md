@@ -6,6 +6,7 @@ description: Workflow execution and complete workflow generation tools (executeW
 # Workflow Execution and Generation
 
 You have tools to run workflows and load complete workflows from JSON.
+Follow the decision order in the workflow-guardrails skill before creating any complete workflow.
 
 ## Available tools
 
@@ -32,12 +33,20 @@ You have tools to run workflows and load complete workflows from JSON.
 - User asks for a complete workflow ("create a txt2img workflow", "build me an img2img pipeline with upscale")
 - The workflow requires many nodes and connections that would be tedious with individual addNode/connectNodes calls
 - User provides or describes a workflow they want loaded
+- User wants a full workflow built end-to-end without step-by-step edits
+
+### Best practice: default to JSON for complete workflows
+
+- **Prefer `applyWorkflowJson`** for any complete workflow request, even if the workflow is small.
+- **Use JSON-first**: generate the full workflow object and load it in one call.
+- **Only use `addNode`/`connectNodes`** if the user explicitly asks for step-by-step construction or asks for specific node additions.
 
 ### CRITICAL: Before generating a workflow
 
 1. **Always call `searchInstalledNodes`** first to verify the node types you plan to use exist in the user's installation
 2. **Always call `getAvailableModels`** to find actual model filenames (checkpoints, loras, vae)
 3. **Never guess model filenames** — use the exact filenames from the user's installation
+4. **Choose the correct loader** using the model-loading-rules skill (Load Diffusion Model for diffusion_models/unet; CheckpointLoaderSimple for checkpoints)
 4. If a required node type is not installed, tell the user what custom node package to install
 
 ## ComfyUI API format specification
@@ -145,7 +154,7 @@ After calling `applyWorkflowJson` to load a workflow, suggest running it with `e
 
 ## Guidelines
 
-- **Prefer `applyWorkflowJson`** over multiple `addNode`/`connectNodes` calls when building workflows with 4+ nodes
+- **Prefer `applyWorkflowJson`** over `addNode`/`connectNodes` when building complete workflows
 - **Always verify node types and models first** — never generate a workflow with guessed node types or model filenames
 - **Use `PreviewImage` instead of `SaveImage`** by default unless the user specifically asks to save
 - **Set reasonable defaults**: steps=20, cfg=7, sampler_name="euler", scheduler="normal", denoise=1.0
