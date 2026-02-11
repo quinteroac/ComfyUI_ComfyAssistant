@@ -82,7 +82,8 @@ ComfyUI_ComfyAssistant/
 │   │   ├── 02_tool_guidelines/SKILL.md
 │   │   ├── 03_node_reference/SKILL.md
 │   │   ├── 04_environment_tools/SKILL.md
-│   │   └── 05_workflow_execution/SKILL.md
+│   │   ├── 05_workflow_execution/SKILL.md
+│   │   └── 06_research_tools/SKILL.md
 │   └── README.md
 │
 ├── user_context/               # User workspace; writable by backend only
@@ -122,7 +123,10 @@ ComfyUI_ComfyAssistant/
 ├── environment_scanner.py     # Scan installed nodes, packages, models (Phase 3)
 ├── skill_manager.py           # Create/list/delete user skills (Phase 3)
 ├── documentation_resolver.py  # Resolve docs for node types and topics (Phase 3)
-├── api_handlers.py            # Extracted API endpoint handlers (Phase 3)
+├── api_handlers.py            # Extracted API endpoint handlers (Phase 3 + Phase 8)
+├── web_search.py              # Web search provider abstraction (Phase 8)
+├── web_content.py             # URL content extraction (Phase 8)
+├── node_registry.py           # ComfyUI Registry API client (Phase 8)
 ├── doc/                       # User and developer documentation
 │   ├── README.md              # Index
 │   ├── installation.md       # Install (Manager / manual)
@@ -185,6 +189,10 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - `updateSkill`: Update a user skill by slug — name, description, or instructions (Phase 3)
 - `executeWorkflow`: Queue the current workflow, wait for completion, return status + outputs (Phase 4)
 - `applyWorkflowJson`: Load a complete API-format workflow, replacing the current graph (Phase 4)
+- `getExampleWorkflow`: Fetch example workflows extracted from ComfyUI_examples by category (Phase 8)
+- `webSearch`: Search the web for ComfyUI resources, tutorials, workflows (Phase 8)
+- `fetchWebContent`: Fetch and extract content from a URL, detect embedded workflows (Phase 8)
+- `searchNodeRegistry`: Search the ComfyUI Registry for custom node packages (Phase 8)
 
 **Architecture:**
 - Tools defined with Zod schemas (frontend)
@@ -255,6 +263,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 GROQ_API_KEY=gsk_xxx              # Required: API key for the LLM provider
 OPENAI_API_BASE_URL=https://...   # Optional: OpenAI-compatible API URL (default: Groq)
 GROQ_MODEL=llama3-70b-8192        # Optional: Model name
+SEARXNG_URL=http://localhost:8080  # Optional: SearXNG instance for web search (Phase 8)
 ```
 Use `OPENAI_API_BASE_URL` to point to any OpenAI-compatible provider (Groq, OpenAI, Together, Ollama, etc.).
 
@@ -342,6 +351,14 @@ data: [DONE]
 | `/api/user-context/skills` | POST | Create skill (`{name, description, instructions}`) |
 | `/api/user-context/skills` | GET | List all user skills |
 
+### Phase 8 API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/research/search` | POST | Web search (`{query, maxResults?, timeRange?}`) |
+| `/api/research/fetch` | POST | Fetch URL content (`{url, extractWorkflow?}`) |
+| `/api/research/registry` | GET | Search ComfyUI Registry (`?q=...&limit=...&page=...`) |
+
 ## Skills System (.agents/)
 
 The `.agents/` directory contains comprehensive documentation and guides for AI agents working on this project:
@@ -375,6 +392,9 @@ Each skill includes:
 - `openai` - OpenAI-compatible client (for Groq)
 - `python-dotenv` - Environment configuration
 - `aiohttp` - Web server (via ComfyUI)
+- `ddgs` - Web search fallback (Phase 8)
+- `beautifulsoup4` - HTML content extraction (Phase 8)
+- `crawl4ai` - Optional: advanced content extraction via Playwright (Phase 8)
 
 ## Known Limitations
 
@@ -389,6 +409,7 @@ Each skill includes:
 - [x] Node widget manipulation (setNodeWidgetValue, fillPromptNode — Phase 2)
 - [x] Environment awareness (refreshEnvironment, searchInstalledNodes, readDocumentation — Phase 3)
 - [x] Agent-driven skill creation (createSkill — Phase 3)
+- [x] Research tools: web search, content extraction, node registry (Phase 8)
 - [ ] Workflow templates and presets
 - [ ] Multi-turn tool calling
 - [ ] User confirmations for destructive actions

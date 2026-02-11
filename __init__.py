@@ -675,6 +675,10 @@ server.PromptServer.instance.app.add_routes([
 # Register Phase 3 routes (environment, docs, skills)
 api_handlers.register_routes(server.PromptServer.instance.app, _phase3_handlers)
 
+# Register Phase 8 routes (research: web search, content fetch, node registry)
+_phase8_handlers = api_handlers.create_research_handlers()
+api_handlers.register_research_routes(server.PromptServer.instance.app, _phase8_handlers)
+
 
 # --- Auto-scan environment on startup (non-blocking) ---
 

@@ -350,6 +350,113 @@ TOOLS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "getExampleWorkflow",
+            "description": "Fetches example workflows extracted from the ComfyUI_examples repository. Use this before webSearch when the user asks for a complete workflow for a known model category.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "flux",
+                            "flux2",
+                            "lumina2",
+                            "qwen_image",
+                            "sdxl",
+                            "wan",
+                            "wan22",
+                            "z_image"
+                        ],
+                        "description": "Example category to search (matches ComfyUI_examples folders)."
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "Optional substring to match example image or JSON filenames."
+                    },
+                    "maxResults": {
+                        "type": "number",
+                        "description": "Maximum number of results to return (default: 5, max: 20)."
+                    }
+                },
+                "required": ["category"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "webSearch",
+            "description": "Searches the web for ComfyUI-related information, tutorials, workflows, documentation, and custom node guides. Use when the user asks about unfamiliar topics, needs help finding resources, or when your built-in knowledge is insufficient.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query (e.g., 'ComfyUI ControlNet tutorial', 'SDXL inpainting workflow')"
+                    },
+                    "maxResults": {
+                        "type": "number",
+                        "description": "Maximum number of results to return (default: 5, max: 20)"
+                    },
+                    "timeRange": {
+                        "type": "string",
+                        "enum": ["day", "week", "month", "year"],
+                        "description": "Optional time filter for recency (e.g., 'week' for results from the last week)"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetchWebContent",
+            "description": "Fetches and extracts content from a URL, returning text (up to 10K chars) and optionally detecting embedded ComfyUI workflows. Use when the user shares a link or when you need to read a specific page found via webSearch.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "URL to fetch content from (must be http or https)"
+                    },
+                    "extractWorkflow": {
+                        "type": "boolean",
+                        "description": "Whether to scan content for embedded ComfyUI API-format workflows (default: true)"
+                    }
+                },
+                "required": ["url"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "searchNodeRegistry",
+            "description": "Searches the ComfyUI Registry (comfyregistry.org) for custom node packages. Use when the user needs a node type that is not installed, or wants to discover available custom node packages for a specific purpose.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search term (e.g., 'face detection', 'upscale', 'controlnet')"
+                    },
+                    "limit": {
+                        "type": "number",
+                        "description": "Maximum results per page (default: 10, max: 50)"
+                    },
+                    "page": {
+                        "type": "number",
+                        "description": "Page number for pagination (default: 1)"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
 ]
 
 

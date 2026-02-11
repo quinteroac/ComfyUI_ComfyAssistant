@@ -49,6 +49,8 @@ This reference helps you suggest appropriate nodes for user needs.
 
 ## Common Workflows
 
+**Important**: This section is a conceptual reference only. Do **not** apply or generate workflows from these patterns unless you have followed the workflow-guardrails skill and verified installed nodes and models.
+
 **Basic txt2img:**
 CheckpointLoaderSimple → KSampler → VAEDecode → SaveImage
                       ↓

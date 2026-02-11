@@ -1,5 +1,6 @@
 """
-API endpoint handlers for environment, documentation, and skill management.
+API endpoint handlers for environment, documentation, skill management,
+and research tools.
 
 Extracted from __init__.py for maintainability. All handlers are async
 aiohttp request handlers that return web.Response.
@@ -14,6 +15,10 @@ import environment_scanner
 import documentation_resolver
 import skill_manager
 import user_context_store
+import comfyui_examples
+import web_search
+import web_content
+import node_registry
 
 logger = logging.getLogger("ComfyUI_ComfyAssistant.api")
 
@@ -222,4 +227,160 @@ def register_routes(app, handlers: dict) -> None:
         web.get("/api/user-context/skills", handlers["skills"]),
         web.delete("/api/user-context/skills/{slug}", handlers["skill_delete"]),
         web.patch("/api/user-context/skills/{slug}", handlers["skill_update"]),
+    ])
+
+
+# ---------------------------------------------------------------------------
+# Phase 8 — Research handlers
+# ---------------------------------------------------------------------------
+
+
+def create_research_handlers() -> dict:
+    """Create handler functions for research endpoints (Phase 8).
+
+    Returns:
+        Dict mapping handler names to async handler functions.
+    """
+
+    async def search_handler(request: web.Request) -> web.Response:
+        """POST /api/research/search — web search."""
+        try:
+            body = await request.json() if request.body_exists else {}
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+        query = (body.get("query") or "").strip()
+        if not query:
+            return web.json_response(
+                {"error": "Missing required field: query"}, status=400
+            )
+
+        max_results = body.get("maxResults", 5)
+        time_range = body.get("timeRange")
+
+        try:
+            result = await web_search.web_search(
+                query=query,
+                max_results=max_results,
+                time_range=time_range,
+            )
+            return web.json_response(result)
+        except RuntimeError as e:
+            logger.warning("Web search failed: %s", e)
+            return web.json_response({"error": str(e)}, status=503)
+        except Exception as e:
+            logger.exception("Unexpected error in web search")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def fetch_handler(request: web.Request) -> web.Response:
+        """POST /api/research/fetch — fetch and extract web content."""
+        try:
+            body = await request.json() if request.body_exists else {}
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+        url = (body.get("url") or "").strip()
+        if not url:
+            return web.json_response(
+                {"error": "Missing required field: url"}, status=400
+            )
+
+        extract_workflow = body.get("extractWorkflow", True)
+
+        try:
+            result = await web_content.fetch_web_content(
+                url=url,
+                extract_workflow=extract_workflow,
+            )
+            return web.json_response(result)
+        except ValueError as e:
+            return web.json_response({"error": str(e)}, status=400)
+        except RuntimeError as e:
+            logger.warning("Content fetch failed: %s", e)
+            return web.json_response({"error": str(e)}, status=502)
+        except Exception as e:
+            logger.exception("Unexpected error in content fetch")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def registry_handler(request: web.Request) -> web.Response:
+        """GET /api/research/registry — search ComfyUI Registry."""
+        query = (request.query.get("q") or "").strip()
+        if not query:
+            return web.json_response(
+                {"error": "Missing required query parameter: q"}, status=400
+            )
+
+        try:
+            limit = int(request.query.get("limit", "10"))
+        except ValueError:
+            limit = 10
+
+        try:
+            page = int(request.query.get("page", "1"))
+        except ValueError:
+            page = 1
+
+        try:
+            result = await node_registry.search_node_registry(
+                query=query,
+                limit=limit,
+                page=page,
+            )
+            return web.json_response(result)
+        except RuntimeError as e:
+            logger.warning("Registry search failed: %s", e)
+            return web.json_response({"error": str(e)}, status=502)
+        except Exception as e:
+            logger.exception("Unexpected error in registry search")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def examples_handler(request: web.Request) -> web.Response:
+        """POST /api/research/examples — get example workflows."""
+        try:
+            body = await request.json() if request.body_exists else {}
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+        category = (body.get("category") or "").strip()
+        if not category:
+            return web.json_response(
+                {"error": "Missing required field: category"}, status=400
+            )
+
+        query = (body.get("query") or "").strip()
+        max_results = body.get("maxResults", 5)
+
+        try:
+            result = comfyui_examples.get_examples(
+                category=category,
+                query=query or None,
+                max_results=max_results,
+            )
+            return web.json_response(result)
+        except FileNotFoundError as e:
+            return web.json_response({"error": str(e)}, status=404)
+        except Exception as e:
+            logger.exception("Unexpected error in examples lookup")
+            return web.json_response({"error": str(e)}, status=500)
+
+    return {
+        "search": search_handler,
+        "fetch": fetch_handler,
+        "registry": registry_handler,
+        "examples": examples_handler,
+    }
+
+
+def register_research_routes(app, handlers: dict) -> None:
+    """Register Phase 8 research routes on the aiohttp app.
+
+    Args:
+        app: The aiohttp web application.
+        handlers: Dict from create_research_handlers().
+    """
+    app.add_routes([
+        web.post("/api/research/search", handlers["search"]),
+        web.post("/api/research/fetch", handlers["fetch"]),
+        web.get("/api/research/registry", handlers["registry"]),
+        web.post("/api/research/examples", handlers["examples"]),
     ])

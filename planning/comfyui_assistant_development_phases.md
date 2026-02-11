@@ -1,6 +1,6 @@
 # ComfyUI Assistant — development phases
 
-This document defines a **phased development plan** from the current MVP to the full vision described in [features](comfyui_assistant_features.md), [design](comfyui_assistant_design.md), [tools](comfyui_assistant_tools.md), [skills](comfyui_assistant_skills.md), and [non-functional requirements](comfyui_assistant_non_functional_features.md). Each phase delivers a usable increment and sets the base for the next.
+This document defines a **phased development plan** from the current MVP to the full vision described in [features](comfyui_assistant_features.md), [design](comfyui_assistant_design.md), [tools](comfyui_assistant_tools.md), [skills](comfyui_assistant_skills.md), [base skills planning](comfyui_assistant_base_skills.md), and [non-functional requirements](comfyui_assistant_non_functional_features.md). Each phase delivers a usable increment and sets the base for the next. Phases 8–9 implement the base-skills strategy; former Phase 6–7 are renumbered to Phase 10–11 and deprioritized after them.
 
 ---
 
@@ -131,7 +131,42 @@ This document defines a **phased development plan** from the current MVP to the 
 
 ---
 
-## Phase 6 — Polish and non-functional requirements
+## Phase 8 — Research and self-service (base skills, Strategy 1)
+
+**Goal:** Give the agent **tools** to research and consume external content so it can discover nodes, documentation and workflows on its own and persist knowledge in user context. See [base skills planning](comfyui_assistant_base_skills.md).
+
+**Deliverables:**
+
+1. **Web search tool** — Search the web for documentation on nodes, models and workflows. Consume links (Reddit, Gist, X, etc.) where a workflow is shared: fetch the JSON/workflow and analyze it.
+2. **Node registry search tool** — Search the ComfyUI registry (or equivalent) for nodes that match the user’s requirement (by name, category, description).
+3. **Skills from research** — Flow for the assistant to suggest creating **user skills** (stored in `user_context/skills/`) from what was learned in a session using the above tools (create_skill from Phase 3 is used for persistence).
+
+**Success criteria:** Agent can search for node/workflow documentation and shared workflows, search the node registry for suggestions, and offer to save findings as user skills.
+
+**Dependencies:** Phase 3 (create_skill, user context). Optional: Phase 4 if workflow ingestion from links requires apply_workflow_json.
+
+---
+
+## Phase 9 — Curated knowledge base (base skills, Strategy 2)
+
+**Goal:** Create **base skills** that inject stable, well-structured knowledge (ComfyUI, models, nodes) and provide tooling to generate/update them automatically. See [base skills planning](comfyui_assistant_base_skills.md).
+
+**Deliverables:**
+
+1. **Definition** — Inventory of which skills to create, which nodes, which models and which workflows to include (document in planning or `.agents/`).
+2. **Skill content** — Base skills covering: **ComfyUI** (official docs, OOB nodes, base workflows and API, e.g. ComfyUI docs tutorial); **models** (popular supported models, architecture, optimal inference parameters, typical workflows); **nodes** (most used nodes, how to use them, combinations and use cases).
+3. **Tool to generate skills** — Tool or pipeline to generate/update these base skills automatically from sources (docs, node lists, examples).
+4. **Generated and maintained base skills** — Produce and maintain the skills using the above tool; inject them via system_context or documented injection path.
+
+**Success criteria:** Agent has access to curated ComfyUI/model/node knowledge; skills can be regenerated when sources change.
+
+**Dependencies:** Phase 8 recommended (informed by research tooling). Phase 3 (environment, docs). Phase 9 depends on prior definition; until the inventory is defined, curated skills and the generation tool are not implemented.
+
+---
+
+## Phase 10 — Polish and non-functional requirements
+
+*(Previously Phase 6. Lower priority than Phase 8–9; see [base skills](comfyui_assistant_base_skills.md).)*
 
 **Goal:** Harden **installability**, **configurability**, **security**, and **usability** to meet the [non-functional requirements](comfyui_assistant_non_functional_features.md) document.
 
@@ -144,13 +179,15 @@ This document defines a **phased development plan** from the current MVP to the 
 5. **Context and performance** — Confirm documentation remains on demand; optional **embeddings** layer for user context when API is available; otherwise fixed window or summary as in design.
 6. **Compatibility and maintainability** — Document **tool and skill contracts**; state supported ComfyUI version range; keep a CHANGELOG for breaking changes.
 
-**Success criteria:** User can install via Manager, add several LLM providers from the UI, use the assistant in their language, and security notes are documented. No regression on Phase 1–5 behavior.
+**Success criteria:** User can install via Manager, add several LLM providers from the UI, use the assistant in their language, and security notes are documented. No regression on Phase 1–5 and 8–9 behavior.
 
-**Dependencies:** Phases 1–5. Can be parallelized (e.g. Manager metadata early; security review before or after Phase 4).
+**Dependencies:** Phases 1–5, 8–9. Can be parallelized (e.g. Manager metadata early; security review before or after Phase 4).
 
 ---
 
-## Phase 7 — Risk mitigation (post–Phase 3 review)
+## Phase 11 — Risk mitigation (post–Phase 3 review)
+
+*(Previously Phase 7. Lower priority than Phase 8–9.)*
 
 **Goal:** Address risks identified in the Phase 3 PR review (e.g. Bugbot — Medium Risk): new backend APIs, background scanning, prompt injection (environment summary), and the `@assistant-ui/react-ai-sdk` tool-call patch. Document and, where applicable, implement mitigations so the model’s context and tool execution remain bounded and maintainable.
 
@@ -164,7 +201,7 @@ This document defines a **phased development plan** from the current MVP to the 
 
 **Success criteria:** All four risk areas documented with mitigations applied or explicitly accepted. At minimum: route assumptions documented; environment summary size bounded and documented; patch purpose and upgrade plan documented. No regression in Phase 3 behaviour.
 
-**Dependencies:** Phase 3 done. Can be done after or in parallel with Phase 4/5.
+**Dependencies:** Phase 3 done. Can be done after or in parallel with Phase 4/5/8/9/10.
 
 **Reference:** [development/phase_6/risks_from_phase_3.md](../development/phase_6/risks_from_phase_3.md) for the detailed checklist.
 
@@ -181,13 +218,15 @@ This document defines a **phased development plan** from the current MVP to the 
 | **4** | Execution & complex workflows | execute_workflow (with UI feedback), apply_workflow_json |
 | **5a** | Terminal-style UI (done) | Bottom panel, terminal aesthetic, ASCII logo + welcome, horizontal thread tabs, CSS consolidation |
 | **5b** | Slash commands & sessions (done) | `/help`, `/clear`, `/new`, `/rename`, `/sessions`; autocomplete; Rename in thread dropdown |
-| **6** | NFRs & polish | ComfyUI Manager install, multi-provider config UI, security, multi-language, docs |
-| **7** | Risk mitigation (post–Phase 3) | Document and mitigate Phase 3 risks: APIs, scan, prompt injection, assistant-ui patch |
+| **8** | Research & self-service (base skills) | Web search tool, node registry search tool, flow to suggest user skills from research |
+| **9** | Curated knowledge base (base skills) | Definition (inventory), base skill content (ComfyUI/models/nodes), tool to generate skills, generated skills |
+| **10** | NFRs & polish | ComfyUI Manager install, multi-provider config UI, security, multi-language, docs |
+| **11** | Risk mitigation (post–Phase 3) | Document and mitigate Phase 3 risks: APIs, scan, prompt injection, assistant-ui patch |
 
 ---
 
 ## Notes
 
-- **Order:** Phases 1 → 2 → 3 → 4 are sequential by dependency. Phase 5 (terminal UI) depends on Phase 0 and can be developed in parallel with or after Phase 1–4. Phase 6 (NFRs & polish) depends on Phases 1–5. Phase 7 (risk mitigation) depends on Phase 3 and can run after or in parallel with Phase 4/5/6.
+- **Order:** Phases 1 → 2 → 3 → 4 are sequential by dependency. Phase 5 (terminal UI) depends on Phase 0 and can be developed in parallel with or after Phase 1–4. **Phase 8 (research/self-service) and Phase 9 (curated knowledge base)** follow Phase 5b and are prioritized before Phase 10–11. Phase 10 (NFRs & polish) depends on Phases 1–5 and 8–9. Phase 11 (risk mitigation) depends on Phase 3 and can run after or in parallel with Phase 4/5/8/9/10.
 - **Scope per phase:** Each phase should be shippable (e.g. "Phase 1 release" = MVP + user context and manually created skills). Avoid moving to the next phase until the current one is stable and tested. Agent-driven **create_skill** is delivered in Phase 3 with the back agent.
-- **References:** For detailed tool/skill behavior, see [comfyui_assistant_tools.md](comfyui_assistant_tools.md) and [comfyui_assistant_skills.md](comfyui_assistant_skills.md). For architecture and security, see [comfyui_assistant_design.md](comfyui_assistant_design.md) and [comfyui_assistant_non_functional_features.md](comfyui_assistant_non_functional_features.md).
+- **References:** For base skills rationale and strategy, see [comfyui_assistant_base_skills.md](comfyui_assistant_base_skills.md). For detailed tool/skill behavior, see [comfyui_assistant_tools.md](comfyui_assistant_tools.md) and [comfyui_assistant_skills.md](comfyui_assistant_skills.md). For architecture and security, see [comfyui_assistant_design.md](comfyui_assistant_design.md) and [comfyui_assistant_non_functional_features.md](comfyui_assistant_non_functional_features.md).

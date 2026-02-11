@@ -15,15 +15,19 @@ import {
   createSkillDefinition,
   deleteSkillDefinition,
   executeWorkflowDefinition,
+  fetchWebContentDefinition,
   fillPromptNodeDefinition,
   getAvailableModelsDefinition,
+  getExampleWorkflowDefinition,
   getWorkflowInfoDefinition,
   readDocumentationDefinition,
   refreshEnvironmentDefinition,
   removeNodeDefinition,
   searchInstalledNodesDefinition,
+  searchNodeRegistryDefinition,
   setNodeWidgetValueDefinition,
-  updateSkillDefinition
+  updateSkillDefinition,
+  webSearchDefinition
 } from '@/tools/definitions'
 import {
   executeAddNode,
@@ -32,15 +36,19 @@ import {
   executeCreateSkill,
   executeDeleteSkill,
   executeExecuteWorkflow,
+  executeFetchWebContent,
   executeFillPromptNode,
   executeGetAvailableModels,
+  executeGetExampleWorkflow,
   executeGetWorkflowInfo,
   executeReadDocumentation,
   executeRefreshEnvironment,
   executeRemoveNode,
   executeSearchInstalledNodes,
+  executeSearchNodeRegistry,
   executeSetNodeWidgetValue,
-  executeUpdateSkill
+  executeUpdateSkill,
+  executeWebSearch
 } from '@/tools/implementations'
 import type { ToolContext } from '@/tools/types'
 
@@ -207,6 +215,42 @@ export function useComfyTools() {
       const ctx = getToolContext()
       if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
       return executeApplyWorkflowJson(args, ctx)
+    }
+  })
+
+  useAssistantTool({
+    toolName: getExampleWorkflowDefinition.name,
+    description: getExampleWorkflowDefinition.description,
+    parameters: getExampleWorkflowDefinition.parameters,
+    execute: async (args) => {
+      return executeGetExampleWorkflow(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: webSearchDefinition.name,
+    description: webSearchDefinition.description,
+    parameters: webSearchDefinition.parameters,
+    execute: async (args) => {
+      return executeWebSearch(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: fetchWebContentDefinition.name,
+    description: fetchWebContentDefinition.description,
+    parameters: fetchWebContentDefinition.parameters,
+    execute: async (args) => {
+      return executeFetchWebContent(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: searchNodeRegistryDefinition.name,
+    description: searchNodeRegistryDefinition.description,
+    parameters: searchNodeRegistryDefinition.parameters,
+    execute: async (args) => {
+      return executeSearchNodeRegistry(args)
     }
   })
 }
