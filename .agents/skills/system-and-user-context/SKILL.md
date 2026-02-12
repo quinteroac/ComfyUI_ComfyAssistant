@@ -80,6 +80,7 @@ At runtime, `agent_prompts.format_user_context()` also enforces caps for rules, 
 - `LLM_SYSTEM_CONTEXT_MAX_CHARS` (default: `12000`)
 - `LLM_USER_CONTEXT_MAX_CHARS` (default: `2500`)
 - `LLM_HISTORY_MAX_MESSAGES` (default: `24`)
+- `LLM_TOOL_RESULT_KEEP_LAST_ROUNDS` (default: `2`) — only the last N "rounds" of tool results are sent in full; older rounds get a short placeholder
 
 ## System Message Assembly
 

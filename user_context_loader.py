@@ -78,6 +78,8 @@ def load_system_context(system_context_dir: str) -> str:
     skills_dir = os.path.join(system_context_dir, "skills")
     if os.path.isdir(skills_dir):
         for name in sorted(os.listdir(skills_dir)):
+            if "model_" in name:
+                continue
             skill_dir = os.path.join(skills_dir, name)
             if not os.path.isdir(skill_dir):
                 continue
@@ -91,6 +93,56 @@ def load_system_context(system_context_dir: str) -> str:
             if body:
                 parts.append(body)
     return "\n\n".join(parts) if parts else ""
+
+
+def list_system_model_skills(system_context_dir: str) -> list[dict[str, str]]:
+    """
+    List system-context skills that are model-specific (folder name contains "model_").
+    Returns list of {slug, name}; slug is the folder name (e.g. 09_model_flux).
+    """
+    result: list[dict[str, str]] = []
+    skills_dir = os.path.join(system_context_dir, "skills")
+    if not os.path.isdir(skills_dir):
+        return result
+    for name in sorted(os.listdir(skills_dir)):
+        if "model_" not in name:
+            continue
+        skill_dir = os.path.join(skills_dir, name)
+        if not os.path.isdir(skill_dir):
+            continue
+        skill_md = os.path.join(skill_dir, "SKILL.md")
+        if not os.path.isfile(skill_md):
+            continue
+        content = _read_file_utf8(skill_md)
+        if not content:
+            continue
+        fm, body = _parse_skill_md(content)
+        name_display = (fm.get("name") or name).strip()
+        result.append({"slug": name, "name": name_display})
+    return result
+
+
+def get_system_model_skill(system_context_dir: str, slug: str) -> dict[str, str] | None:
+    """
+    Load a single system model skill by slug (folder name, e.g. 09_model_flux).
+    Returns {slug, name, content} or None if not found.
+    """
+    if not slug or not slug.strip():
+        return None
+    slug = slug.strip()
+    if ".." in slug or "/" in slug or "\\" in slug:
+        return None
+    skills_dir = os.path.join(system_context_dir, "skills")
+    skill_dir = os.path.join(skills_dir, slug)
+    skill_md = os.path.join(skill_dir, "SKILL.md")
+    if not os.path.isdir(skill_dir) or not os.path.isfile(skill_md):
+        return None
+    content = _read_file_utf8(skill_md)
+    if not content:
+        return None
+    fm, body = _parse_skill_md(content)
+    name_display = (fm.get("name") or slug).strip()
+    return {"slug": slug, "name": name_display, "content": body.strip()}
 
 
 def _first_paragraph_or_lines(text: str, max_lines: int = 2) -> str:
@@ -164,8 +216,10 @@ def load_environment_summary() -> str:
 
 def load_user_context() -> dict[str, Any]:
     """
-    Load full user context for prompt injection.
-    Returns dict: rules, soul_text, goals_text, preferences, skills (list of {slug, text, is_full}).
+    Load user context for prompt injection (rules, SOUL, goals, preferences).
+
+    User skills are not loaded here; they are fetched on demand via
+    skill_manager.get_skill(slug) when the model calls getUserSkill.
     """
     root = get_user_context_path()
     soul_path = os.path.join(root, "SOUL.md")
@@ -175,17 +229,10 @@ def load_user_context() -> dict[str, Any]:
     preferences = get_preferences()
     soul_text = _read_file_utf8(soul_path)
     goals_text = _read_file_utf8(goals_path)
-    skills_tuples = load_skills()
-
-    skills = [
-        {"slug": slug, "text": text, "is_full": is_full}
-        for slug, text, is_full in skills_tuples
-    ]
 
     return {
         "rules": rules,
         "soul_text": soul_text,
         "goals_text": goals_text,
         "preferences": preferences,
-        "skills": skills,
     }

@@ -15,6 +15,7 @@ This directory holds **planning and design documentation** for the project: idea
 
 **Documents in this folder**
 
+- [comfyui_context_management.md](comfyui_context_management.md) — How the system manages context efficiently (system message, continuation, trimming, on-demand skills)
 - [comfyui_assistant_features.md](comfyui_assistant_features.md) — Product features and audience
 - [comfyui_assistant_design.md](comfyui_assistant_design.md) — Architecture (two agents, .agents/, user context)
 - [comfyui_assistant_tools.md](comfyui_assistant_tools.md) — Tools (UI vs back agent)

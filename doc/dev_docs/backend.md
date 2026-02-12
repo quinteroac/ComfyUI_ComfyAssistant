@@ -114,13 +114,27 @@ The `reasoning-*` events only appear when the LLM uses `<think>` tags. Finish re
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OPENAI_API_KEY` | (required) | LLM provider API key |
-| `OPENAI_MODEL` | `llama3-70b-8192` | Model name |
+| `LLM_PROVIDER` | auto-detect | Optional provider selector: `openai`, `anthropic`, `claude_code`, or `codex` |
+| `OPENAI_API_KEY` | (optional) | OpenAI-compatible provider API key |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI-compatible model |
 | `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | Any OpenAI-compatible provider URL |
+| `ANTHROPIC_API_KEY` | (optional) | Anthropic API key for direct Messages API calls |
+| `ANTHROPIC_MODEL` | `claude-sonnet-4-5` | Anthropic model |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | Anthropic API base URL |
+| `ANTHROPIC_MAX_TOKENS` | `4096` | Max output tokens for Anthropic Messages API |
+| `CLAUDE_CODE_COMMAND` | `claude` | Claude Code executable used by `claude_code` provider |
+| `CLAUDE_CODE_MODEL` | (empty) | Optional model alias for Claude Code CLI |
+| `CODEX_COMMAND` | `codex` | Codex executable used by `codex` provider |
+| `CODEX_MODEL` | (empty) | Optional model id/alias for Codex CLI |
+| `CLI_PROVIDER_TIMEOUT_SECONDS` | `180` | Timeout for CLI provider subprocess calls |
 | `LLM_REQUEST_DELAY_SECONDS` | `1.0` | Rate-limit delay before each LLM call |
 | `COMFY_ASSISTANT_LOG_LEVEL` | `INFO` | Logging level |
 
-To change the LLM provider, set `OPENAI_API_BASE_URL` to any OpenAI-compatible endpoint (OpenAI-compatible provider, OpenAI, Together, Ollama, etc.) and set the corresponding API key in `OPENAI_API_KEY`.
+To change the LLM provider, set `LLM_PROVIDER` and matching credentials:
+- `openai`: `OPENAI_API_KEY` (+ optional `OPENAI_API_BASE_URL`, `OPENAI_MODEL`)
+- `anthropic`: `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`)
+- `claude_code`: Claude Code CLI installed and authenticated (`claude setup-token`)
+- `codex`: Codex CLI installed and authenticated
 
 ---
 
@@ -171,7 +185,13 @@ The frontend side (Zod schema, implementation, registry) is covered in [tools.md
 ## How do I...
 
 **...change the LLM provider?**
-Set `OPENAI_API_BASE_URL` in `.env` to any OpenAI-compatible endpoint and set the API key in `OPENAI_API_KEY`.
+Set `LLM_PROVIDER` in `.env`:
+- `openai`: configure `OPENAI_*`
+- `anthropic`: configure `ANTHROPIC_API_KEY`
+- `claude_code`: configure `CLAUDE_CODE_*` if needed (defaults usually fine)
+- `codex`: configure `CODEX_*` if needed (defaults usually fine)
+
+If omitted, provider is auto-selected from available credentials.
 
 **...handle rate limiting differently?**
 Two mechanisms exist: (1) `LLM_REQUEST_DELAY_SECONDS` adds a delay before each LLM call; (2) if the provider returns HTTP 429, the handler catches it and streams a friendly "Rate limited" text message. Edit `chat_api_handler` in `__init__.py` to change either behavior.

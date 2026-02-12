@@ -260,12 +260,23 @@ The **user_context/** directory is the assistant’s writable workspace (created
 
 **Backend** (`.env`):
 ```bash
-OPENAI_API_KEY=gsk_xxx              # Required: API key for the LLM provider
-OPENAI_API_BASE_URL=https://...   # Optional: OpenAI-compatible API URL (default: OpenAI-compatible provider)
-OPENAI_MODEL=llama3-70b-8192        # Optional: Model name
+LLM_PROVIDER=openai                  # Optional: openai, anthropic, claude_code, codex
+OPENAI_API_KEY=gsk_xxx               # OpenAI-compatible provider API key
+OPENAI_API_BASE_URL=https://...      # Optional: OpenAI-compatible API URL
+OPENAI_MODEL=llama3-70b-8192         # Optional: OpenAI-compatible model
+ANTHROPIC_API_KEY=sk-ant-...         # Optional: Anthropic API key (required for anthropic provider)
+ANTHROPIC_MODEL=claude-sonnet-4-5    # Optional: Anthropic model name
+ANTHROPIC_BASE_URL=https://api.anthropic.com # Optional: Anthropic API URL
+ANTHROPIC_MAX_TOKENS=4096            # Optional: Anthropic max output tokens
+CLAUDE_CODE_COMMAND=claude           # Optional: claude_code CLI executable
+CLAUDE_CODE_MODEL=sonnet             # Optional: claude_code model alias
+CODEX_COMMAND=codex                  # Optional: codex CLI executable
+CODEX_MODEL=o3                       # Optional: codex model alias
+CLI_PROVIDER_TIMEOUT_SECONDS=180     # Optional: timeout for CLI provider subprocesses
 SEARXNG_URL=http://localhost:8080  # Optional: SearXNG instance for web search (Phase 8)
 ```
-Use `OPENAI_API_BASE_URL` to point to any OpenAI-compatible provider (OpenAI-compatible provider, OpenAI, Together, Ollama, etc.).
+OpenAI-compatible providers use `OPENAI_*`. Anthropic provider uses `ANTHROPIC_API_KEY`.
+`claude_code` and `codex` providers use local authenticated CLI executables.
 
 **Frontend** (`ui/.env.local`):
 ```bash

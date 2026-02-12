@@ -15,6 +15,7 @@ import environment_scanner
 import documentation_resolver
 import skill_manager
 import user_context_store
+import user_context_loader
 import comfyui_examples
 import web_search
 import web_content
@@ -156,6 +157,19 @@ def create_handlers(environment_dir: str, system_context_path: str) -> dict:
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
+    async def skill_get_handler(request: web.Request) -> web.Response:
+        """GET /api/user-context/skills/{slug} — get one skill (slug, name, description, instructions)."""
+        slug = request.match_info.get("slug", "")
+        try:
+            skill = skill_manager.get_skill(slug)
+            if not skill:
+                return web.json_response(
+                    {"error": f"Skill '{slug}' not found"}, status=404
+                )
+            return web.json_response(skill)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
     async def skill_delete_handler(request: web.Request) -> web.Response:
         """DELETE /api/user-context/skills/{slug} — delete skill."""
         slug = request.match_info.get("slug", "")
@@ -196,6 +210,27 @@ def create_handlers(environment_dir: str, system_context_path: str) -> dict:
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
 
+    async def system_context_skills_list_handler(request: web.Request) -> web.Response:
+        """GET /api/system-context/skills — list model-specific system skills (on demand)."""
+        try:
+            skills = user_context_loader.list_system_model_skills(system_context_path)
+            return web.json_response({"skills": skills})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def system_context_skill_get_handler(request: web.Request) -> web.Response:
+        """GET /api/system-context/skills/{slug} — get one model skill by slug (e.g. 09_model_flux)."""
+        slug = request.match_info.get("slug", "")
+        try:
+            skill = user_context_loader.get_system_model_skill(system_context_path, slug)
+            if not skill:
+                return web.json_response(
+                    {"error": f"System skill '{slug}' not found"}, status=404
+                )
+            return web.json_response(skill)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
     return {
         "environment_scan": environment_scan_handler,
         "environment_summary": environment_summary_handler,
@@ -204,8 +239,11 @@ def create_handlers(environment_dir: str, system_context_path: str) -> dict:
         "environment_packages": environment_packages_handler,
         "environment_docs": environment_docs_handler,
         "skills": skills_handler,
+        "skill_get": skill_get_handler,
         "skill_delete": skill_delete_handler,
         "skill_update": skill_update_handler,
+        "system_context_skills_list": system_context_skills_list_handler,
+        "system_context_skill_get": system_context_skill_get_handler,
     }
 
 
@@ -225,8 +263,11 @@ def register_routes(app, handlers: dict) -> None:
         web.get("/api/environment/docs", handlers["environment_docs"]),
         web.post("/api/user-context/skills", handlers["skills"]),
         web.get("/api/user-context/skills", handlers["skills"]),
+        web.get("/api/user-context/skills/{slug}", handlers["skill_get"]),
         web.delete("/api/user-context/skills/{slug}", handlers["skill_delete"]),
         web.patch("/api/user-context/skills/{slug}", handlers["skill_update"]),
+        web.get("/api/system-context/skills", handlers["system_context_skills_list"]),
+        web.get("/api/system-context/skills/{slug}", handlers["system_context_skill_get"]),
     ])
 
 

@@ -4,7 +4,16 @@ System message assembly: system_context + user_context + skills.
 System context is loaded from system_context/*.md (see user_context_loader.load_system_context).
 User context (rules, SOUL, goals, skills) is loaded from user_context/ and the DB;
 format_user_context() formats it for injection. Final content = system_context + user_context block.
+
+Context is sent in full only on the first message of a thread; subsequent messages use
+get_system_message_continuation() so the same context is not re-sent every turn.
 """
+
+# Short system message for continuation turns (context was already sent in the first message).
+SYSTEM_CONTINUATION_CONTENT = (
+    "You are ComfyUI Assistant. Continue the conversation. "
+    "Apply the same rules, tools, and user context as in the initial system message."
+)
 
 DEFAULT_USER_CONTEXT_MAX_CHARS = 4000
 DEFAULT_NARRATIVE_MAX_CHARS = 1200
@@ -45,11 +54,12 @@ def format_user_context(
     max_chars: int = DEFAULT_USER_CONTEXT_MAX_CHARS,
     max_narrative_chars: int = DEFAULT_NARRATIVE_MAX_CHARS,
     max_rules: int = DEFAULT_MAX_RULES,
-    max_skills: int = DEFAULT_MAX_SKILLS,
 ) -> str:
     """
-    Format loaded user context (rules, SOUL, goals, skills) for injection into the system message.
-    Returns a string block to append; empty if no context.
+    Format loaded user context (rules, SOUL, goals) for injection into the system message.
+
+    User skills are not included here; they are loaded on demand via the getUserSkill
+    and listUserSkills tools.
     """
     if not user_context:
         return ""
@@ -80,31 +90,13 @@ def format_user_context(
             block.append("**User goals**: " + goals)
         parts.append("## User context\n\n" + "\n\n".join(block))
 
-    skills = user_context.get("skills") or []
-    if skills:
-        skill_lines = []
-        for s in skills[:max_skills]:
-            slug = s.get("slug", "?")
-            text = _truncate_text((s.get("text") or "").strip(), 360)
-            if not text:
-                continue
-            label = "User skill: " + slug
-            if not s.get("is_full"):
-                label += " (summary; apply when relevant)"
-            skill_lines.append("### " + label + "\n\n" + text)
-        omitted = len(skills) - len(skill_lines)
-        if omitted > 0:
-            skill_lines.append(f"_... {omitted} more skills omitted for brevity_")
-        if skill_lines:
-            parts.append("## User skills (apply when relevant)\n\n" + "\n\n".join(skill_lines))
-
     if not parts:
         return ""
 
     payload = (
-        "\n\n---\n\n## User context (rules and skills)\n\n"
-        "Apply these rules and skills when creating or modifying workflows and "
-        "when answering.\n\n" + "\n\n".join(parts)
+        "\n\n---\n\n## User context (rules)\n\n"
+        "Apply these rules when creating or modifying workflows and when answering.\n\n"
+        + "\n\n".join(parts)
     )
     return _truncate_text(payload, max_chars)
 
@@ -123,6 +115,19 @@ def get_system_message(
     environment_summary is a brief text from environment_scanner.get_environment_summary().
     """
     content_parts = [system_context_text]
+    # User skills and model-specific system skills are loaded on demand
+    content_parts.append(
+        "## User skills (on demand)\n\n"
+        "User skills (saved preferences) are not in this message. Use listUserSkills to see "
+        "available skills (slug, name, description). Use getUserSkill(slug) to load a skill's "
+        "instructions when the user refers to it or when you need to apply a remembered preference.\n\n"
+        "## Model-specific system skills (on demand)\n\n"
+        "Model skills (Flux, SDXL, Lumina2, Wan, etc.) are not in this message.\n\n"
+        "**When the user asks about a model or a workflow for a model**: you MUST first call listSystemSkills, "
+        "match the mentioned model to a skill (by name or slug, e.g. Flux → 09_model_flux, SDXL → 13_model_sdxl), "
+        "then call getSystemSkill(slug) to load that skill's instructions before answering or building the workflow. "
+        "Apply the loaded skill content when giving advice or creating workflows for that model."
+    )
     if environment_summary:
         content_parts.append(
             "## Installed environment\n\n" + environment_summary
@@ -137,4 +142,18 @@ def get_system_message(
     return {
         "role": "system",
         "content": "\n\n".join(content_parts),
+    }
+
+
+def get_system_message_continuation() -> dict:
+    """
+    Returns a minimal system message for continuation turns.
+
+    Use this when the conversation already has at least one assistant message:
+    the full context was sent in the first turn, so we only send a short reminder
+    to avoid re-sending the same long context on every request.
+    """
+    return {
+        "role": "system",
+        "content": SYSTEM_CONTINUATION_CONTENT,
     }

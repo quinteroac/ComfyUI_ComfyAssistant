@@ -131,6 +131,59 @@ def list_skills() -> list[dict[str, Any]]:
     return skills
 
 
+def get_skill(slug: str) -> dict[str, Any] | None:
+    """Get a single user skill by slug with full instructions.
+
+    Returns:
+        dict with keys slug, name, description, instructions, or None if not found.
+    """
+    if not slug or not slug.strip():
+        return None
+
+    slug = slug.strip()
+    if ".." in slug or "/" in slug or "\\" in slug:
+        return None
+
+    skills_dir = _get_skills_dir()
+    skill_dir = os.path.join(skills_dir, slug)
+    skill_md = os.path.join(skill_dir, "SKILL.md")
+
+    if not os.path.isdir(skill_dir) or not os.path.isfile(skill_md):
+        return None
+
+    try:
+        with open(skill_md, "r", encoding="utf-8") as f:
+            content = f.read()
+    except (OSError, UnicodeDecodeError):
+        return None
+
+    name = slug
+    description = ""
+    body = content
+    if content.startswith("---"):
+        rest = content[3:].lstrip("\n")
+        end = rest.find("\n---")
+        if end >= 0:
+            fm_block = rest[:end].strip()
+            body = rest[end + 4 :].lstrip("\n")
+            for line in fm_block.splitlines():
+                if ":" in line:
+                    k, v = line.split(":", 1)
+                    k = k.strip().lower()
+                    v = v.strip().strip("'\"").strip()
+                    if k == "name":
+                        name = v
+                    elif k == "description":
+                        description = v
+
+    return {
+        "slug": slug,
+        "name": name,
+        "description": description,
+        "instructions": body.strip(),
+    }
+
+
 def delete_skill(slug: str) -> bool:
     """Delete a skill by its slug.
 
