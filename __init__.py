@@ -126,6 +126,9 @@ COMFY_ASSISTANT_DEBUG_CONTEXT = os.environ.get(
     "COMFY_ASSISTANT_DEBUG_CONTEXT", ""
 ).strip().lower() in ("1", "true", "yes")
 
+# Maximum automatic compaction retries when the LLM returns 413 / context-too-large.
+_MAX_CONTEXT_COMPACT_RETRIES = 2
+
 # AI SDK UI Message Stream headers (required by AssistantChatTransport)
 UI_MESSAGE_STREAM_HEADERS = {
     "Content-Type": "text/event-stream",
@@ -972,8 +975,26 @@ def _summarize_tool_result(tool_name: str, result_content: str) -> str:
                     if len(val_str) > 50:
                         val_str = val_str[:47] + "..."
                     summary_parts.append(f"{key}={val_str}")
+
+        # Extract names from array fields (e.g. searchInstalledNodes nodes, research results)
+        for key in ("nodes", "results", "items"):
+            arr = data.get(key)
+            if isinstance(arr, list) and arr:
+                names = []
+                for item in arr:
+                    if isinstance(item, dict):
+                        n = item.get("name") or item.get("title") or item.get("type", "")
+                        if n:
+                            names.append(str(n))
+                if names:
+                    MAX_LISTED = 8
+                    listed = names[:MAX_LISTED]
+                    tail = f", +{len(names) - MAX_LISTED} more" if len(names) > MAX_LISTED else ""
+                    summary_parts.append(f"{key}=[{', '.join(listed)}{tail}]")
+                break  # only include one array field
+
         if summary_parts:
-            return json.dumps({"_summary": f"{tool_name}: ok ({', '.join(summary_parts[:3])})"})
+            return json.dumps({"_summary": f"{tool_name}: ok ({', '.join(summary_parts[:4])})"})
 
     return json.dumps({"_summary": f"{tool_name}: ok"})
 
@@ -1174,6 +1195,85 @@ def _trim_openai_history(
         metrics["history_trimmed"] = True
         metrics["conversation_summary_injected"] = bool(summary_text)
     return result
+
+
+def _is_context_too_large_error(exc: Exception) -> bool:
+    """Return True if the exception signals that the request payload / context is too large."""
+    status = getattr(exc, "status_code", None) or (
+        getattr(getattr(exc, "response", None), "status_code", None)
+    )
+    if status == 413:
+        return True
+    # OpenAI and many compatible providers return 400 for context_length_exceeded
+    if status == 400:
+        msg = str(exc).lower()
+        for pattern in (
+            "context length",
+            "maximum context",
+            "token limit",
+            "too many tokens",
+            "payload too large",
+            "content_length",
+            "context_length",
+            "max_tokens",
+            "input too long",
+        ):
+            if pattern in msg:
+                return True
+    return False
+
+
+def _is_context_too_large_response(status: int, body: str) -> bool:
+    """Return True if an HTTP response status+body indicates context too large (Anthropic path)."""
+    if status == 413:
+        return True
+    if status == 400:
+        lower = body.lower()
+        for pattern in (
+            "context length",
+            "input too long",
+            "too many tokens",
+            "token limit",
+            "payload too large",
+            "max_tokens",
+        ):
+            if pattern in lower:
+                return True
+    return False
+
+
+def _compact_messages_for_retry(
+    messages: list[dict],
+    attempt: int,
+) -> list[dict]:
+    """Apply progressively more aggressive compaction for 413/context-too-large retries.
+
+    attempt=1: summarize ALL tool results (including recent ones).
+    attempt=2: also halve history and further truncate system context.
+    """
+    messages = list(messages)
+
+    if attempt >= 1:
+        # Phase 1: summarize every tool result (keep_last_n_rounds=0)
+        messages = _trim_old_tool_results(messages, keep_last_n_rounds=0)
+
+    if attempt >= 2:
+        # Phase 2: halve non-system history
+        non_system_count = sum(1 for m in messages if m.get("role") != "system")
+        messages = _trim_openai_history(
+            messages, max(4, non_system_count // 2)
+        )
+        # Phase 2b: cut system context to half the normal budget
+        for i, m in enumerate(messages):
+            if m.get("role") == "system":
+                content = m.get("content", "")
+                cap = LLM_SYSTEM_CONTEXT_MAX_CHARS // 2
+                if len(content) > cap:
+                    messages[i] = {**m, "content": _smart_truncate_system_context(content, cap)}
+                break
+
+    return messages
+
 
 # Print the current paths for debugging
 print(f"ComfyUI_example_frontend_extension workspace path: {workspace_path}")
@@ -1469,13 +1569,40 @@ async def chat_api_handler(request: web.Request) -> web.Response:
 
         try:
             await asyncio.sleep(LLM_REQUEST_DELAY_SECONDS)
-            stream = await client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=openai_messages,
-                tools=TOOLS_DEFINITIONS,
-                tool_choice="auto",
-                stream=True,
-            )
+
+            # Retry with automatic compaction on 413 / context-too-large
+            retry_messages = openai_messages
+            stream = None
+            for _compact_attempt in range(_MAX_CONTEXT_COMPACT_RETRIES + 1):
+                try:
+                    stream = await client.chat.completions.create(
+                        model=OPENAI_MODEL,
+                        messages=retry_messages,
+                        tools=TOOLS_DEFINITIONS,
+                        tool_choice="auto",
+                        stream=True,
+                    )
+                    break  # create() succeeded
+                except Exception as create_exc:
+                    if _compact_attempt < _MAX_CONTEXT_COMPACT_RETRIES and _is_context_too_large_error(create_exc):
+                        logger.warning(
+                            "[ComfyAssistant] context too large (compact attempt %d/%d), "
+                            "applying automatic compaction...",
+                            _compact_attempt + 1,
+                            _MAX_CONTEXT_COMPACT_RETRIES,
+                        )
+                        retry_messages = _compact_messages_for_retry(
+                            retry_messages, _compact_attempt + 1
+                        )
+                        new_est = _count_request_tokens(retry_messages)
+                        logger.info(
+                            "[ComfyAssistant] compacted: %d messages, ~%d tokens (was ~%d)",
+                            len(retry_messages),
+                            new_est,
+                            request_tokens_est,
+                        )
+                        continue
+                    raise  # non-retryable or final attempt — propagate to outer handler
 
             async for chunk in stream:
                 choice = chunk.choices[0] if chunk.choices else None
@@ -1619,7 +1746,6 @@ async def chat_api_handler(request: web.Request) -> web.Response:
 
         except Exception as e:
             logger.debug("LLM request failed: %s", e, exc_info=True)
-            # User-friendly message for rate limit (429); other errors pass through
             status = getattr(e, "status_code", None) or (
                 getattr(getattr(e, "response", None), "status_code", None)
             )
@@ -1627,6 +1753,14 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 yield _sse_line({
                     "type": "error",
                     "errorText": "Rate limit exceeded (429). Please wait a minute and try again.",
+                }).encode("utf-8")
+            elif _is_context_too_large_error(e):
+                yield _sse_line({
+                    "type": "error",
+                    "errorText": (
+                        "Context too large for the model even after automatic compaction. "
+                        "Try starting a new conversation or reducing history."
+                    ),
                 }).encode("utf-8")
             else:
                 yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
@@ -1662,105 +1796,146 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         }
         headers["x-api-key"] = ANTHROPIC_API_KEY
 
-        system_text, anthropic_messages = _openai_messages_to_anthropic(
-            openai_messages
-        )
-        payload = {
-            "model": ANTHROPIC_MODEL,
-            "max_tokens": ANTHROPIC_MAX_TOKENS,
-            "messages": anthropic_messages,
-            "tools": _openai_tools_to_anthropic(TOOLS_DEFINITIONS),
-            "tool_choice": {"type": "auto"},
-        }
-        if system_text:
-            payload["system"] = system_text
-
         try:
             await asyncio.sleep(LLM_REQUEST_DELAY_SECONDS)
-            async with ClientSession() as session:
-                async with session.post(
-                    f"{ANTHROPIC_BASE_URL}/v1/messages",
-                    headers=headers,
-                    json=payload,
-                ) as response:
-                    response_text = await response.text()
-                    if response.status >= 400:
-                        if response.status == 429:
-                            yield _sse_line({
-                                "type": "error",
-                                "errorText": "Rate limit exceeded (429). Please wait a minute and try again.",
-                            }).encode("utf-8")
-                        else:
-                            error_detail = ""
-                            try:
-                                error_obj = json.loads(response_text)
-                                if isinstance(error_obj, dict):
-                                    error = error_obj.get("error", {})
-                                    if isinstance(error, dict):
-                                        error_detail = error.get("message", "")
-                            except json.JSONDecodeError:
-                                pass
-                            message = error_detail or response_text or "Unknown provider error"
-                            yield _sse_line({
-                                "type": "error",
-                                "errorText": f"Anthropic API error ({response.status}): {message}",
-                            }).encode("utf-8")
-                    else:
-                        data = json.loads(response_text)
-                        blocks = data.get("content", [])
-                        stop_reason = data.get("stop_reason")
-                        if stop_reason == "tool_use":
-                            ai_finish = "tool-calls"
-                        elif stop_reason == "max_tokens":
-                            ai_finish = "length"
 
-                        for block in blocks:
-                            if not isinstance(block, dict):
+            # Retry with automatic compaction on 413 / context-too-large
+            retry_messages = openai_messages
+            api_data = None  # parsed JSON response on success
+            for _compact_attempt in range(_MAX_CONTEXT_COMPACT_RETRIES + 1):
+                system_text, anthropic_messages = _openai_messages_to_anthropic(
+                    retry_messages
+                )
+                payload = {
+                    "model": ANTHROPIC_MODEL,
+                    "max_tokens": ANTHROPIC_MAX_TOKENS,
+                    "messages": anthropic_messages,
+                    "tools": _openai_tools_to_anthropic(TOOLS_DEFINITIONS),
+                    "tool_choice": {"type": "auto"},
+                }
+                if system_text:
+                    payload["system"] = system_text
+
+                async with ClientSession() as session:
+                    async with session.post(
+                        f"{ANTHROPIC_BASE_URL}/v1/messages",
+                        headers=headers,
+                        json=payload,
+                    ) as response:
+                        response_text = await response.text()
+
+                        # Check for context-too-large and retry with compaction
+                        if _is_context_too_large_response(response.status, response_text):
+                            if _compact_attempt < _MAX_CONTEXT_COMPACT_RETRIES:
+                                logger.warning(
+                                    "[ComfyAssistant] context too large (compact attempt %d/%d), "
+                                    "applying automatic compaction...",
+                                    _compact_attempt + 1,
+                                    _MAX_CONTEXT_COMPACT_RETRIES,
+                                )
+                                retry_messages = _compact_messages_for_retry(
+                                    retry_messages, _compact_attempt + 1
+                                )
+                                new_est = _count_request_tokens(retry_messages)
+                                logger.info(
+                                    "[ComfyAssistant] compacted: %d messages, ~%d tokens (was ~%d)",
+                                    len(retry_messages),
+                                    new_est,
+                                    request_tokens_est,
+                                )
                                 continue
-                            block_type = block.get("type")
-                            if block_type == "text":
-                                text = block.get("text", "")
-                                if not text:
-                                    continue
-                                if not text_start_emitted:
-                                    yield _sse_line({
-                                        "type": "text-start",
-                                        "id": text_id
-                                    }).encode("utf-8")
-                                    text_start_emitted = True
-                                yield _sse_line({
-                                    "type": "text-delta",
-                                    "id": text_id,
-                                    "delta": text
-                                }).encode("utf-8")
-                                text_sent = True
-                                response_text_parts.append(text)
+                            # Exhausted retries — show user-friendly error
+                            yield _sse_line({
+                                "type": "error",
+                                "errorText": (
+                                    "Context too large for the model even after automatic compaction. "
+                                    "Try starting a new conversation or reducing history."
+                                ),
+                            }).encode("utf-8")
+                            break
 
-                            if block_type == "tool_use":
-                                tool_call_id = block.get("id", "")
-                                tool_name = block.get("name", "")
-                                tool_input = block.get("input", {})
-                                if tool_call_id and tool_name:
-                                    call_payload = {
-                                        "name": tool_name,
-                                        "input": tool_input,
-                                    }
-                                    response_tool_calls.append(call_payload)
-                                    pending_tool_calls.append({
-                                        "toolCallId": tool_call_id,
-                                        "toolName": tool_name,
-                                        "input": tool_input if isinstance(tool_input, dict) else {}
-                                    })
-                        usage = data.get("usage") or {}
-                        in_tok = usage.get("input_tokens") or request_tokens_est
-                        out_tok = usage.get("output_tokens")
-                        if out_tok is None:
-                            out_tok = _estimate_tokens("".join(response_text_parts))
-                        logger.info(
-                            "[ComfyAssistant] tokens in=%s out=%s provider=anthropic",
-                            in_tok,
-                            out_tok,
-                        )
+                        if response.status >= 400:
+                            if response.status == 429:
+                                yield _sse_line({
+                                    "type": "error",
+                                    "errorText": "Rate limit exceeded (429). Please wait a minute and try again.",
+                                }).encode("utf-8")
+                            else:
+                                error_detail = ""
+                                try:
+                                    error_obj = json.loads(response_text)
+                                    if isinstance(error_obj, dict):
+                                        error = error_obj.get("error", {})
+                                        if isinstance(error, dict):
+                                            error_detail = error.get("message", "")
+                                except json.JSONDecodeError:
+                                    pass
+                                message = error_detail or response_text or "Unknown provider error"
+                                yield _sse_line({
+                                    "type": "error",
+                                    "errorText": f"Anthropic API error ({response.status}): {message}",
+                                }).encode("utf-8")
+                            break
+                        # Success — process response content
+                        api_data = json.loads(response_text)
+                        break  # exit retry loop
+
+            # Process successful response (if any)
+            if api_data is not None:
+                blocks = api_data.get("content", [])
+                stop_reason = api_data.get("stop_reason")
+                if stop_reason == "tool_use":
+                    ai_finish = "tool-calls"
+                elif stop_reason == "max_tokens":
+                    ai_finish = "length"
+
+                for block in blocks:
+                    if not isinstance(block, dict):
+                        continue
+                    block_type = block.get("type")
+                    if block_type == "text":
+                        text = block.get("text", "")
+                        if not text:
+                            continue
+                        if not text_start_emitted:
+                            yield _sse_line({
+                                "type": "text-start",
+                                "id": text_id
+                            }).encode("utf-8")
+                            text_start_emitted = True
+                        yield _sse_line({
+                            "type": "text-delta",
+                            "id": text_id,
+                            "delta": text
+                        }).encode("utf-8")
+                        text_sent = True
+                        response_text_parts.append(text)
+
+                    if block_type == "tool_use":
+                        tool_call_id = block.get("id", "")
+                        tool_name = block.get("name", "")
+                        tool_input = block.get("input", {})
+                        if tool_call_id and tool_name:
+                            call_payload = {
+                                "name": tool_name,
+                                "input": tool_input,
+                            }
+                            response_tool_calls.append(call_payload)
+                            pending_tool_calls.append({
+                                "toolCallId": tool_call_id,
+                                "toolName": tool_name,
+                                "input": tool_input if isinstance(tool_input, dict) else {}
+                            })
+                usage = api_data.get("usage") or {}
+                in_tok = usage.get("input_tokens") or request_tokens_est
+                out_tok = usage.get("output_tokens")
+                if out_tok is None:
+                    out_tok = _estimate_tokens("".join(response_text_parts))
+                logger.info(
+                    "[ComfyAssistant] tokens in=%s out=%s provider=anthropic",
+                    in_tok,
+                    out_tok,
+                )
         except Exception as e:
             logger.debug("Anthropic request failed: %s", e, exc_info=True)
             yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
