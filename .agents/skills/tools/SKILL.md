@@ -30,7 +30,7 @@ The agentic tools system allows the AI assistant to:
 ```
 Frontend (TypeScript)          Backend (Python)
 ┌─────────────────────┐       ┌──────────────────┐
-│  useLocalRuntime    │       │   Groq API       │
+│  useLocalRuntime    │       │   OpenAI-compatible provider API       │
 │  ┌───────────────┐  │       │  ┌────────────┐  │
 │  │ createTools() │  │       │  │ tools=TOOLS│  │
 │  └───────────────┘  │       │  └────────────┘  │
@@ -78,7 +78,7 @@ function App() {
 from tools_definitions import TOOLS
 
 stream = await client.chat.completions.create(
-    model=GROQ_MODEL,
+    model=OPENAI_MODEL,
     messages=openai_messages,
     tools=TOOLS,  # Enable function calling
     stream=True,
@@ -280,5 +280,5 @@ TOOLS.append({
 
 - **Assistant UI**: https://www.assistant-ui.com/
 - **ComfyUI Frontend Types**: https://github.com/Comfy-Org/ComfyUI_frontend
-- **Groq Function Calling**: https://console.groq.com/docs/tool-use
+- **OpenAI-compatible provider Function Calling**: https://console.provider.com/docs/tool-use
 - **Zod**: https://zod.dev/

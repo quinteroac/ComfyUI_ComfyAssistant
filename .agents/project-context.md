@@ -37,7 +37,7 @@ This extension enables users to:
 
 - **Runtime**: Python 3.x
 - **Web Framework**: aiohttp (via ComfyUI's server)
-- **LLM Provider**: Groq API (OpenAI-compatible)
+- **LLM Provider**: OpenAI-compatible provider API (OpenAI-compatible)
 - **Streaming**: Server-Sent Events (SSE)
 - **Environment**: python-dotenv 1.0.0
 
@@ -50,7 +50,7 @@ This extension enables users to:
    - Menu items and commands
 
 2. **AI Integration**
-   - Groq API for LLM inference
+   - OpenAI-compatible provider API for LLM inference
    - OpenAI-compatible client (openai>=1.0.0)
    - Streaming responses via SSE
    - Function calling / tool use
@@ -165,7 +165,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 ### 1. AI Chat Interface
 
 - Built with assistant-ui/react
-- Streaming responses from Groq
+- Streaming responses from OpenAI-compatible provider
 - Message threading and history
 - Markdown rendering with syntax highlighting
 - Support for reasoning blocks (`<think>` tags)
@@ -210,7 +210,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 ### 3. ComfyUI Integration
 
 - Bottom panel tab for chat interface (terminal-style UI, Phase 5a)
-- **Slash commands** (Phase 5b): `/help`, `/clear`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`; inline autocomplete when typing `/`
+- **Slash commands** (Phase 5b): `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`; inline autocomplete when typing `/`
 - Named sessions via `/rename` or Rename option in thread tab dropdown
 - Direct access to ComfyUI graph via `window.app`
 - Canvas manipulation (add/remove/connect nodes)
@@ -233,7 +233,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - Compatible with Vercel AI SDK
 - Extensive customization options
 
-### Why Groq?
+### Why OpenAI-compatible provider?
 
 - Fast inference (optimized LLM serving)
 - OpenAI-compatible API
@@ -260,12 +260,12 @@ The **user_context/** directory is the assistant’s writable workspace (created
 
 **Backend** (`.env`):
 ```bash
-GROQ_API_KEY=gsk_xxx              # Required: API key for the LLM provider
-OPENAI_API_BASE_URL=https://...   # Optional: OpenAI-compatible API URL (default: Groq)
-GROQ_MODEL=llama3-70b-8192        # Optional: Model name
+OPENAI_API_KEY=gsk_xxx              # Required: API key for the LLM provider
+OPENAI_API_BASE_URL=https://...   # Optional: OpenAI-compatible API URL (default: OpenAI-compatible provider)
+OPENAI_MODEL=llama3-70b-8192        # Optional: Model name
 SEARXNG_URL=http://localhost:8080  # Optional: SearXNG instance for web search (Phase 8)
 ```
-Use `OPENAI_API_BASE_URL` to point to any OpenAI-compatible provider (Groq, OpenAI, Together, Ollama, etc.).
+Use `OPENAI_API_BASE_URL` to point to any OpenAI-compatible provider (OpenAI-compatible provider, OpenAI, Together, Ollama, etc.).
 
 **Frontend** (`ui/.env.local`):
 ```bash
@@ -389,7 +389,7 @@ Each skill includes:
 
 ### Critical Backend Dependencies
 
-- `openai` - OpenAI-compatible client (for Groq)
+- `openai` - OpenAI-compatible client (for OpenAI-compatible provider)
 - `python-dotenv` - Environment configuration
 - `aiohttp` - Web server (via ComfyUI)
 - `ddgs` - Web search fallback (Phase 8)
@@ -399,7 +399,7 @@ Each skill includes:
 ## Known Limitations
 
 1. **Tool Execution**: Tools can only access what's available in `window.app`
-2. **Model Support**: Function calling requires Groq models with tool support
+2. **Model Support**: Function calling requires OpenAI-compatible provider models with tool support
 3. **Streaming**: Complex tool calling streams require careful SSE handling
 4. **ComfyUI Version**: Requires ComfyUI with modern frontend (window.app available)
 
@@ -414,14 +414,14 @@ Each skill includes:
 - [ ] Multi-turn tool calling
 - [ ] User confirmations for destructive actions
 - [ ] Tool execution history
-- [ ] Custom model support (beyond Groq)
+- [ ] Custom model support (beyond OpenAI-compatible provider)
 
 ## Resources
 
 - **ComfyUI Docs**: https://docs.comfy.org/
 - **assistant-ui Docs**: https://www.assistant-ui.com/
 - **AI SDK Docs**: https://sdk.vercel.ai/
-- **Groq Docs**: https://console.groq.com/docs
+- **OpenAI-compatible provider Docs**: https://console.provider.com/docs
 - **Project Skills**: `.agents/skills/` (comprehensive guides)
 
 ## Maintenance Notes

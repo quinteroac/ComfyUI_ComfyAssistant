@@ -37,7 +37,7 @@ The main handler is `chat_api_handler` in `__init__.py`, triggered by `POST /api
    - `load_user_context()` reads rules, personality, goals, and user skills
 5. **Assemble system message** -- `get_system_message(system_context, user_context, env_summary)` combines everything into one system message.
 6. **Apply delay** -- `LLM_REQUEST_DELAY_SECONDS` (default 1.0s) rate limiting to avoid hitting API limits.
-7. **Call LLM** -- OpenAI-compatible API call (Groq by default) with streaming enabled and the `TOOLS` list from `tools_definitions.py`.
+7. **Call LLM** -- OpenAI-compatible API call (OpenAI-compatible provider by default) with streaming enabled and the `TOOLS` list from `tools_definitions.py`.
 8. **Stream SSE** -- Emit events in AI SDK UI Message Stream v1 format (see below).
 9. **Error handling** -- HTTP 429 (rate limit) from the provider gets a friendly text response; other errors return HTTP 500.
 
@@ -114,13 +114,13 @@ The `reasoning-*` events only appear when the LLM uses `<think>` tags. Finish re
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GROQ_API_KEY` | (required) | LLM provider API key |
-| `GROQ_MODEL` | `llama3-70b-8192` | Model name |
-| `OPENAI_API_BASE_URL` | `https://api.groq.com/openai/v1` | Any OpenAI-compatible provider URL |
+| `OPENAI_API_KEY` | (required) | LLM provider API key |
+| `OPENAI_MODEL` | `llama3-70b-8192` | Model name |
+| `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | Any OpenAI-compatible provider URL |
 | `LLM_REQUEST_DELAY_SECONDS` | `1.0` | Rate-limit delay before each LLM call |
 | `COMFY_ASSISTANT_LOG_LEVEL` | `INFO` | Logging level |
 
-To change the LLM provider, set `OPENAI_API_BASE_URL` to any OpenAI-compatible endpoint (Groq, OpenAI, Together, Ollama, etc.) and set the corresponding API key in `GROQ_API_KEY`.
+To change the LLM provider, set `OPENAI_API_BASE_URL` to any OpenAI-compatible endpoint (OpenAI-compatible provider, OpenAI, Together, Ollama, etc.) and set the corresponding API key in `OPENAI_API_KEY`.
 
 ---
 
@@ -171,7 +171,7 @@ The frontend side (Zod schema, implementation, registry) is covered in [tools.md
 ## How do I...
 
 **...change the LLM provider?**
-Set `OPENAI_API_BASE_URL` in `.env` to any OpenAI-compatible endpoint and set the API key in `GROQ_API_KEY`.
+Set `OPENAI_API_BASE_URL` in `.env` to any OpenAI-compatible endpoint and set the API key in `OPENAI_API_KEY`.
 
 **...handle rate limiting differently?**
 Two mechanisms exist: (1) `LLM_REQUEST_DELAY_SECONDS` adds a delay before each LLM call; (2) if the provider returns HTTP 429, the handler catches it and streams a friendly "Rate limited" text message. Edit `chat_api_handler` in `__init__.py` to change either behavior.

@@ -40,12 +40,12 @@ The agentic tools system follows a **frontend-execution** pattern where:
                            │ (messages + tool results)
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   BACKEND (Python/Groq)                     │
+│                   BACKEND (Python/OpenAI-compatible provider)                     │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │         chat_api_handler(request)                     │  │
 │  │  ┌────────────────────────────────────────────────┐  │  │
 │  │  │  client.chat.completions.create(              │  │  │
-│  │  │    model=GROQ_MODEL,                          │  │  │
+│  │  │    model=OPENAI_MODEL,                          │  │  │
 │  │  │    messages=openai_messages,                  │  │  │
 │  │  │    tools=TOOLS,  ← Tool declarations          │  │  │
 │  │  │    stream=True                                │  │  │

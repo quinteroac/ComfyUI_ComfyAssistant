@@ -6,6 +6,7 @@ export interface SlashCommandContext {
   threadApi: {
     reset: (initialMessages?: readonly unknown[]) => void
     append: (message: unknown) => void
+    getState: () => { messages: readonly unknown[] }
     composer: {
       getState: () => { text: string }
       setText: (t: string) => void

@@ -16,7 +16,7 @@ Reference: [comfyui_assistant_development_phases.md](../../planning/comfyui_assi
 
 ### 2. LLM integration
 
-- **API:** OpenAI-compatible (Groq default; configurable via `OPENAI_API_BASE_URL`, API key, model in `.env`).
+- **API:** OpenAI-compatible (OpenAI-compatible provider default; configurable via `OPENAI_API_BASE_URL`, API key, model in `.env`).
 - **Streaming:** Server-Sent Events (SSE) from backend to frontend.
 - **Backend:** Chat handler in `__init__.py`; system message and tool definitions injected from `agent_prompts.py` and `tools_definitions.py`.
 
@@ -55,7 +55,7 @@ Execution in frontend via `window.app` (ComfyUI graph API). Backend declares too
 | System prompt / assembly | `agent_prompts.py` |
 | Tool declarations (OpenAI) | `tools_definitions.py` |
 | Chat API | POST `/api/chat` (SSE stream) |
-| Env config | `.env` (e.g. `GROQ_API_KEY`, `OPENAI_API_BASE_URL`, `GROQ_MODEL`) |
+| Env config | `.env` (e.g. `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, `OPENAI_MODEL`) |
 
 ---
 

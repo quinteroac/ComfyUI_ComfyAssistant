@@ -22,7 +22,7 @@ This document summarizes the development roadmap for ComfyUI Assistant. The proj
 **Delivered:**
 
 - Chat UI (threads, messages, markdown).
-- OpenAI-compatible LLM (Groq or any provider via `.env`).
+- OpenAI-compatible LLM (OpenAI-compatible provider or any provider via `.env`).
 - **Tools:** addNode, removeNode, connectNodes, getWorkflowInfo (all run in the browser on the ComfyUI graph).
 - System prompts and tool definitions in the backend.
 

@@ -101,7 +101,7 @@ def get_tool_names():
 
 ## Step 2: Update Backend Handler
 
-### Basic Integration (Groq)
+### Basic Integration (OpenAI-compatible provider)
 
 ```python
 # __init__.py
@@ -111,8 +111,8 @@ from aiohttp import web
 from openai import AsyncOpenAI
 from tools_definitions import TOOLS
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama3-70b-8192")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "llama3-70b-8192")
 
 async def chat_api_handler(request: web.Request) -> web.Response:
     """Handle POST /api/chat with function calling support."""
@@ -124,19 +124,19 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     messages = body.get("messages", [])
     openai_messages = _ui_messages_to_openai(messages)
     
-    if not GROQ_API_KEY:
+    if not OPENAI_API_KEY:
         # Return placeholder if no API key
         return web.Response(text="API key not configured")
     
-    # Create Groq client
+    # Create OpenAI-compatible provider client
     client = AsyncOpenAI(
-        api_key=GROQ_API_KEY, 
-        base_url="https://api.groq.com/openai/v1"
+        api_key=OPENAI_API_KEY, 
+        base_url="https://api.openai.com/v1"
     )
     
     # Call API with tools
     stream = await client.chat.completions.create(
-        model=GROQ_MODEL,
+        model=OPENAI_MODEL,
         messages=openai_messages,
         tools=TOOLS,  # ← Enable function calling
         stream=True,
@@ -300,13 +300,13 @@ def _ui_messages_to_openai(messages: list) -> list:
 
 ## Model Support
 
-### Groq Models with Function Calling
+### OpenAI-compatible provider Models with Function Calling
 
 ```python
 # Recommended models for function calling
 TOOL_ENABLED_MODELS = [
-    "llama3-groq-70b-8192-tool-use-preview",  # Best for tools
-    "llama3-groq-8b-8192-tool-use-preview",   # Faster, less accurate
+    "llama3-provider-70b-8192-tool-use-preview",  # Best for tools
+    "llama3-provider-8b-8192-tool-use-preview",   # Faster, less accurate
 ]
 
 # Standard models (may work but less optimized)
@@ -333,7 +333,7 @@ OPENAI_MODELS = [
 async def check_function_calling_support(model: str) -> bool:
     """Check if model supports function calling."""
     tool_models = [
-        "tool-use",  # Groq tool models
+        "tool-use",  # OpenAI-compatible provider tool models
         "gpt-4",     # OpenAI models
         "gpt-3.5",
     ]
@@ -347,7 +347,7 @@ async def check_function_calling_support(model: str) -> bool:
 ```python
 try:
     stream = await client.chat.completions.create(
-        model=GROQ_MODEL,
+        model=OPENAI_MODEL,
         messages=openai_messages,
         tools=TOOLS,
         stream=True,
@@ -401,15 +401,15 @@ test_tools_valid()
 ### Test API Call
 
 ```python
-# Test function calling with Groq
+# Test function calling with OpenAI-compatible provider
 async def test_function_calling():
     client = AsyncOpenAI(
-        api_key=GROQ_API_KEY,
-        base_url="https://api.groq.com/openai/v1"
+        api_key=OPENAI_API_KEY,
+        base_url="https://api.openai.com/v1"
     )
     
     response = await client.chat.completions.create(
-        model=GROQ_MODEL,
+        model=OPENAI_MODEL,
         messages=[
             {"role": "user", "content": "Add a KSampler node"}
         ],

@@ -7,7 +7,8 @@ The assistant supports local slash commands for quick actions. These commands ar
 | Command | Description | Example |
 |---------|-------------|---------|
 | `/help` | Show the help message. | `/help` |
-| `/clear` | Clear all messages in the current thread. | `/clear` |
+| `/clear` | Reset current thread to initial empty state. | `/clear` |
+| `/compact [keep]` | Compact context locally and keep only the latest `keep` messages (default: 6). | `/compact 8` |
 | `/new` | Create and switch to a new session. | `/new` |
 | `/rename <name>` | Rename the current session. | `/rename my-workflow` |
 | `/sessions` | List all sessions with index and id. | `/sessions` |

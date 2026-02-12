@@ -101,7 +101,8 @@ Slash commands are implemented in the `useSlashCommands()` hook and integrated i
 | Command | Description |
 |---------|-------------|
 | `/help` | Show available commands and usage tips |
-| `/clear` | Clear current thread messages |
+| `/clear` | Reset current thread to initial empty state |
+| `/compact [keep]` | Compact context and keep recent messages |
 | `/new` | Start a new chat session |
 | `/rename <name>` | Rename the current session |
 | `/session <id\|index\|name>` | Switch to a session |

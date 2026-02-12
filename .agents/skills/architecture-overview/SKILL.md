@@ -26,7 +26,7 @@ Read this skill first to understand how the pieces fit together.
 └─────────────────────────┘    └───────────┬───────────────┘
                                            │ OpenAI-compat API
                                ┌───────────▼───────────────┐
-                               │    LLM Provider (Groq)    │
+                               │    LLM Provider (OpenAI-compatible provider)    │
                                │  Streaming + tool calling │
                                └───────────────────────────┘
 ```
@@ -51,7 +51,7 @@ Read this skill first to understand how the pieces fit together.
    c. Loads environment summary (`load_environment_summary`)
    d. Loads user context (`load_user_context`)
    e. Assembles system message (`get_system_message` from `agent_prompts.py`)
-   f. Calls LLM (Groq) with streaming enabled + tool definitions
+   f. Calls LLM (OpenAI-compatible provider) with streaming enabled + tool definitions
    g. Streams response as SSE (AI SDK UI Message Stream v1)
 4. **Frontend runtime** receives SSE events, builds message parts (text, reasoning, tool calls)
 5. If LLM returns **tool calls**: runtime executes tools from `ModelContext`, appends results
@@ -61,7 +61,7 @@ Read this skill first to understand how the pieces fit together.
 ## Tool Call Flow
 
 ```
-LLM (Groq)                    Backend                Frontend
+LLM (OpenAI-compatible provider)                    Backend                Frontend
     │                             │                      │
     ├─ tool_call(addNode,{...}) ──►                      │
     │                             ├─ SSE: tool-input ───►│

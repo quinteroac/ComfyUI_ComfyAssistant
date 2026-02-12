@@ -2,7 +2,7 @@
 Tool definitions for the backend.
 
 This file contains the tool definitions in OpenAI Function Calling format
-that should be sent to the LLM (Groq) so it knows which tools are available.
+that should be sent to the LLM (OpenAI-compatible provider) so it knows which tools are available.
 
 IMPORTANT: These definitions must match the tools defined in the frontend
 (ui/src/tools/definitions/*)
@@ -490,7 +490,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     # ... existing code ...
     
     stream = await client.chat.completions.create(
-        model=GROQ_MODEL,
+        model=OPENAI_MODEL,
         messages=openai_messages,
         tools=TOOLS,  # 👈 Add tools here
         stream=True,

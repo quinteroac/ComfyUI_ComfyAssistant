@@ -8,7 +8,7 @@ This document explains how ComfyUI Assistant is structured and how the pieces wo
 
 ## What is ComfyUI Assistant?
 
-ComfyUI Assistant is an AI-powered chat panel that lives inside ComfyUI's bottom panel. It connects a React frontend (using the assistant-ui library) to an LLM (via Groq or any OpenAI-compatible API) and gives the LLM tools to manipulate the ComfyUI graph, query the environment, and execute workflows. The result is an agentic assistant that can build and modify workflows through natural conversation.
+ComfyUI Assistant is an AI-powered chat panel that lives inside ComfyUI's bottom panel. It connects a React frontend (using the assistant-ui library) to an LLM (via OpenAI-compatible provider or any OpenAI-compatible API) and gives the LLM tools to manipulate the ComfyUI graph, query the environment, and execute workflows. The result is an agentic assistant that can build and modify workflows through natural conversation.
 
 ---
 
@@ -29,7 +29,7 @@ ComfyUI Assistant is an AI-powered chat panel that lives inside ComfyUI's bottom
 └─────────────────────────┘    └───────────┬───────────────┘
                                            │ OpenAI-compat API
                                ┌───────────▼───────────────┐
-                               │    LLM Provider (Groq)    │
+                               │    LLM Provider (OpenAI-compatible provider)    │
                                │  Streaming + tool calling │
                                └───────────────────────────┘
 ```
@@ -40,7 +40,7 @@ There are three layers:
 2. **React frontend** renders the chat UI, executes tools against `window.app`, and manages the agentic loop.
 3. **Python backend** handles chat requests, assembles the system prompt, calls the LLM, and streams responses as SSE.
 
-The LLM provider (Groq by default) is external and accessed through an OpenAI-compatible API.
+The LLM provider (OpenAI-compatible provider by default) is external and accessed through an OpenAI-compatible API.
 
 ---
 
@@ -70,7 +70,7 @@ Here is what happens from the moment a user types a message to when they see the
 Tool calls are the mechanism that lets the LLM take actions in ComfyUI. Tools are declared in two places that must stay in sync: the Python backend (so the LLM knows what's available) and the TypeScript frontend (so the tools can actually execute).
 
 ```
-LLM (Groq)                    Backend                Frontend
+LLM (OpenAI-compatible provider)                    Backend                Frontend
     │                             │                      │
     ├─ tool_call(addNode,{...}) ──►                      │
     │                             ├─ SSE: tool-input ───►│

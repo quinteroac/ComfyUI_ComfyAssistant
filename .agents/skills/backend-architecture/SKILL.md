@@ -33,7 +33,7 @@ The main handler in `__init__.py` for POST `/api/chat`:
 4. **Load context** -- `load_system_context()`, `load_environment_summary()`, `load_user_context()`
 5. **Assemble system message** -- `get_system_message(system_context, user_context, env_summary)`
 6. **Apply delay** -- `LLM_REQUEST_DELAY_SECONDS` (default 1.0s) rate limiting
-7. **Call LLM** -- OpenAI-compatible API (Groq default) with streaming + tool definitions
+7. **Call LLM** -- OpenAI-compatible API (OpenAI-compatible provider default) with streaming + tool definitions
 8. **Stream SSE** -- emit AI SDK UI Message Stream v1 events
 9. **Error handling** -- 429 rate limits get a friendly text response; other errors return 500
 
@@ -85,9 +85,9 @@ Finish reasons: `stop`, `tool-calls`, `length`, `content-filter`.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GROQ_API_KEY` | (required) | LLM provider API key |
-| `GROQ_MODEL` | `llama3-70b-8192` | Model name |
-| `OPENAI_API_BASE_URL` | `https://api.groq.com/openai/v1` | Any OpenAI-compatible provider URL |
+| `OPENAI_API_KEY` | (required) | LLM provider API key |
+| `OPENAI_MODEL` | `llama3-70b-8192` | Model name |
+| `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | Any OpenAI-compatible provider URL |
 | `LLM_REQUEST_DELAY_SECONDS` | `1.0` | Rate-limit delay before each LLM call |
 | `COMFY_ASSISTANT_LOG_LEVEL` | `INFO` | Logging level |
 
@@ -103,10 +103,10 @@ Finish reasons: `stop`, `tool-calls`, `length`, `content-filter`.
 See "chat_api_handler Lifecycle" above. Messages arrive as AI SDK UIMessages, get converted to OpenAI format, context is assembled, LLM is called with streaming, and SSE events flow back.
 
 ### How does the backend handle rate limiting?
-Two ways: (1) `LLM_REQUEST_DELAY_SECONDS` adds a delay before each LLM call; (2) if Groq returns HTTP 429, the handler catches it and streams a friendly "Rate limited" text message instead of an error.
+Two ways: (1) `LLM_REQUEST_DELAY_SECONDS` adds a delay before each LLM call; (2) if OpenAI-compatible provider returns HTTP 429, the handler catches it and streams a friendly "Rate limited" text message instead of an error.
 
 ### How do I change the LLM provider?
-Set `OPENAI_API_BASE_URL` in `.env` to any OpenAI-compatible endpoint (Groq, OpenAI, Together, Ollama, etc.) and set the API key in `GROQ_API_KEY`.
+Set `OPENAI_API_BASE_URL` in `.env` to any OpenAI-compatible endpoint (OpenAI-compatible provider, OpenAI, Together, Ollama, etc.) and set the API key in `OPENAI_API_KEY`.
 
 ## Related Skills
 

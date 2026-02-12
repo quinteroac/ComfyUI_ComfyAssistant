@@ -47,17 +47,41 @@ user_context_path = os.path.join(workspace_path, "user_context")
 system_context_path = os.path.join(workspace_path, "system_context")
 user_context_store.set_user_context_path(user_context_path)
 
-# LLM config from .env (OpenAI-compatible: Groq, OpenAI, Together, Ollama, etc.)
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama3-70b-8192")
+# LLM config from .env (any OpenAI-compatible provider)
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "")
+if not OPENAI_MODEL:
+    OPENAI_MODEL = "gpt-4o-mini"
 OPENAI_API_BASE_URL = os.environ.get(
     "OPENAI_API_BASE_URL",
-    "https://api.groq.com/openai/v1",
+    "https://api.openai.com/v1",
 ).rstrip("/")
 
-# Delay in seconds before each LLM request to avoid rate limits (e.g. Groq 429)
+# Delay in seconds before each LLM request to avoid rate limits (e.g. 429)
 LLM_REQUEST_DELAY_SECONDS = float(
     os.environ.get("LLM_REQUEST_DELAY_SECONDS", "1.0")
+)
+
+
+def _read_int_env(name: str, default: int) -> int:
+    """Read int env var with a safe fallback."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+LLM_SYSTEM_CONTEXT_MAX_CHARS = _read_int_env(
+    "LLM_SYSTEM_CONTEXT_MAX_CHARS", 12000
+)
+LLM_USER_CONTEXT_MAX_CHARS = _read_int_env(
+    "LLM_USER_CONTEXT_MAX_CHARS", 2500
+)
+LLM_HISTORY_MAX_MESSAGES = _read_int_env(
+    "LLM_HISTORY_MAX_MESSAGES", 24
 )
 
 # AI SDK UI Message Stream headers (required by AssistantChatTransport)
@@ -243,6 +267,34 @@ def _extract_content(msg: dict) -> str:
             texts.append(p.get("text", ""))
     return "".join(texts) if texts else ""
 
+
+def _truncate_chars(text: str, max_chars: int) -> str:
+    """Hard-truncate text with a suffix marker."""
+    if max_chars <= 0:
+        return ""
+    if len(text) <= max_chars:
+        return text
+    suffix = "... [truncated]"
+    keep = max(0, max_chars - len(suffix))
+    return text[:keep].rstrip() + suffix
+
+
+def _trim_openai_history(messages: list[dict], max_non_system_messages: int) -> list[dict]:
+    """Trim non-system history to a bounded tail while preserving system message(s)."""
+    if max_non_system_messages <= 0:
+        return [m for m in messages if m.get("role") == "system"]
+
+    system_messages = [m for m in messages if m.get("role") == "system"]
+    non_system = [m for m in messages if m.get("role") != "system"]
+    if len(non_system) <= max_non_system_messages:
+        return messages
+
+    tail = non_system[-max_non_system_messages:]
+    # Avoid starting with orphan tool results.
+    while tail and tail[0].get("role") == "tool":
+        tail = tail[1:]
+    return system_messages + tail
+
 # Print the current paths for debugging
 print(f"ComfyUI_example_frontend_extension workspace path: {workspace_path}")
 print(f"Dist path: {dist_path}")
@@ -303,7 +355,7 @@ def _get_last_openai_user_text(messages: list) -> str:
 
 
 async def chat_api_handler(request: web.Request) -> web.Response:
-    """Handle POST /api/chat. Uses Groq when GROQ_API_KEY is set.
+    """Handle POST /api/chat. Uses an OpenAI-compatible provider when API key is set.
     Returns AI SDK UI Message Stream format for AssistantChatTransport."""
     try:
         body = await request.json() if request.body_exists else {}
@@ -346,6 +398,10 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         environment_summary = user_context_loader.load_environment_summary()
     except Exception:
         pass
+    system_context_text = _truncate_chars(
+        system_context_text,
+        LLM_SYSTEM_CONTEXT_MAX_CHARS
+    )
     if not (system_context_text or "").strip():
         system_context_text = (
             "You are ComfyUI Assistant. Help users with ComfyUI workflows. "
@@ -356,15 +412,27 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     # Add system message if not present
     has_system = any(msg.get("role") == "system" for msg in openai_messages)
     if not has_system:
-        openai_messages.insert(0, get_system_message(system_context_text, user_context, environment_summary))
+        openai_messages.insert(
+            0,
+            get_system_message(
+                system_context_text,
+                user_context,
+                environment_summary,
+                user_context_max_chars=LLM_USER_CONTEXT_MAX_CHARS,
+            ),
+        )
+    openai_messages = _trim_openai_history(
+        openai_messages,
+        LLM_HISTORY_MAX_MESSAGES,
+    )
     
     message_id = f"msg_{uuid.uuid4().hex}"
 
     placeholder = (
-        "Chat API is not configured. Set GROQ_API_KEY in .env (copy from .env.example)."
+        "Chat API is not configured. Set OPENAI_API_KEY in .env (copy from .env.example)."
     )
 
-    if not GROQ_API_KEY:
+    if not OPENAI_API_KEY:
         async def stream_placeholder():
             for chunk in _stream_ai_sdk_text(placeholder, message_id):
                 yield chunk.encode("utf-8")
@@ -401,11 +469,11 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             await resp.write(chunk)
         return resp
 
-    # Call OpenAI-compatible API (Groq, OpenAI, Together, Ollama, etc.) and stream response
+    # Call an OpenAI-compatible API and stream response
     from openai import AsyncOpenAI
     # Limit retries on 429 so we fail fast and show a clear message instead of long waits
     client = AsyncOpenAI(
-        api_key=GROQ_API_KEY,
+        api_key=OPENAI_API_KEY,
         base_url=OPENAI_API_BASE_URL,
         max_retries=2,
     )
@@ -429,7 +497,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             repr(last_user[:80] + "..." if len(last_user) > 80 else last_user),
         )
 
-    async def stream_groq():
+    async def stream_openai():
         text_id = f"msg_{uuid.uuid4().hex[:24]}"
         reasoning_id = None
         buffer = ""
@@ -450,7 +518,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         try:
             await asyncio.sleep(LLM_REQUEST_DELAY_SECONDS)
             stream = await client.chat.completions.create(
-                model=GROQ_MODEL,
+                model=OPENAI_MODEL,
                 messages=openai_messages,
                 tools=TOOLS_DEFINITIONS,
                 tool_choice="auto",
@@ -619,7 +687,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
 
     resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
     await resp.prepare(request)
-    async for chunk in stream_groq():
+    async for chunk in stream_openai():
         await resp.write(chunk)
     return resp
 

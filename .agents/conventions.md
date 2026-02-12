@@ -388,7 +388,7 @@ This keeps a clear record of what each phase delivered and how it evolved.
 
 ```bash
 # ✅ Good - Use .env files
-GROQ_API_KEY=xxx
+OPENAI_API_KEY=xxx
 
 # ❌ Bad - Hardcoded
 const API_KEY = "gsk_xyz123..."

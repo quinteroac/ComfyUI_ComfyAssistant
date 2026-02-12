@@ -557,7 +557,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     
     # Call API with tools
     stream = await client.chat.completions.create(
-        model=GROQ_MODEL,
+        model=OPENAI_MODEL,
         messages=openai_messages,
         tools=TOOLS,
         stream=True,

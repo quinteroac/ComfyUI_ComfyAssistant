@@ -20,37 +20,40 @@ Edit `.env` with your preferred editor. **Do not commit `.env`** — it is liste
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `GROQ_API_KEY` | API key for the LLM provider (Groq, OpenAI, Together, local, etc.). | **Yes** |
-| `OPENAI_API_BASE_URL` | Base URL of the API. Default is Groq. Change this to use another provider. | No (default: Groq) |
-| `GROQ_MODEL` | Model name. Optional; default depends on the provider (e.g. `llama3-70b-8192` for Groq). | No |
+| `OPENAI_API_KEY` | API key for the LLM provider. | **Yes** |
+| `OPENAI_API_BASE_URL` | Base URL of the API. Change this to use your provider endpoint. | No (default: `https://api.openai.com/v1`) |
+| `OPENAI_MODEL` | Model name. Optional; value depends on the provider. | No |
 | `LLM_REQUEST_DELAY_SECONDS` | Delay in seconds before each LLM request. Default `1.0`. Increase if you get 429 rate limit errors. | No |
+| `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max characters from `system_context/` injected per request. Default `12000`. | No |
+| `LLM_USER_CONTEXT_MAX_CHARS` | Max characters for the formatted user context block. Default `2500`. | No |
+| `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request. Default `24`. | No |
 | `COMFY_ASSISTANT_LOG_LEVEL` | Backend log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Default `INFO`. | No |
 
 ### 3. Example configurations
 
-**Groq (default):**
+**Default endpoint:**
 
 ```bash
-GROQ_API_KEY=gsk_your_groq_key_here
-OPENAI_API_BASE_URL=https://api.groq.com/openai/v1
-# GROQ_MODEL=llama3-70b-8192
+OPENAI_API_KEY=sk_your_api_key_here
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+# OPENAI_MODEL=gpt-4o-mini
 COMFY_ASSISTANT_LOG_LEVEL=INFO
 ```
 
 **OpenAI:**
 
 ```bash
-GROQ_API_KEY=sk-your_openai_key_here
+OPENAI_API_KEY=sk-your_openai_key_here
 OPENAI_API_BASE_URL=https://api.openai.com/v1
-# GROQ_MODEL=gpt-4o
+# OPENAI_MODEL=gpt-4o
 ```
 
 **Local / Ollama:**
 
 ```bash
-GROQ_API_KEY=ollama
+OPENAI_API_KEY=ollama
 OPENAI_API_BASE_URL=http://localhost:11434/v1
-# GROQ_MODEL=llama3.2
+# OPENAI_MODEL=llama3.2
 ```
 
 ### 4. Apply changes
@@ -108,7 +111,7 @@ These files are created on first use (onboarding or first chat). Do not commit `
 
 ## Rate limits (429 errors)
 
-Free-tier APIs (e.g. Groq) often rate-limit requests. If you see "Rate limit exceeded" or similar:
+Free-tier APIs often rate-limit requests. If you see "Rate limit exceeded" or similar:
 
 1. Wait a minute and try again.
 2. In `.env`, increase the delay: e.g. `LLM_REQUEST_DELAY_SECONDS=2.0` or higher.

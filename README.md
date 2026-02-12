@@ -2,7 +2,7 @@
 
 AI assistant for ComfyUI that lets you control and explore workflows with natural language via a chat with tool calling.
 
-- **Streaming chat** with real-time responses (Groq or any OpenAI-compatible provider).
+- **Streaming chat** with real-time responses from any OpenAI-compatible provider.
 - **Frontend tools**: add nodes, connect, remove, and query the workflow from the assistant tab.
 - **Customization**: system prompts, user context, and editable skills.
 
@@ -24,8 +24,8 @@ In the assistant tab you can type for example:
 
 - **AI chat**: React interface (assistant-ui) with streaming, history, markdown, and reasoning blocks.
 - **Tool calling**: The model uses tools that run in the browser (graph) or via the backend (environment, docs). Tools can add/remove/connect nodes, set widgets, search installed nodes, get models, read docs, manage user skills, and run or load workflows.
-- **Slash commands**: `/help`, `/clear`, `/new`, `/rename`, `/session`, `/sessions` for session management (see [doc/commands.md](doc/commands.md)).
-- **Configurable provider**: Groq by default; any OpenAI-compatible API via `OPENAI_API_BASE_URL`.
+- **Slash commands**: `/help`, `/clear`, `/compact`, `/new`, `/rename`, `/session`, `/sessions` for session management (see [doc/commands.md](doc/commands.md)).
+- **Configurable provider**: OpenAI-compatible provider by default; any OpenAI-compatible API via `OPENAI_API_BASE_URL`.
 - **Rate limit control**: Configurable delay between LLM requests (`LLM_REQUEST_DELAY_SECONDS`) to avoid 429 errors.
 - **Context system**: Base prompts in `system_context/`, user workspace in `user_context/` (SOUL, goals, user skills). Environment summary (nodes, models, packages) is injected when available.
 - **TypeScript**: Typed with ComfyUI definitions and Zod for tools.
@@ -71,10 +71,13 @@ Main variables:
 
 | Variable | Description |
 |----------|-------------|
-| `GROQ_API_KEY` | API key for the provider (Groq, OpenAI, etc.). **Required.** |
-| `OPENAI_API_BASE_URL` | Base URL for the API (default: Groq). Change to use another provider. |
-| `GROQ_MODEL` | Model (optional; default depends on provider). |
+| `OPENAI_API_KEY` | API key for your provider. **Required.** |
+| `OPENAI_API_BASE_URL` | Base URL for the API (default: `https://api.openai.com/v1`). Change this to use another provider. |
+| `OPENAI_MODEL` | Model (optional; default depends on provider). |
 | `LLM_REQUEST_DELAY_SECONDS` | Seconds to wait before each LLM request (default `1.0`). Increase if you get 429 errors. |
+| `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max chars from `system_context/` injected per request (default `12000`). |
+| `LLM_USER_CONTEXT_MAX_CHARS` | Max chars for user context block (default `2500`). |
+| `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request (default `24`). |
 
 After changing `.env`, restart ComfyUI.
 
@@ -156,7 +159,7 @@ npm run test:watch   # watch mode
 - [ComfyUI — JS extensions](https://docs.comfy.org/custom-nodes/js/javascript_overview)
 - [assistant-ui](https://www.assistant-ui.com/)
 - [Vercel AI SDK](https://sdk.vercel.ai/)
-- [Groq](https://console.groq.com/docs)
+- [OpenAI API Docs](https://platform.openai.com/docs/api-reference)
 - Project internal docs: `.agents/` and `AGENTS.md`
 
 ## License

@@ -70,11 +70,16 @@ Defined in `user_context_loader.py`:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `MAX_USER_CONTEXT_CHARS` | 4000 | Total character limit for the user context block |
+| `MAX_USER_CONTEXT_CHARS` | 4000 | Loader-level budget reference |
 | `MAX_SKILLS_FULL_CHARS` | 1500 | If all skills fit under this, use full text |
 | `MAX_NARRATIVE_CHARS` | 1200 | Max combined length for SOUL + goals text |
 
-When skills exceed the budget, they are summarized (truncated with "... (summary)" indicator).
+At runtime, `agent_prompts.format_user_context()` also enforces caps for rules, narrative, and skills, then hard-truncates the final block.
+
+`__init__.py` adds env-tunable limits:
+- `LLM_SYSTEM_CONTEXT_MAX_CHARS` (default: `12000`)
+- `LLM_USER_CONTEXT_MAX_CHARS` (default: `2500`)
+- `LLM_HISTORY_MAX_MESSAGES` (default: `24`)
 
 ## System Message Assembly
 

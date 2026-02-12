@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial project setup based on ComfyUI React Extension Template
 - React 18.2.0 + TypeScript 5.4.2 frontend with Vite
 - Assistant-ui/react 0.12.9 integration for chat interface
-- Groq API backend for LLM inference
+- OpenAI-compatible provider API backend for LLM inference
 - Server-Sent Events (SSE) streaming implementation
 - i18n support with i18next (English + Chinese)
 - Jest testing setup with React Testing Library
@@ -69,4 +69,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python backend with aiohttp
 - ComfyUI extension registration system
 - Environment variable management with python-dotenv
-- OpenAI-compatible client for Groq API
+- OpenAI-compatible client for OpenAI-compatible provider API

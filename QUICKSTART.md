@@ -8,10 +8,10 @@ The text-based tool calling system is fully implemented and ready to test.
 
 ## Prerequisites
 
-1. **Groq API Key configured in `.env`:**
+1. **OpenAI-compatible provider API Key configured in `.env`:**
    ```bash
-   GROQ_API_KEY=your_api_key_here
-   GROQ_MODEL=llama-3.3-70b-versatile
+   OPENAI_API_KEY=your_api_key_here
+   OPENAI_MODEL=llama-3.3-70b-versatile
    ```
 
 2. **Frontend built:**

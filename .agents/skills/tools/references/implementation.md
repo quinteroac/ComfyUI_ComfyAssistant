@@ -6,7 +6,7 @@ Complete step-by-step guide to implement the agentic tools system.
 
 - ComfyUI project with React frontend
 - `@assistant-ui/react` installed
-- Backend with streaming support (Groq/OpenAI)
+- Backend with streaming support (OpenAI-compatible provider/OpenAI)
 - TypeScript configured
 
 ## Step 1: Create Tool Structure
@@ -256,7 +256,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     
     # Add tools to API call
     stream = await client.chat.completions.create(
-        model=GROQ_MODEL,
+        model=OPENAI_MODEL,
         messages=openai_messages,
         tools=TOOLS,  # ← Enable function calling
         stream=True,
