@@ -8,7 +8,19 @@ export const getWorkflowInfoSchema = z.object({
     .boolean()
     .optional()
     .describe(
-      'If true, includes full details of each node. Defaults to false for faster responses'
+      'If true, includes widget names and current values for each node. Defaults to false for faster responses'
+    ),
+  includeLayout: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, includes node position, size, and canvas dimensions. Defaults to false (layout info is rarely needed for reasoning)'
+    ),
+  includeWidgetOptions: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, includes available options for combo/dropdown widgets. Defaults to false to reduce payload size (option lists can be very large)'
     )
 })
 

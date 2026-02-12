@@ -120,6 +120,12 @@ LLM_TOOL_RESULT_KEEP_LAST_ROUNDS = _read_int_env(
     "LLM_TOOL_RESULT_KEEP_LAST_ROUNDS", 2
 )
 
+# Debug: emit context-pipeline metrics in logs, headers, and SSE events.
+# Enabled per-request via ?debug=context or always-on via this env var.
+COMFY_ASSISTANT_DEBUG_CONTEXT = os.environ.get(
+    "COMFY_ASSISTANT_DEBUG_CONTEXT", ""
+).strip().lower() in ("1", "true", "yes")
+
 # AI SDK UI Message Stream headers (required by AssistantChatTransport)
 UI_MESSAGE_STREAM_HEADERS = {
     "Content-Type": "text/event-stream",
@@ -682,15 +688,132 @@ def _extract_content(msg: dict) -> str:
     return "".join(texts) if texts else ""
 
 
-def _truncate_chars(text: str, max_chars: int) -> str:
-    """Hard-truncate text with a suffix marker."""
+def _truncate_chars(
+    text: str,
+    max_chars: int,
+    metrics: dict | None = None,
+    metrics_key: str = "",
+) -> str:
+    """Hard-truncate text with a suffix marker. Optionally record stats into metrics."""
+    if metrics is not None and metrics_key:
+        metrics[f"{metrics_key}_chars_raw"] = len(text)
     if max_chars <= 0:
+        if metrics is not None and metrics_key:
+            metrics[f"{metrics_key}_chars_used"] = 0
+            metrics[f"{metrics_key}_truncated"] = bool(text)
         return ""
     if len(text) <= max_chars:
+        if metrics is not None and metrics_key:
+            metrics[f"{metrics_key}_chars_used"] = len(text)
+            metrics[f"{metrics_key}_truncated"] = False
         return text
     suffix = "... [truncated]"
     keep = max(0, max_chars - len(suffix))
-    return text[:keep].rstrip() + suffix
+    result = text[:keep].rstrip() + suffix
+    if metrics is not None and metrics_key:
+        metrics[f"{metrics_key}_chars_used"] = len(result)
+        metrics[f"{metrics_key}_truncated"] = True
+    return result
+
+
+def _summarize_section(section_text: str) -> str:
+    """Reduce a markdown section to its headers only (## lines), discarding body text."""
+    lines = section_text.split("\n")
+    headers = [line for line in lines if line.startswith("#")]
+    if not headers:
+        # No headers — keep first non-empty line as label
+        for line in lines:
+            if line.strip():
+                return line.strip()
+        return ""
+    return "\n".join(headers)
+
+
+def _smart_truncate_system_context(
+    text: str,
+    max_chars: int,
+    metrics: dict | None = None,
+) -> str:
+    """Truncate system context by sections instead of cutting mid-text.
+
+    The system context is built from multiple .md files joined by double newlines.
+    When over budget, later sections are progressively compressed to their headers
+    only, then dropped entirely if still over.  The first section (role definition)
+    is always kept in full.  Falls back to hard truncation only if the first
+    section alone exceeds the limit.
+    """
+    if metrics is not None:
+        metrics["system_context_chars_raw"] = len(text)
+    if max_chars <= 0:
+        if metrics is not None:
+            metrics["system_context_chars_used"] = 0
+            metrics["system_context_truncated"] = False
+            metrics["system_context_sections_summarized"] = 0
+        return ""
+    if len(text) <= max_chars:
+        if metrics is not None:
+            metrics["system_context_chars_used"] = len(text)
+            metrics["system_context_truncated"] = False
+            metrics["system_context_sections_summarized"] = 0
+        return text
+
+    # Split into sections on top-level headers (# ...).
+    # Each file in system_context/ starts with a # header.
+    sections: list[str] = []
+    current_lines: list[str] = []
+    for line in text.split("\n"):
+        if line.startswith("# ") and not line.startswith("## ") and current_lines:
+            sections.append("\n".join(current_lines))
+            current_lines = [line]
+        else:
+            current_lines.append(line)
+    if current_lines:
+        sections.append("\n".join(current_lines))
+
+    if len(sections) <= 1:
+        # Single section — fall back to hard truncation
+        result = _truncate_chars(text, max_chars)
+        if metrics is not None:
+            metrics["system_context_chars_used"] = len(result)
+            metrics["system_context_truncated"] = True
+            metrics["system_context_sections_summarized"] = 0
+        return result
+
+    # Phase 1: Compress sections from the end, replacing body with headers only.
+    # Never compress the first section (role definition).
+    result_sections = list(sections)
+    sections_summarized = 0
+    for i in range(len(result_sections) - 1, 0, -1):
+        total = sum(len(s) for s in result_sections) + (len(result_sections) - 1) * 2
+        if total <= max_chars:
+            break
+        summarized = _summarize_section(result_sections[i])
+        if summarized:
+            result_sections[i] = summarized
+        else:
+            result_sections.pop(i)
+        sections_summarized += 1
+
+    # Phase 2: If still over, drop compressed sections from the end.
+    while len(result_sections) > 1:
+        total = sum(len(s) for s in result_sections) + (len(result_sections) - 1) * 2
+        if total <= max_chars:
+            break
+        result_sections.pop()
+        sections_summarized += 1
+
+    result = "\n\n".join(result_sections)
+
+    # Phase 3: If the first section alone is too long, fall back to hard truncation.
+    if len(result) > max_chars:
+        result = _truncate_chars(result, max_chars)
+
+    if metrics is not None:
+        metrics["system_context_chars_used"] = len(result)
+        metrics["system_context_truncated"] = True
+        metrics["system_context_sections_summarized"] = sections_summarized
+
+    return result
 
 
 def _estimate_tokens(text: str) -> int:
@@ -698,6 +821,23 @@ def _estimate_tokens(text: str) -> int:
     if not text:
         return 0
     return max(1, len(text) // 4)
+
+
+def _format_context_log_summary(metrics: dict) -> str:
+    """Format pipeline metrics as a compact one-line log string."""
+    parts = [
+        f"tokens_est={metrics.get('total_tokens_est', '?')}",
+        f"msgs={metrics.get('total_messages', '?')}",
+        f"sys_trunc={'yes' if metrics.get('system_context_truncated') else 'no'}"
+        + (f"({metrics.get('system_context_sections_summarized', 0)}sect)" if metrics.get('system_context_truncated') else ""),
+        f"user_trunc={'yes' if metrics.get('user_context_truncated') else 'no'}",
+        f"tool_rounds_omitted={metrics.get('tool_rounds_omitted', 0)}/{metrics.get('tool_rounds_total', 0)}",
+        f"history={metrics.get('messages_before_history_trim', '?')}->{metrics.get('messages_after_history_trim', '?')}",
+        f"conv_summary={'yes' if metrics.get('conversation_summary_injected') else 'no'}",
+        f"provider={metrics.get('provider', '?')}",
+        f"first_turn={'yes' if metrics.get('is_first_turn') else 'no'}",
+    ]
+    return " ".join(parts)
 
 
 def _count_request_tokens(messages: list[dict]) -> int:
@@ -797,22 +937,79 @@ def _inject_skill_if_slash_skill(openai_messages: list[dict]) -> None:
     )
 
 
-# Placeholder for tool results from older rounds (to keep API order intact but save context).
-_TOOL_RESULT_OMITTED_PLACEHOLDER = '{"_omitted": true, "note": "Earlier tool result omitted to save context"}'
+def _summarize_tool_result(tool_name: str, result_content: str) -> str:
+    """Generate a brief summary of a tool result to replace full content in older rounds.
 
-def _trim_old_tool_results(messages: list[dict], keep_last_n_rounds: int) -> list[dict]:
-    """Replace content of tool results from older rounds with a short placeholder.
+    The assistant message (with tool_calls) is kept, so the LLM already sees
+    what tool was called and with what arguments.  This summary captures
+    the *outcome* so the model retains a minimal trace of what happened.
+    """
+    try:
+        result = json.loads(result_content) if result_content else {}
+    except (json.JSONDecodeError, TypeError):
+        return json.dumps({"_summary": f"{tool_name}: result omitted"})
+
+    if not isinstance(result, dict):
+        return json.dumps({"_summary": f"{tool_name}: ok"})
+
+    # Check success/error
+    success = result.get("success")
+    error = result.get("error", "")
+
+    if success is False or error:
+        error_msg = (str(error)[:80]) if error else "failed"
+        return json.dumps({"_summary": f"{tool_name}: error — {error_msg}"})
+
+    # For successful results, extract a few compact key-value pairs
+    data = result.get("data", result)
+    if isinstance(data, dict):
+        summary_parts = []
+        for key in ("nodeCount", "nodeId", "count", "total", "name", "slug", "status", "message"):
+            if key in data:
+                val = data[key]
+                if isinstance(val, (str, int, float, bool)):
+                    val_str = str(val)
+                    if len(val_str) > 50:
+                        val_str = val_str[:47] + "..."
+                    summary_parts.append(f"{key}={val_str}")
+        if summary_parts:
+            return json.dumps({"_summary": f"{tool_name}: ok ({', '.join(summary_parts[:3])})"})
+
+    return json.dumps({"_summary": f"{tool_name}: ok"})
+
+
+def _build_tool_name_map(
+    messages: list[dict],
+    rounds_to_summarize: list[tuple[int, list[int]]],
+) -> dict[int, str]:
+    """Map tool message indices to their tool names from the preceding assistant tool_calls."""
+    tool_name_by_idx: dict[int, str] = {}
+    for asst_idx, tool_indices in rounds_to_summarize:
+        asst_msg = messages[asst_idx]
+        call_names: dict[str, str] = {}
+        for tc in asst_msg.get("tool_calls", []):
+            if isinstance(tc, dict):
+                tc_id = tc.get("id", "")
+                func = tc.get("function", {})
+                if isinstance(func, dict):
+                    call_names[tc_id] = func.get("name", "unknown")
+        for tidx in tool_indices:
+            tc_id = messages[tidx].get("tool_call_id", "")
+            tool_name_by_idx[tidx] = call_names.get(tc_id, "unknown")
+    return tool_name_by_idx
+
+
+def _trim_old_tool_results(
+    messages: list[dict],
+    keep_last_n_rounds: int,
+    metrics: dict | None = None,
+) -> list[dict]:
+    """Replace content of tool results from older rounds with a brief summary.
     A 'round' is one assistant message with tool_calls plus the immediately following tool messages.
-    Only the last keep_last_n_rounds rounds keep full content; older tool messages get the placeholder."""
-    if keep_last_n_rounds <= 0:
-        # Replace all tool results
-        out = []
-        for m in messages:
-            m = dict(m)
-            if m.get("role") == "tool":
-                m["content"] = _TOOL_RESULT_OMITTED_PLACEHOLDER
-            out.append(m)
-        return out
+    Only the last keep_last_n_rounds rounds keep full content; older tool messages get a one-line
+    summary (e.g. 'addNode: ok (nodeId=5)') so the model retains a trace of what happened."""
+    if metrics is not None:
+        metrics["messages_before_tool_trim"] = len(messages)
 
     # Build list of (assistant_idx, [tool_indices]) for each round.
     rounds: list[tuple[int, list[int]]] = []
@@ -831,37 +1028,152 @@ def _trim_old_tool_results(messages: list[dict], keep_last_n_rounds: int) -> lis
             i += 1
 
     if not rounds:
+        if metrics is not None:
+            metrics["tool_rounds_total"] = 0
+            metrics["tool_rounds_omitted"] = 0
         return list(messages)
 
-    # Keep full content only for the last keep_last_n_rounds rounds.
-    rounds_to_keep = set()
-    for (_, indices) in rounds[-keep_last_n_rounds:]:
-        rounds_to_keep.update(indices)
+    # Determine which rounds to keep vs summarize
+    if keep_last_n_rounds <= 0:
+        rounds_to_summarize = rounds
+        rounds_to_keep_set: set[int] = set()
+    else:
+        rounds_to_summarize = rounds[:-keep_last_n_rounds] if keep_last_n_rounds < len(rounds) else []
+        rounds_to_keep_set = set()
+        for (_, indices) in rounds[-keep_last_n_rounds:]:
+            rounds_to_keep_set.update(indices)
+
+    if metrics is not None:
+        metrics["tool_rounds_total"] = len(rounds)
+        metrics["tool_rounds_omitted"] = len(rounds_to_summarize)
+
+    if not rounds_to_summarize:
+        return list(messages)
+
+    # Build index → tool name map for rounds we'll summarize
+    tool_name_by_idx = _build_tool_name_map(messages, rounds_to_summarize)
 
     out = []
     for idx, m in enumerate(messages):
         m = dict(m)
-        if m.get("role") == "tool" and idx not in rounds_to_keep:
-            m["content"] = _TOOL_RESULT_OMITTED_PLACEHOLDER
+        if m.get("role") == "tool" and idx not in rounds_to_keep_set and idx in tool_name_by_idx:
+            tool_name = tool_name_by_idx[idx]
+            m["content"] = _summarize_tool_result(tool_name, m.get("content", ""))
         out.append(m)
     return out
 
 
-def _trim_openai_history(messages: list[dict], max_non_system_messages: int) -> list[dict]:
-    """Trim non-system history to a bounded tail while preserving system message(s)."""
+def _build_conversation_summary(dropped: list[dict]) -> str:
+    """Build a compact summary of dropped messages for context continuity.
+
+    Extracts user requests, tool actions performed, and the last assistant
+    context from messages that are being trimmed out of the conversation window.
+    Returns empty string if there is nothing meaningful to summarize.
+    """
+    user_requests: list[str] = []
+    tool_actions: list[str] = []
+    last_assistant_text = ""
+
+    for m in dropped:
+        role = m.get("role")
+        if role == "user":
+            text = (m.get("content") or "").strip()
+            if text and len(text) > 5:
+                if len(text) > 120:
+                    text = text[:117] + "..."
+                user_requests.append(text)
+        elif role == "assistant":
+            for tc in m.get("tool_calls", []):
+                if not isinstance(tc, dict):
+                    continue
+                func = tc.get("function", {})
+                if not isinstance(func, dict):
+                    continue
+                name = func.get("name", "")
+                if not name:
+                    continue
+                args_str = func.get("arguments", "{}")
+                key_arg = ""
+                try:
+                    args_dict = json.loads(args_str) if isinstance(args_str, str) else {}
+                    if isinstance(args_dict, dict):
+                        for k, v in args_dict.items():
+                            if isinstance(v, (str, int, float)) and str(v).strip():
+                                val = str(v)
+                                if len(val) > 30:
+                                    val = val[:27] + "..."
+                                key_arg = f"{k}={val}"
+                                break
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                action = f"{name}({key_arg})" if key_arg else name
+                tool_actions.append(action)
+            text = (m.get("content") or "").strip()
+            if text:
+                last_assistant_text = text
+
+    if not user_requests and not tool_actions:
+        return ""
+
+    parts = ["[Conversation summary — earlier messages were trimmed]"]
+    if user_requests:
+        recent = user_requests[-4:]
+        parts.append("User requests: " + " → ".join(f'"{r}"' for r in recent))
+    if tool_actions:
+        parts.append("Actions taken: " + ", ".join(tool_actions[-8:]))
+    if last_assistant_text:
+        brief = last_assistant_text[:200]
+        if len(last_assistant_text) > 200:
+            brief += "..."
+        parts.append("Last context: " + brief)
+
+    return "\n".join(parts)
+
+
+def _trim_openai_history(
+    messages: list[dict],
+    max_non_system_messages: int,
+    metrics: dict | None = None,
+) -> list[dict]:
+    """Trim non-system history to a bounded tail while preserving system message(s).
+    When messages are dropped, a conversation summary is injected for context continuity."""
+    if metrics is not None:
+        metrics["messages_before_history_trim"] = len(messages)
+
     if max_non_system_messages <= 0:
-        return [m for m in messages if m.get("role") == "system"]
+        result = [m for m in messages if m.get("role") == "system"]
+        if metrics is not None:
+            metrics["messages_after_history_trim"] = len(result)
+            metrics["history_trimmed"] = len(result) < len(messages)
+        return result
 
     system_messages = [m for m in messages if m.get("role") == "system"]
     non_system = [m for m in messages if m.get("role") != "system"]
     if len(non_system) <= max_non_system_messages:
+        if metrics is not None:
+            metrics["messages_after_history_trim"] = len(messages)
+            metrics["history_trimmed"] = False
         return messages
 
+    # Split into dropped prefix and kept tail
+    dropped = non_system[:-max_non_system_messages]
     tail = non_system[-max_non_system_messages:]
     # Avoid starting with orphan tool results.
     while tail and tail[0].get("role") == "tool":
         tail = tail[1:]
-    return system_messages + tail
+
+    # Build summary of dropped messages and inject as system addendum
+    summary_text = _build_conversation_summary(dropped)
+    result = list(system_messages)
+    if summary_text:
+        result.append({"role": "system", "content": summary_text})
+    result.extend(tail)
+
+    if metrics is not None:
+        metrics["messages_after_history_trim"] = len(result)
+        metrics["history_trimmed"] = True
+        metrics["conversation_summary_injected"] = bool(summary_text)
+    return result
 
 # Print the current paths for debugging
 print(f"ComfyUI_example_frontend_extension workspace path: {workspace_path}")
@@ -950,7 +1262,13 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     await resp.write(chunk)
                 return resp
     openai_messages = _ui_messages_to_openai(messages)
-    
+
+    # Context pipeline metrics (collected throughout the handler)
+    metrics: dict = {}
+    debug_context = COMFY_ASSISTANT_DEBUG_CONTEXT or (
+        request.query.get("debug") == "context"
+    )
+
     # Reload agent_prompts to pick up any changes (useful during development)
     importlib.reload(agent_prompts)
     from agent_prompts import get_system_message, get_system_message_continuation
@@ -960,6 +1278,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     # re-sending the same long context on every request; use short continuation otherwise.
     has_system = any(msg.get("role") == "system" for msg in openai_messages)
     has_prior_assistant = any(msg.get("role") == "assistant" for msg in openai_messages)
+    metrics["is_first_turn"] = not has_prior_assistant
     if not has_system:
         if has_prior_assistant:
             openai_messages.insert(0, get_system_message_continuation())
@@ -973,9 +1292,10 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 environment_summary = user_context_loader.load_environment_summary()
             except Exception:
                 pass
-            system_context_text = _truncate_chars(
+            system_context_text = _smart_truncate_system_context(
                 system_context_text,
-                LLM_SYSTEM_CONTEXT_MAX_CHARS
+                LLM_SYSTEM_CONTEXT_MAX_CHARS,
+                metrics=metrics,
             )
             if not (system_context_text or "").strip():
                 system_context_text = (
@@ -983,6 +1303,10 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     "Use getWorkflowInfo, addNode, removeNode, connectNodes, setNodeWidgetValue, fillPromptNode when needed. "
                     "Reply in the user's language. For greetings only, reply with text; do not call tools."
                 )
+            try:
+                user_skills_list = skill_manager.list_skills()
+            except Exception:
+                user_skills_list = []
             openai_messages.insert(
                 0,
                 get_system_message(
@@ -990,6 +1314,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     user_context,
                     environment_summary,
                     user_context_max_chars=LLM_USER_CONTEXT_MAX_CHARS,
+                    user_skills=user_skills_list,
+                    metrics=metrics,
                 ),
             )
     # Handle /skill <name>: resolve skill and inject into this turn; replace user message
@@ -998,10 +1324,12 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     openai_messages = _trim_old_tool_results(
         openai_messages,
         LLM_TOOL_RESULT_KEEP_LAST_ROUNDS,
+        metrics=metrics,
     )
     openai_messages = _trim_openai_history(
         openai_messages,
         LLM_HISTORY_MAX_MESSAGES,
+        metrics=metrics,
     )
 
     message_id = f"msg_{uuid.uuid4().hex}"
@@ -1076,11 +1404,39 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         return resp
 
     request_tokens_est = _count_request_tokens(openai_messages)
-    logger.info(
-        "[ComfyAssistant] tokens request=%s (est) provider=%s",
-        request_tokens_est,
-        selected_provider,
+    metrics["total_messages"] = len(openai_messages)
+    metrics["total_chars"] = sum(
+        len(m.get("content", "")) if isinstance(m.get("content"), str) else 0
+        for m in openai_messages
     )
+    metrics["total_tokens_est"] = request_tokens_est
+    metrics["provider"] = selected_provider
+    logger.info(
+        "[ComfyAssistant] context: %s",
+        _format_context_log_summary(metrics),
+    )
+    logger.debug(
+        "[ComfyAssistant] context metrics: %s",
+        json.dumps(metrics, default=str),
+    )
+
+    # Prepare response headers (add debug header when enabled)
+    if debug_context:
+        response_headers = dict(UI_MESSAGE_STREAM_HEADERS)
+        header_metrics = {
+            k: metrics[k] for k in (
+                "total_tokens_est", "total_messages", "total_chars",
+                "system_context_truncated", "user_context_truncated",
+                "tool_rounds_omitted", "tool_rounds_total",
+                "history_trimmed", "conversation_summary_injected",
+                "is_first_turn", "provider",
+            ) if k in metrics
+        }
+        response_headers["X-ComfyAssistant-Context-Debug"] = json.dumps(
+            header_metrics, separators=(",", ":")
+        )
+    else:
+        response_headers = UI_MESSAGE_STREAM_HEADERS
 
     async def stream_openai():
         # Call an OpenAI-compatible API and stream response.
@@ -1575,10 +1931,19 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         stream_fn = stream_claude_code
     else:
         stream_fn = stream_codex
-    resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
+    resp = web.StreamResponse(status=200, headers=response_headers)
     await resp.prepare(request)
+    first_chunk = True
     async for chunk in stream_fn():
         await resp.write(chunk)
+        # Emit debug SSE event right after the first event (start)
+        if first_chunk and debug_context:
+            first_chunk = False
+            debug_event = _sse_line({
+                "type": "context-debug",
+                "metrics": metrics,
+            })
+            await resp.write(debug_event.encode("utf-8"))
     return resp
 
 
