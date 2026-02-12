@@ -14,6 +14,10 @@ import {
   connectNodesDefinition,
   createSkillDefinition,
   deleteSkillDefinition,
+  getUserSkillDefinition,
+  getSystemSkillDefinition,
+  listUserSkillsDefinition,
+  listSystemSkillsDefinition,
   executeWorkflowDefinition,
   fetchWebContentDefinition,
   fillPromptNodeDefinition,
@@ -35,6 +39,10 @@ import {
   executeConnectNodes,
   executeCreateSkill,
   executeDeleteSkill,
+  executeGetUserSkill,
+  executeGetSystemSkill,
+  executeListUserSkills,
+  executeListSystemSkills,
   executeExecuteWorkflow,
   executeFetchWebContent,
   executeFillPromptNode,
@@ -157,6 +165,42 @@ export function useComfyTools() {
     parameters: updateSkillDefinition.parameters,
     execute: async (args) => {
       return executeUpdateSkill(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: getUserSkillDefinition.name,
+    description: getUserSkillDefinition.description,
+    parameters: getUserSkillDefinition.parameters,
+    execute: async (args) => {
+      return executeGetUserSkill(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: listUserSkillsDefinition.name,
+    description: listUserSkillsDefinition.description,
+    parameters: listUserSkillsDefinition.parameters,
+    execute: async () => {
+      return executeListUserSkills()
+    }
+  })
+
+  useAssistantTool({
+    toolName: listSystemSkillsDefinition.name,
+    description: listSystemSkillsDefinition.description,
+    parameters: listSystemSkillsDefinition.parameters,
+    execute: async () => {
+      return executeListSystemSkills()
+    }
+  })
+
+  useAssistantTool({
+    toolName: getSystemSkillDefinition.name,
+    description: getSystemSkillDefinition.description,
+    parameters: getSystemSkillDefinition.parameters,
+    execute: async (args) => {
+      return executeGetSystemSkill(args)
     }
   })
 

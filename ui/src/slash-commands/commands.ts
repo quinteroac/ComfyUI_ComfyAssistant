@@ -54,6 +54,7 @@ function cmdHelp(_args: string, ctx: SlashCommandContext) {
     '| Command | Description |',
     '|---------|-------------|',
     '| `/help` | Show this help message |',
+    '| `/skill <name>` | Activate a user skill by name or slug (e.g. `/skill use-preview-image`) |',
     '| `/clear` | Reset current thread to initial empty state |',
     '| `/compact [keep]` | Compact context and keep recent messages |',
     '| `/new` | Create and switch to a new session |',
@@ -189,6 +190,12 @@ export const COMMANDS: SlashCommand[] = [
     description: 'Show available commands',
     usage: '/help',
     execute: cmdHelp
+  },
+  {
+    name: 'skill',
+    description: 'Activate a user skill by name or slug',
+    usage: '/skill <name>',
+    execute: () => {} // Handled by backend; message is sent as-is
   },
   {
     name: 'clear',

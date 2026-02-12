@@ -4,7 +4,7 @@ This guide covers the initial setup of the ComfyUI Assistant: API configuration 
 
 ## API configuration (required)
 
-The assistant needs an OpenAI-compatible API to generate responses. Configuration is done via a `.env` file in the extension root (`ComfyUI_ComfyAssistant/`).
+The assistant needs an LLM provider to generate responses. Configuration is done via a `.env` file in the extension root (`ComfyUI_ComfyAssistant/`).
 
 ### 1. Create the .env file
 
@@ -20,18 +20,29 @@ Edit `.env` with your preferred editor. **Do not commit `.env`** — it is liste
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `OPENAI_API_KEY` | API key for the LLM provider. | **Yes** |
+| `LLM_PROVIDER` | Optional provider selector: `openai`, `anthropic`, `claude_code`, or `codex`. If unset, backend auto-selects based on available credentials. | No |
+| `OPENAI_API_KEY` | API key for OpenAI-compatible provider. Required when using `openai` provider. | Conditional |
 | `OPENAI_API_BASE_URL` | Base URL of the API. Change this to use your provider endpoint. | No (default: `https://api.openai.com/v1`) |
 | `OPENAI_MODEL` | Model name. Optional; value depends on the provider. | No |
+| `ANTHROPIC_API_KEY` | Direct Anthropic API key. Required when using `anthropic` provider. | Conditional |
+| `ANTHROPIC_MODEL` | Anthropic model name. | No (default: `claude-sonnet-4-5`) |
+| `ANTHROPIC_BASE_URL` | Anthropic API base URL. | No (default: `https://api.anthropic.com`) |
+| `ANTHROPIC_MAX_TOKENS` | Max output tokens for Anthropic Messages API calls. | No (default: `4096`) |
+| `CLAUDE_CODE_COMMAND` | Claude Code executable name/path. | No (default: `claude`) |
+| `CLAUDE_CODE_MODEL` | Optional Claude Code model alias. | No |
+| `CODEX_COMMAND` | Codex executable name/path. | No (default: `codex`) |
+| `CODEX_MODEL` | Optional Codex model id/alias. | No |
+| `CLI_PROVIDER_TIMEOUT_SECONDS` | Timeout for CLI providers in seconds. | No (default: `180`) |
 | `LLM_REQUEST_DELAY_SECONDS` | Delay in seconds before each LLM request. Default `1.0`. Increase if you get 429 rate limit errors. | No |
 | `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max characters from `system_context/` injected per request. Default `12000`. | No |
 | `LLM_USER_CONTEXT_MAX_CHARS` | Max characters for the formatted user context block. Default `2500`. | No |
 | `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request. Default `24`. | No |
+| `LLM_TOOL_RESULT_KEEP_LAST_ROUNDS` | Number of "rounds" of tool results to keep in full (default: `2`). Older rounds get a short placeholder to reduce context size. | No |
 | `COMFY_ASSISTANT_LOG_LEVEL` | Backend log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Default `INFO`. | No |
 
 ### 3. Example configurations
 
-**Default endpoint:**
+**OpenAI-compatible:**
 
 ```bash
 OPENAI_API_KEY=sk_your_api_key_here
@@ -39,6 +50,36 @@ OPENAI_API_BASE_URL=https://api.openai.com/v1
 # OPENAI_MODEL=gpt-4o-mini
 COMFY_ASSISTANT_LOG_LEVEL=INFO
 ```
+
+**Anthropic with API key:**
+
+```bash
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-api03-your_key_here
+# ANTHROPIC_MODEL=claude-sonnet-4-5
+```
+
+> Note: `ANTHROPIC_AUTH_TOKEN` from `claude setup-token` does not authenticate direct `api.anthropic.com/v1/messages` calls in this backend path.
+
+**Claude Code CLI (`claude setup-token`):**
+
+```bash
+LLM_PROVIDER=claude_code
+# Optional
+# CLAUDE_CODE_COMMAND=claude
+# CLAUDE_CODE_MODEL=sonnet
+```
+
+**Codex CLI:**
+
+```bash
+LLM_PROVIDER=codex
+# Optional
+# CODEX_COMMAND=codex
+# CODEX_MODEL=o3
+```
+
+> `claude_code` and `codex` providers use structured JSON adapters to emit backend tool calls into the existing frontend tool pipeline. Behavior can vary if CLI output contracts change between versions.
 
 **OpenAI:**
 

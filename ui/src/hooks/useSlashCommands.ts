@@ -44,6 +44,11 @@ export function useSlashCommands() {
     ).toLowerCase()
     const args = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1).trim()
 
+    // /skill <name> is handled by the backend: send the message as-is
+    if (name === 'skill') {
+      return false
+    }
+
     const cmd = COMMANDS.find((c) => c.name === name)
     if (!cmd) {
       appendLocal(

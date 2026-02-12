@@ -25,7 +25,7 @@ In the assistant tab you can type for example:
 - **AI chat**: React interface (assistant-ui) with streaming, history, markdown, and reasoning blocks.
 - **Tool calling**: The model uses tools that run in the browser (graph) or via the backend (environment, docs). Tools can add/remove/connect nodes, set widgets, search installed nodes, get models, read docs, manage user skills, and run or load workflows.
 - **Slash commands**: `/help`, `/clear`, `/compact`, `/new`, `/rename`, `/session`, `/sessions` for session management (see [doc/commands.md](doc/commands.md)).
-- **Configurable provider**: OpenAI-compatible provider by default; any OpenAI-compatible API via `OPENAI_API_BASE_URL`.
+- **Configurable provider**: OpenAI-compatible, Anthropic API, Claude Code CLI, or Codex CLI.
 - **Rate limit control**: Configurable delay between LLM requests (`LLM_REQUEST_DELAY_SECONDS`) to avoid 429 errors.
 - **Context system**: Base prompts in `system_context/`, user workspace in `user_context/` (SOUL, goals, user skills). Environment summary (nodes, models, packages) is injected when available.
 - **TypeScript**: Typed with ComfyUI definitions and Zod for tools.
@@ -71,15 +71,26 @@ Main variables:
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | API key for your provider. **Required.** |
+| `LLM_PROVIDER` | Optional: `openai`, `anthropic`, `claude_code`, or `codex` (auto-detected if omitted). |
+| `OPENAI_API_KEY` | API key for OpenAI-compatible providers. |
 | `OPENAI_API_BASE_URL` | Base URL for the API (default: `https://api.openai.com/v1`). Change this to use another provider. |
 | `OPENAI_MODEL` | Model (optional; default depends on provider). |
+| `ANTHROPIC_API_KEY` | Direct Anthropic API key. |
+| `ANTHROPIC_MODEL` | Anthropic model (default: `claude-sonnet-4-5`). |
+| `ANTHROPIC_BASE_URL` | Anthropic base URL (default: `https://api.anthropic.com`). |
+| `CLAUDE_CODE_COMMAND` | Claude Code executable name/path (default: `claude`). |
+| `CLAUDE_CODE_MODEL` | Optional Claude Code model alias. |
+| `CODEX_COMMAND` | Codex executable name/path (default: `codex`). |
+| `CODEX_MODEL` | Optional Codex model id/alias. |
+| `CLI_PROVIDER_TIMEOUT_SECONDS` | Timeout for `claude_code`/`codex` CLI calls (default: `180`). |
 | `LLM_REQUEST_DELAY_SECONDS` | Seconds to wait before each LLM request (default `1.0`). Increase if you get 429 errors. |
 | `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max chars from `system_context/` injected per request (default `12000`). |
 | `LLM_USER_CONTEXT_MAX_CHARS` | Max chars for user context block (default `2500`). |
 | `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request (default `24`). |
 
 After changing `.env`, restart ComfyUI.
+
+Note: `claude_code` and `codex` providers now use structured JSON output to map tool calls into the existing frontend tool pipeline. This is adapter-based and may vary with CLI version changes.
 
 ### Assistant tools
 

@@ -85,9 +85,19 @@ Finish reasons: `stop`, `tool-calls`, `length`, `content-filter`.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OPENAI_API_KEY` | (required) | LLM provider API key |
-| `OPENAI_MODEL` | `llama3-70b-8192` | Model name |
+| `LLM_PROVIDER` | auto-detect | Optional provider selector: `openai`, `anthropic`, `claude_code`, or `codex` |
+| `OPENAI_API_KEY` | (optional) | OpenAI-compatible provider API key |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI-compatible model name |
 | `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | Any OpenAI-compatible provider URL |
+| `ANTHROPIC_API_KEY` | (optional) | Anthropic API key for direct Messages API calls |
+| `ANTHROPIC_MODEL` | `claude-sonnet-4-5` | Anthropic model name |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | Anthropic API URL |
+| `ANTHROPIC_MAX_TOKENS` | `4096` | Anthropic max output tokens |
+| `CLAUDE_CODE_COMMAND` | `claude` | Claude Code CLI executable |
+| `CLAUDE_CODE_MODEL` | (empty) | Optional Claude Code model alias |
+| `CODEX_COMMAND` | `codex` | Codex CLI executable |
+| `CODEX_MODEL` | (empty) | Optional Codex model alias |
+| `CLI_PROVIDER_TIMEOUT_SECONDS` | `180` | Timeout for CLI provider subprocess calls |
 | `LLM_REQUEST_DELAY_SECONDS` | `1.0` | Rate-limit delay before each LLM call |
 | `COMFY_ASSISTANT_LOG_LEVEL` | `INFO` | Logging level |
 
@@ -106,7 +116,13 @@ See "chat_api_handler Lifecycle" above. Messages arrive as AI SDK UIMessages, ge
 Two ways: (1) `LLM_REQUEST_DELAY_SECONDS` adds a delay before each LLM call; (2) if OpenAI-compatible provider returns HTTP 429, the handler catches it and streams a friendly "Rate limited" text message instead of an error.
 
 ### How do I change the LLM provider?
-Set `OPENAI_API_BASE_URL` in `.env` to any OpenAI-compatible endpoint (OpenAI-compatible provider, OpenAI, Together, Ollama, etc.) and set the API key in `OPENAI_API_KEY`.
+Set `LLM_PROVIDER` in `.env`:
+- `openai`: use `OPENAI_API_KEY` (+ optional `OPENAI_API_BASE_URL`, `OPENAI_MODEL`)
+- `anthropic`: use `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`)
+- `claude_code`: use local `claude` CLI (authenticated)
+- `codex`: use local `codex` CLI (authenticated)
+
+If `LLM_PROVIDER` is omitted, the backend auto-selects based on available credentials.
 
 ## Related Skills
 

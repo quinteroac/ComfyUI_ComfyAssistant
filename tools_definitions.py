@@ -223,6 +223,62 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "getUserSkill",
+            "description": "Loads a user skill's full instructions by slug. Use after listUserSkills when the user refers to a saved preference or when you need to apply a remembered skill. Returns slug, name, description, and instructions.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "The slug of the skill to load (e.g. 'use-preview-image', 'prefer-sdxl-models')"
+                    }
+                },
+                "required": ["slug"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "listUserSkills",
+            "description": "Lists the user's saved skills (slug, name, description). Use this to see which skills exist before loading one with getUserSkill(slug) when the user refers to a preference or you need to apply a remembered instruction.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "listSystemSkills",
+            "description": "Lists model-specific system skills (Flux, SDXL, Lumina2, etc.) available on demand. Returns slug and name. When the user asks about a model or a workflow for a model, call this first to find the matching skill, then getSystemSkill(slug) to load it before answering or building the workflow.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "getSystemSkill",
+            "description": "Loads a model-specific system skill by slug (e.g. 09_model_flux, 13_model_sdxl). Call after listSystemSkills when the user asks about a model or a workflow for a model; match the model name to the skill and load it before answering or creating the workflow. Returns slug, name, and full content to apply.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "The slug of the system skill (e.g. '09_model_flux', '13_model_sdxl')"
+                    }
+                },
+                "required": ["slug"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "refreshEnvironment",
             "description": "Rescans the ComfyUI installation to update the list of installed node types, custom node packages, and available models. Use after installing new custom nodes or models, or when the user asks about their environment.",
             "parameters": {
