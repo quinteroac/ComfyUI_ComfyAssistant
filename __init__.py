@@ -82,6 +82,8 @@ CLAUDE_CODE_COMMAND = os.environ.get("CLAUDE_CODE_COMMAND", "claude")
 CLAUDE_CODE_MODEL = os.environ.get("CLAUDE_CODE_MODEL", "")
 CODEX_COMMAND = os.environ.get("CODEX_COMMAND", "codex")
 CODEX_MODEL = os.environ.get("CODEX_MODEL", "")
+GEMINI_CLI_COMMAND = os.environ.get("GEMINI_CLI_COMMAND", "gemini")
+GEMINI_CLI_MODEL = os.environ.get("GEMINI_CLI_MODEL", "")
 try:
     CLI_PROVIDER_TIMEOUT_SECONDS = int(
         os.environ.get("CLI_PROVIDER_TIMEOUT_SECONDS", "180")
@@ -153,13 +155,18 @@ def _has_anthropic_credentials() -> bool:
 
 def _has_cli_provider_command(provider: str) -> bool:
     """Return True when provider CLI binary is available in PATH."""
-    command = CLAUDE_CODE_COMMAND if provider == "claude_code" else CODEX_COMMAND
+    commands = {
+        "claude_code": CLAUDE_CODE_COMMAND,
+        "codex": CODEX_COMMAND,
+        "gemini_cli": GEMINI_CLI_COMMAND,
+    }
+    command = commands.get(provider)
     return bool(command) and shutil.which(command) is not None
 
 
 def _selected_llm_provider() -> str:
     """Resolve active provider from env and available credentials."""
-    if LLM_PROVIDER in {"openai", "anthropic", "claude_code", "codex"}:
+    if LLM_PROVIDER in {"openai", "anthropic", "claude_code", "codex", "gemini_cli"}:
         return LLM_PROVIDER
     if OPENAI_API_KEY:
         return "openai"
@@ -1447,6 +1454,12 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             "or set CODEX_COMMAND to the correct executable."
         )
         has_provider_credentials = _has_cli_provider_command("codex")
+    elif selected_provider == "gemini_cli":
+        placeholder = (
+            f"Chat API is not configured. Install `{GEMINI_CLI_COMMAND}` "
+            "or set GEMINI_CLI_COMMAND to the correct executable."
+        )
+        has_provider_credentials = _has_cli_provider_command("gemini_cli")
     elif selected_provider == "anthropic":
         if ANTHROPIC_AUTH_TOKEN and not ANTHROPIC_API_KEY:
             placeholder = (
@@ -2098,12 +2111,107 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
         yield "data: [DONE]\n\n".encode("utf-8")
 
+    async def stream_gemini_cli():
+        text_id = f"msg_{uuid.uuid4().hex[:24]}"
+        yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
+
+        prompt = _build_cli_tool_prompt(openai_messages)
+        # Gemini CLI does not support --json-schema; embed schema in prompt text
+        schema_json = json.dumps(_cli_response_schema(), ensure_ascii=False)
+        full_prompt = (
+            prompt
+            + "\n\nIMPORTANT: You MUST respond with a single JSON object matching this schema:\n"
+            + schema_json
+        )
+        cmd = [GEMINI_CLI_COMMAND, "-p", full_prompt, "--output-format", "json"]
+        if GEMINI_CLI_MODEL:
+            cmd.extend(["-m", GEMINI_CLI_MODEL])
+
+        rc, stdout, stderr, timed_out = await _run_cli_command(
+            cmd,
+            CLI_PROVIDER_TIMEOUT_SECONDS,
+        )
+        if timed_out:
+            yield _sse_line({
+                "type": "error",
+                "errorText": stderr,
+            }).encode("utf-8")
+            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+            yield "data: [DONE]\n\n".encode("utf-8")
+            return
+
+        if rc != 0:
+            message = stderr.strip() or stdout.strip() or f"{GEMINI_CLI_COMMAND} exited with code {rc}"
+            yield _sse_line({"type": "error", "errorText": message}).encode("utf-8")
+            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+            yield "data: [DONE]\n\n".encode("utf-8")
+            return
+
+        # Gemini CLI JSON envelope: {"response": "...", "stats": {...}, "error": {...}}
+        # Unwrap the envelope before normalizing.
+        raw = stdout.strip()
+        in_tok = request_tokens_est
+        out_tok = None
+        gemini_env = _extract_json_from_text(raw)
+        if isinstance(gemini_env, dict) and "response" in gemini_env:
+            # Extract token stats from Gemini envelope
+            stats = gemini_env.get("stats")
+            if isinstance(stats, dict):
+                if stats.get("inputTokens") is not None:
+                    in_tok = stats["inputTokens"]
+                elif stats.get("input_tokens") is not None:
+                    in_tok = stats["input_tokens"]
+                if stats.get("outputTokens") is not None:
+                    out_tok = stats["outputTokens"]
+                elif stats.get("output_tokens") is not None:
+                    out_tok = stats["output_tokens"]
+            # Check for Gemini-level error
+            gemini_error = gemini_env.get("error")
+            if isinstance(gemini_error, dict) and gemini_error.get("message"):
+                yield _sse_line({
+                    "type": "error",
+                    "errorText": gemini_error["message"],
+                }).encode("utf-8")
+                yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+                yield "data: [DONE]\n\n".encode("utf-8")
+                return
+            raw = gemini_env["response"] if isinstance(gemini_env["response"], str) else json.dumps(gemini_env["response"])
+
+        text, tool_calls = _normalize_cli_structured_response(raw)
+        if out_tok is None:
+            out_tok = _estimate_tokens(text)
+        logger.info(
+            "[ComfyAssistant] tokens in=%s out=%s provider=gemini_cli",
+            in_tok,
+            out_tok,
+        )
+        if text:
+            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+            yield _sse_line({
+                "type": "text-delta",
+                "id": text_id,
+                "delta": text,
+            }).encode("utf-8")
+            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+        for tool_call in tool_calls:
+            yield _sse_line({
+                "type": "tool-input-available",
+                "toolCallId": f"call_{uuid.uuid4().hex[:12]}",
+                "toolName": tool_call["name"],
+                "input": tool_call["input"],
+            }).encode("utf-8")
+        finish_reason = "tool-calls" if tool_calls else "stop"
+        yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
+        yield "data: [DONE]\n\n".encode("utf-8")
+
     if selected_provider == "openai":
         stream_fn = stream_openai
     elif selected_provider == "anthropic":
         stream_fn = stream_anthropic
     elif selected_provider == "claude_code":
         stream_fn = stream_claude_code
+    elif selected_provider == "gemini_cli":
+        stream_fn = stream_gemini_cli
     else:
         stream_fn = stream_codex
     resp = web.StreamResponse(status=200, headers=response_headers)

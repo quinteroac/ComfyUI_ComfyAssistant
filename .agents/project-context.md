@@ -264,7 +264,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 
 **Backend** (`.env`):
 ```bash
-LLM_PROVIDER=openai                  # Optional: openai, anthropic, claude_code, codex
+LLM_PROVIDER=openai                  # Optional: openai, anthropic, claude_code, codex, gemini_cli
 OPENAI_API_KEY=gsk_xxx               # OpenAI-compatible provider API key
 OPENAI_API_BASE_URL=https://...      # Optional: OpenAI-compatible API URL
 OPENAI_MODEL=llama3-70b-8192         # Optional: OpenAI-compatible model
@@ -276,12 +276,14 @@ CLAUDE_CODE_COMMAND=claude           # Optional: claude_code CLI executable
 CLAUDE_CODE_MODEL=sonnet             # Optional: claude_code model alias
 CODEX_COMMAND=codex                  # Optional: codex CLI executable
 CODEX_MODEL=o3                       # Optional: codex model alias
+GEMINI_CLI_COMMAND=gemini            # Optional: gemini CLI executable
+GEMINI_CLI_MODEL=auto                # Optional: gemini model name
 CLI_PROVIDER_TIMEOUT_SECONDS=180     # Optional: timeout for CLI provider subprocesses
 SEARXNG_URL=http://localhost:8080  # Optional: SearXNG instance for web search (Phase 8)
 COMFY_ASSISTANT_DEBUG_CONTEXT=0    # Optional: when "1", emit context pipeline debug metrics (X-ComfyAssistant-Context-Debug header, context-debug SSE event)
 ```
 OpenAI-compatible providers use `OPENAI_*`. Anthropic provider uses `ANTHROPIC_API_KEY`.
-`claude_code` and `codex` providers use local authenticated CLI executables.
+`claude_code`, `codex`, and `gemini_cli` providers use local authenticated CLI executables.
 
 **Frontend** (`ui/.env.local`):
 ```bash

@@ -85,7 +85,7 @@ Finish reasons: `stop`, `tool-calls`, `length`, `content-filter`.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `LLM_PROVIDER` | auto-detect | Optional provider selector: `openai`, `anthropic`, `claude_code`, or `codex` |
+| `LLM_PROVIDER` | auto-detect | Optional provider selector: `openai`, `anthropic`, `claude_code`, `codex`, or `gemini_cli` |
 | `OPENAI_API_KEY` | (optional) | OpenAI-compatible provider API key |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI-compatible model name |
 | `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | Any OpenAI-compatible provider URL |
@@ -97,6 +97,8 @@ Finish reasons: `stop`, `tool-calls`, `length`, `content-filter`.
 | `CLAUDE_CODE_MODEL` | (empty) | Optional Claude Code model alias |
 | `CODEX_COMMAND` | `codex` | Codex CLI executable |
 | `CODEX_MODEL` | (empty) | Optional Codex model alias |
+| `GEMINI_CLI_COMMAND` | `gemini` | Gemini CLI executable |
+| `GEMINI_CLI_MODEL` | (empty) | Optional Gemini model name |
 | `CLI_PROVIDER_TIMEOUT_SECONDS` | `180` | Timeout for CLI provider subprocess calls |
 | `LLM_REQUEST_DELAY_SECONDS` | `1.0` | Rate-limit delay before each LLM call |
 | `COMFY_ASSISTANT_LOG_LEVEL` | `INFO` | Logging level |
@@ -121,6 +123,7 @@ Set `LLM_PROVIDER` in `.env`:
 - `anthropic`: use `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`)
 - `claude_code`: use local `claude` CLI (authenticated)
 - `codex`: use local `codex` CLI (authenticated)
+- `gemini_cli`: use local `gemini` CLI (authenticated)
 
 If `LLM_PROVIDER` is omitted, the backend auto-selects based on available credentials.
 
