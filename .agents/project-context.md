@@ -5,7 +5,7 @@
 **Name**: ComfyUI Assistant (ComfyUI_ComfyAssistant)  
 **Type**: ComfyUI Custom Node Extension with AI Assistant  
 **Base**: ComfyUI React Extension Template  
-**Version**: 0.1.0  
+**Version**: 0.2.0  
 **License**: MIT
 
 ComfyUI Assistant is an AI-powered extension for ComfyUI that provides an intelligent chat interface with agentic capabilities to interact with ComfyUI workflows. It extends the ComfyUI React Extension Template with a complete assistant-ui implementation and a tools system for workflow manipulation.

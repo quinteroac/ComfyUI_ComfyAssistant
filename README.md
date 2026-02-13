@@ -23,9 +23,10 @@ In the assistant tab you can type for example:
 ## Features
 
 - **AI chat**: React interface (assistant-ui) with streaming, history, markdown, and reasoning blocks.
-- **Tool calling**: The model uses tools that run in the browser (graph) or via the backend (environment, docs). Tools can add/remove/connect nodes, set widgets, search installed nodes, get models, read docs, manage user skills, and run or load workflows.
+- **Tool calling**: The model uses tools that run in the browser (graph) or via the backend (environment, docs, research). Tools can add/remove/connect nodes, set widgets, search installed nodes, get models, read docs, manage user skills, run or load workflows, search the web, and explore the ComfyUI Registry.
 - **Slash commands**: `/help`, `/clear`, `/compact`, `/new`, `/rename`, `/session`, `/sessions`, `/skill <name>` for session management and skill activation (see [doc/commands.md](doc/commands.md)).
-- **Configurable provider**: OpenAI-compatible, Anthropic API, Claude Code CLI, or Codex CLI.
+- **Configurable provider**: OpenAI-compatible, Anthropic API, Claude Code CLI, Gemini CLI, or Codex CLI.
+- **Research capabilities**: Search the web for tutorials/workflows, fetch URL content, and discover custom nodes on the registry.
 - **Rate limit control**: Configurable delay between LLM requests (`LLM_REQUEST_DELAY_SECONDS`) to avoid 429 errors.
 - **Context system**: Base prompts in `system_context/`, user workspace in `user_context/` (SOUL, goals, user skills). Environment summary (nodes, models, packages) is injected when available.
 - **TypeScript**: Typed with ComfyUI definitions and Zod for tools.
@@ -82,7 +83,9 @@ Main variables:
 | `CLAUDE_CODE_MODEL` | Optional Claude Code model alias. |
 | `CODEX_COMMAND` | Codex executable name/path (default: `codex`). |
 | `CODEX_MODEL` | Optional Codex model id/alias. |
-| `CLI_PROVIDER_TIMEOUT_SECONDS` | Timeout for `claude_code`/`codex` CLI calls (default: `180`). |
+| `GEMINI_CLI_COMMAND` | Gemini CLI executable name/path (default: `gemini`). |
+| `GEMINI_CLI_MODEL` | Optional Gemini CLI model name. |
+| `CLI_PROVIDER_TIMEOUT_SECONDS` | Timeout for CLI provider subprocesses (default: `180`). |
 | `LLM_REQUEST_DELAY_SECONDS` | Seconds to wait before each LLM request (default `1.0`). Increase if you get 429 errors. |
 | `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max chars from `system_context/` injected per request (default `12000`). |
 | `LLM_USER_CONTEXT_MAX_CHARS` | Max chars for user context block (default `2500`). |
@@ -100,6 +103,7 @@ Note: `claude_code` and `codex` providers now use structured JSON output to map 
 - **Environment**: Refresh environment cache; search installed node types; get available models by category; read documentation for nodes or topics.
 - **User skills**: Create, delete, or update persistent skills (instructions the assistant remembers).
 - **Workflow**: Execute current workflow (queue and wait for result); apply a full workflow from API-format JSON.
+- **Research**: Web search (tutorials, workflows); fetch URL content; search ComfyUI Registry for custom nodes; get example workflows from curated library.
 
 See [doc/base-tools.md](doc/base-tools.md) for natural-language examples and details.
 

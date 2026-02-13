@@ -1,7 +1,7 @@
 [project]
-name = "comfyui_react_extension_template"
-description = "A minimal template for creating React/TypeScript frontend extensions for ComfyUI, with complete boilerplate setup including internationalization and unit testing."
-version = "0.1.0"
+name = "ComfyUI_ComfyAssistant"
+description = "AI Assistant for ComfyUI with agentic capabilities to interact with workflows."
+version = "0.2.0"
 license = {file = "LICENSE"}
 dependencies = [
     "openai>=1.0.0",

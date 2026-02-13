@@ -32,7 +32,10 @@ Edit `.env` with your preferred editor. **Do not commit `.env`** — it is liste
 | `CLAUDE_CODE_MODEL` | Optional Claude Code model alias. | No |
 | `CODEX_COMMAND` | Codex executable name/path. | No (default: `codex`) |
 | `CODEX_MODEL` | Optional Codex model id/alias. | No |
+| `GEMINI_CLI_COMMAND` | Gemini CLI executable name/path. | No (default: `gemini`) |
+| `GEMINI_CLI_MODEL` | Optional Gemini CLI model name. | No |
 | `CLI_PROVIDER_TIMEOUT_SECONDS` | Timeout for CLI providers in seconds. | No (default: `180`) |
+| `SEARXNG_URL` | SearXNG instance URL for web search (Phase 8). | No (e.g. `http://localhost:8080`) |
 | `LLM_REQUEST_DELAY_SECONDS` | Delay in seconds before each LLM request. Default `1.0`. Increase if you get 429 rate limit errors. | No |
 | `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max characters from `system_context/` injected per request. Default `12000`. | No |
 | `LLM_USER_CONTEXT_MAX_CHARS` | Max characters for the formatted user context block. Default `2500`. | No |
@@ -80,7 +83,16 @@ LLM_PROVIDER=codex
 # CODEX_MODEL=o3
 ```
 
-> `claude_code` and `codex` providers use structured JSON adapters to emit backend tool calls into the existing frontend tool pipeline. Behavior can vary if CLI output contracts change between versions.
+**Gemini CLI (`gemini login`):**
+
+```bash
+LLM_PROVIDER=gemini_cli
+# Optional
+# GEMINI_CLI_COMMAND=gemini
+# GEMINI_CLI_MODEL=auto
+```
+
+> `claude_code`, `codex`, and `gemini_cli` providers use structured JSON adapters to emit backend tool calls into the existing frontend tool pipeline. Behavior can vary if CLI output contracts change between versions.
 
 **OpenAI:**
 

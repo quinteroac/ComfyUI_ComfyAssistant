@@ -7,66 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+- Official ComfyUI Manager installation support.
+- Multi-provider UI for managing LLM configurations.
+- Enhanced security and sandboxing for third-party node content.
+- Internationalization (i18n) for AI responses.
+
+## [0.2.0] - 2026-02-12
+
 ### Added
-- Agentic tools system with 4 core tools (addNode, removeNode, connectNodes, getWorkflowInfo)
-- Complete `.agents/` documentation structure with 7 skills
-- `project-context.md` for comprehensive project overview
-- `conventions.md` with security-first development standards
-- Documentation maintenance protocol in conventions
-- Automated pre-commit checks with husky
-- ComfyAPI helper class for simplified ComfyUI interactions
-- Tool execution with frontend-based approach
-- Structured tool definitions with Zod validation
-- Tool implementations with comprehensive error handling
+- **Research Tools (Phase 8)**:
+  - `webSearch`: Search the web via SearXNG or DuckDuckGo.
+  - `fetchWebContent`: Extract content and workflows from URLs.
+  - `searchNodeRegistry`: Discover custom nodes on comfyregistry.org.
+  - `getExampleWorkflow`: Access library of curated example workflows.
+- **Slash Commands & Session Management (Phase 5b)**:
+  - New commands: `/help`, `/clear`, `/compact`, `/new`, `/rename`, `/session`, `/sessions`, `/skill`.
+  - Inline autocomplete for slash commands.
+  - Named sessions and persistent thread management.
+- **Terminal UI & Bottom Panel (Phase 5a)**:
+  - New bottom panel integration for the assistant.
+  - Terminal-style aesthetic with monospace fonts and compact layout.
+  - Horizontal thread/session navigation bar.
+- **Workflow Execution (Phase 4)**:
+  - `executeWorkflow`: Run current graph and return real-time results/images.
+  - `applyWorkflowJson`: Load complex API-format workflows in one call.
+  - Real-time execution monitoring and error reporting.
+- **Environment Awareness (Phase 3)**:
+  - `refreshEnvironment`: Rescan nodes, packages, and models.
+  - `searchInstalledNodes`: Smart search for available node types.
+  - `readDocumentation`: Fetch node-specific or general ComfyUI documentation.
+  - `createSkill`: Agent-driven creation of persistent user preferences.
+- **Node Configuration (Phase 2)**:
+  - `setNodeWidgetValue`: Programmatic control over node parameters (steps, cfg, etc.).
+  - `fillPromptNode`: Shorthand for setting CLIPTextEncode values.
 
 ### Changed
-- Migrated from basic template to ComfyUI Assistant implementation
-- Ready to use `useLocalRuntime` for tool execution (currently using `useChatRuntime`)
-- Organized skills documentation in `.agents/` as single source of truth
-
-### Security
-- All tool inputs validated with Zod schemas
-- XSS prevention through React and markdown library sanitization
-- API keys stored in `.env` files (excluded from git)
-- Structured error handling prevents information leakage
-- Access control checks before tool execution
-
-### Documentation
-- Comprehensive tool system documentation in `.agents/skills/tools/`
-- Architecture diagrams and design patterns
-- Implementation guides with examples
-- Backend integration guide for function calling
-- Tool definition best practices
+- Reorganized system prompt assembly into modular components (`agent_prompts.py`).
+- Extracted API handlers to a dedicated module (`api_handlers.py`).
+- Improved tool execution flow with direct `window.app` access in the frontend.
 
 ## [0.1.0] - 2024-02-06
 
 ### Added
-- Initial project setup based on ComfyUI React Extension Template
-- React 18.2.0 + TypeScript 5.4.2 frontend with Vite
-- Assistant-ui/react 0.12.9 integration for chat interface
-- OpenAI-compatible provider API backend for LLM inference
-- Server-Sent Events (SSE) streaming implementation
-- i18n support with i18next (English + Chinese)
-- Jest testing setup with React Testing Library
-- ESLint + Prettier configuration
-- Tailwind CSS 4.1.18 for styling
-- Zustand 5.0.11 for state management
-- Thread list and thread management UI components
-- Markdown rendering with syntax highlighting
-- Reasoning block support (`<think>` tags parsing)
-- ComfyUI sidebar tab integration
-- Static file serving for React app assets
-- Locale files routing
-
-### Configuration
-- TypeScript strict mode enabled
-- ESLint with React, TypeScript, and Prettier plugins
-- Prettier with import sorting
-- Jest with jsdom environment
-- Vite with React plugin
-
-### Infrastructure
-- Python backend with aiohttp
-- ComfyUI extension registration system
-- Environment variable management with python-dotenv
-- OpenAI-compatible client for OpenAI-compatible provider API
+- Initial project setup and architecture.
+- Assistant-ui/react integration with SSE streaming.
+- Core graph tools: `addNode`, `removeNode`, `connectNodes`, `getWorkflowInfo`.
+- User context system: SQLite store for rules, preferences, and onboarding.
+- Manual skills support via `user_context/skills/`.
+- OpenAI-compatible provider backend for LLM inference.
+- Basic i18n and testing boilerplate.
