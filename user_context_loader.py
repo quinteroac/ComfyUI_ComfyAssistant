@@ -59,7 +59,10 @@ def load_system_context(system_context_dir: str) -> str:
     """
     Load system context from a directory of .md files (e.g. system_context/).
     Load order: (1) top-level .md files in sorted order, (2) skills/*.md in sorted order.
-    Skips README.md. Returns the combined string for the base system prompt; empty if dir missing or no .md files.
+    Skips README.md. All skills are included (including model-specific ones);
+    smart truncation compresses later sections to headers when over budget,
+    so model skills appear as a lightweight index the LLM can reference.
+    Returns the combined string for the base system prompt; empty if dir missing or no .md files.
     """
     if not os.path.isdir(system_context_dir):
         return ""
@@ -78,8 +81,6 @@ def load_system_context(system_context_dir: str) -> str:
     skills_dir = os.path.join(system_context_dir, "skills")
     if os.path.isdir(skills_dir):
         for name in sorted(os.listdir(skills_dir)):
-            if "model_" in name:
-                continue
             skill_dir = os.path.join(skills_dir, name)
             if not os.path.isdir(skill_dir):
                 continue

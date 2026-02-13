@@ -6,7 +6,7 @@ import type { ToolContext, ToolResult } from '../types'
  */
 interface WidgetInfo {
   name: string
-  type: string
+  type?: string
   value: unknown
   options?: string[]
 }
@@ -17,9 +17,9 @@ interface WidgetInfo {
 interface NodeInfo {
   id: string | number
   type: string
-  position: [number, number]
-  size?: [number, number]
   title?: string
+  position?: [number, number]
+  size?: [number, number]
   widgets?: WidgetInfo[]
 }
 
@@ -29,8 +29,10 @@ interface NodeInfo {
 interface ConnectionInfo {
   sourceNodeId: string | number
   sourceSlot: number
+  sourceSlotName?: string
   targetNodeId: string | number
   targetSlot: number
+  targetSlotName?: string
 }
 
 /**
@@ -44,7 +46,11 @@ interface WorkflowInfo {
 }
 
 /**
- * Implementation of the tool for getting workflow information
+ * Implementation of the tool for getting workflow information.
+ *
+ * Returns a compact representation by default (no layout, no widget options).
+ * Use includeLayout=true for position/size, includeWidgetOptions=true for
+ * combo option lists, and includeNodeDetails=true for widget names+values.
  */
 export async function executeGetWorkflowInfo(
   params: GetWorkflowInfoParams,
@@ -62,17 +68,25 @@ export async function executeGetWorkflowInfo(
   try {
     const nodes: NodeInfo[] = []
     const connections: ConnectionInfo[] = []
+    const includeLayout = params.includeLayout ?? false
+    const includeWidgetOptions = params.includeWidgetOptions ?? false
 
     // Collect node information
     for (const node of app.graph._nodes) {
       const nodeInfo: NodeInfo = {
         id: node.id,
-        type: node.type,
-        position: node.pos as [number, number]
+        type: node.type
+      }
+
+      // Layout info is opt-in (rarely needed for reasoning)
+      if (includeLayout) {
+        nodeInfo.position = node.pos as [number, number]
       }
 
       if (params.includeNodeDetails) {
-        nodeInfo.size = node.size as [number, number]
+        if (includeLayout) {
+          nodeInfo.size = node.size as [number, number]
+        }
         nodeInfo.title = node.title
 
         // Populate widget info (filter out non-configurable widgets like buttons)
@@ -82,13 +96,16 @@ export async function executeGetWorkflowInfo(
             if (widget.type === 'button') continue
             const info: WidgetInfo = {
               name: widget.name,
-              type: widget.type,
               value: widget.value
             }
-            // Expose available options for combo/dropdown widgets
-            const opts = (widget as any).options?.values
-            if (widget.type === 'combo' && Array.isArray(opts)) {
-              info.options = opts
+            // Include widget type only when options are requested (gives context)
+            if (includeWidgetOptions) {
+              info.type = widget.type
+              // Expose available options for combo/dropdown widgets
+              const opts = (widget as any).options?.values
+              if (widget.type === 'combo' && Array.isArray(opts)) {
+                info.options = opts
+              }
             }
             widgets.push(info)
           }
@@ -100,7 +117,7 @@ export async function executeGetWorkflowInfo(
 
       nodes.push(nodeInfo)
 
-      // Collect connections (outputs)
+      // Collect connections (outputs) with slot names for better reasoning
       if (node.outputs) {
         for (let i = 0; i < node.outputs.length; i++) {
           const output = node.outputs[i]
@@ -108,12 +125,22 @@ export async function executeGetWorkflowInfo(
             for (const linkId of output.links) {
               const link = app.graph.links[linkId]
               if (link) {
-                connections.push({
+                const connInfo: ConnectionInfo = {
                   sourceNodeId: node.id,
                   sourceSlot: i,
                   targetNodeId: link.target_id,
                   targetSlot: link.target_slot
-                })
+                }
+                // Add slot names for better LLM reasoning
+                if (output.name) {
+                  connInfo.sourceSlotName = output.name
+                }
+                const targetNode = app.graph.getNodeById(link.target_id)
+                if (targetNode?.inputs?.[link.target_slot]?.name) {
+                  connInfo.targetSlotName =
+                    targetNode.inputs[link.target_slot].name
+                }
+                connections.push(connInfo)
               }
             }
           }
@@ -121,19 +148,23 @@ export async function executeGetWorkflowInfo(
       }
     }
 
+    const result: WorkflowInfo = {
+      nodeCount: nodes.length,
+      nodes,
+      connections
+    }
+
+    // Canvas size is layout info — only include when requested
+    if (includeLayout && app.canvas) {
+      result.canvasSize = {
+        width: app.canvas.canvas.width,
+        height: app.canvas.canvas.height
+      }
+    }
+
     return {
       success: true,
-      data: {
-        nodeCount: nodes.length,
-        nodes,
-        connections,
-        canvasSize: app.canvas
-          ? {
-              width: app.canvas.canvas.width,
-              height: app.canvas.canvas.height
-            }
-          : undefined
-      }
+      data: result
     }
   } catch (error) {
     return {
