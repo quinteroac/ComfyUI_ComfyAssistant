@@ -16,6 +16,7 @@ dist/
 .cursor/
 .claude/
 .vscode/
+project.kdl
 
 # Keep .agents/ (main skills directory)
 !.agents/
