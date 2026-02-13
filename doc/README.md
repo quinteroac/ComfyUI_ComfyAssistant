@@ -11,7 +11,7 @@ This folder contains user-facing documentation for the ComfyUI Assistant extensi
 | [Slash commands](commands.md) | Local commands for session management and quick actions |
 | [User skills](skills.md) | What skills are, how to add and edit them, and how the assistant uses them |
 | [Base tools](base-tools.md) | Tools the assistant can use (add/remove/connect nodes, configure widgets, prompts) and how to ask in natural language |
-| [Roadmap](roadmap.md) | Development phases: what is done (0–2) and what is planned (3–5) |
+| [Roadmap](roadmap.md) | Development phases: what is done (0–4, 5a, 5b, 8) and what is planned (5) |
 
 ### Developer documentation ([dev_docs/](dev_docs/README.md))
 

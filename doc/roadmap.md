@@ -11,7 +11,10 @@ This document summarizes the development roadmap for ComfyUI Assistant. The proj
 | **2** | Done     | Node configuration and prompts |
 | **3** | Done     | Environment awareness, search, create_skill |
 | **4** | Done     | Workflow execution and complex workflows |
-| **5** | Planned  | Polish and non-functional requirements |
+| **5a** | Done     | Bottom panel + terminal UI |
+| **5b** | Done     | Slash commands, named sessions |
+| **5** | Planned  | Polish (Manager, multi-provider UI, i18n, security) |
+| **8** | Done     | Research tools (web search, fetch, registry, examples) |
 
 ---
 
@@ -94,6 +97,50 @@ See [Phase 4 implementation notes](../development/phase_4/implemented.md).
 
 ---
 
+## Phase 5a — Bottom panel + terminal UI — Done
+
+**Goal:** Move the assistant to the bottom panel with a terminal-style aesthetic.
+
+**Delivered:**
+
+- **Layout:** Replaced sidebar tab with bottom panel tab registration.
+- **Terminal UI:** Monospace font, flat blocks, compact spacing, `›` / `•` prefixes, reasoning blocks as collapsible `[thinking...]`.
+- **Thread list:** Horizontal tab bar; sessions managed via slash commands (see Phase 5b).
+
+See [Phase 5a implementation notes](../development/phase_5a/implemented.md).
+
+---
+
+## Phase 5b — Slash commands and named sessions — Done
+
+**Goal:** Local slash commands for session management and quick actions.
+
+**Delivered:**
+
+- **Slash commands:** `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`, `/skill <name>` (backend-handled).
+- **Inline autocomplete:** When typing `/`, suggestions appear with command name and description.
+- **Named sessions:** Rename via `/rename` or thread tab dropdown.
+
+See [Phase 5b implementation notes](../development/phase_5b/implemented.md) and [Slash commands](commands.md).
+
+---
+
+## Phase 8 — Research tools — Done
+
+**Goal:** Enable the assistant to search the web, fetch URL content, and discover custom node packages and example workflows.
+
+**Delivered:**
+
+- **webSearch** — Search the web for ComfyUI resources, tutorials, workflows (SearXNG or DuckDuckGo).
+- **fetchWebContent** — Fetch and extract content from a URL; detect embedded workflows.
+- **searchNodeRegistry** — Search the ComfyUI Registry for custom node packages.
+- **getExampleWorkflow** — Fetch example workflows extracted from ComfyUI_examples by category.
+- **API endpoints:** `/api/research/search`, `/api/research/fetch`, `/api/research/registry`, `/api/research/examples`.
+
+See [Phase 8 implementation notes](../development/phase_8/implemented.md).
+
+---
+
 ## Phase 5 — Polish and non-functional requirements — Planned
 
 **Goal:** Harden installability, configurability, security, and usability.
@@ -114,7 +161,8 @@ See [Phase 4 implementation notes](../development/phase_4/implemented.md).
 ## Order and dependencies
 
 - **Phases 1 → 2 → 3 → 4** are sequential: each builds on the previous.
-- **Phase 5** can be started in parallel (e.g. Manager metadata, i18n) and finalized after Phase 4.
+- **Phase 5a, 5b** (UI polish, slash commands) are done; **Phase 5** (Manager, multi-provider UI, i18n, security) is planned.
+- **Phase 8** (research tools) is independent and done.
 
 Each phase is designed to be **shippable** on its own (e.g. “Phase 1 release” = MVP + user context and manual skills).
 
@@ -122,5 +170,5 @@ Each phase is designed to be **shippable** on its own (e.g. “Phase 1 release�
 
 ## More detail
 
-- Implementation notes for completed phases: [development/](../development/) (e.g. `phase_0/implemented.md`, `phase_1/implemented.md`, `phase_2/implemented.md`, `phase_3/implemented.md`).
+- Implementation notes for completed phases: [development/](../development/) (e.g. `phase_0/implemented.md`, `phase_3/implemented.md`, `phase_4/implemented.md`, `phase_5a/implemented.md`, `phase_5b/implemented.md`, `phase_8/implemented.md`).
 - Full phase definitions and success criteria: [planning/comfyui_assistant_development_phases.md](../planning/comfyui_assistant_development_phases.md).

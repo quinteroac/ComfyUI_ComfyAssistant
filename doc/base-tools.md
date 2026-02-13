@@ -21,8 +21,18 @@ This page describes what the assistant can do (the "base tools") and how you can
 | **createSkill** | Create a persistent user skill (remembered instruction or preference) that the assistant will follow in future conversations. |
 | **deleteSkill** | Delete a user skill by its slug (e.g. when the user says "forget that" or "remove that preference"). |
 | **updateSkill** | Update an existing skill's name, description, or instructions by slug. |
+| **getUserSkill** | Fetch a user skill's full instructions by slug (on demand; used when the user refers to a skill). |
+| **listUserSkills** | List all user skills with name, description, and slug. |
+| **listSystemSkills** | List model-specific system skills (e.g. Flux, SDXL) available on demand. |
+| **getSystemSkill** | Fetch a model-specific system skill's instructions by slug (on demand). |
+| **executeWorkflow** | Queue the current workflow and wait for completion; returns status and output summary (images, errors, timing). |
+| **applyWorkflowJson** | Load a complete API-format workflow, replacing the current graph. |
+| **getExampleWorkflow** | Fetch example workflows extracted from ComfyUI_examples by category. |
+| **webSearch** | Search the web for ComfyUI resources, tutorials, workflows. |
+| **fetchWebContent** | Fetch and extract content from a URL; can detect embedded workflows. |
+| **searchNodeRegistry** | Search the ComfyUI Registry for custom node packages. |
 
-The assistant uses **getWorkflowInfo** first when it needs to see the current workflow (e.g. to find node IDs before connecting or changing settings). It then uses **addNode**, **connectNodes**, **setNodeWidgetValue**, and **fillPromptNode** to build or modify the graph.
+The assistant uses **getWorkflowInfo** first when it needs to see the current workflow (e.g. to find node IDs before connecting or changing settings). It then uses **addNode**, **connectNodes**, **setNodeWidgetValue**, and **fillPromptNode** to build or modify the graph. **executeWorkflow** runs the queue; **applyWorkflowJson** loads a full workflow from JSON. **getUserSkill**, **listUserSkills**, **listSystemSkills**, and **getSystemSkill** load skills on demand when you refer to them. Research tools (**webSearch**, **fetchWebContent**, **searchNodeRegistry**, **getExampleWorkflow**) help discover resources and workflows.
 
 ---
 
@@ -103,7 +113,24 @@ The assistant will use **createSkill** to save the preference. It will be applie
 - "Remove the skill about 30 steps"
 - "Update my 'Use Preview Image' skill to say 'Use Preview Image for all outputs'"
 
-The assistant will use **deleteSkill** (with the skill's slug) to remove it, or **updateSkill** to change name, description, or instructions. To know the slug, the assistant may need to reason from the skill name (e.g. "Use Preview Image" → slug `use-preview-image`) or list skills if needed.
+The assistant will use **deleteSkill** (with the skill's slug) to remove it, or **updateSkill** to change name, description, or instructions. To know the slug, the assistant may need to reason from the skill name (e.g. "Use Preview Image" → slug `use-preview-image`) or use **listUserSkills** if needed.
+
+### Executing and loading workflows
+
+- "Run the workflow"
+- "Execute the queue"
+- "Load this workflow: [paste JSON]"
+
+The assistant uses **executeWorkflow** to queue and run the current graph, or **applyWorkflowJson** to load a complete workflow from API-format JSON.
+
+### Research and discovery
+
+- "Search for ComfyUI upscale workflows"
+- "Fetch the content from this URL: ..."
+- "What custom nodes are in the Registry for control net?"
+- "Give me an example txt2img workflow"
+
+The assistant uses **webSearch**, **fetchWebContent**, **searchNodeRegistry**, and **getExampleWorkflow** to find resources, tutorials, and example workflows.
 
 ---
 
@@ -118,9 +145,8 @@ The assistant will use **deleteSkill** (with the skill's slug) to remove it, or 
 
 ## Limits
 
-- **No workflow execution**: The assistant cannot run the queue or execute the workflow; it only edits the graph and widget values.
-- **No loading/saving .json**: The assistant cannot load or save workflow files (planned for a future phase).
-- **Tools run in the browser**: They only see what ComfyUI exposes via its frontend API (`window.app`). Custom nodes are supported as long as they are registered in your ComfyUI instance.
+- **Tools run in the browser** (graph tools): They only see what ComfyUI exposes via its frontend API (`window.app`). Custom nodes are supported as long as they are registered in your ComfyUI instance.
+- **Workflow execution** is supported via **executeWorkflow** (queue and wait) and **applyWorkflowJson** (load full workflow from API-format JSON).
 
 ---
 

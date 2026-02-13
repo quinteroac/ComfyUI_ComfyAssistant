@@ -39,6 +39,7 @@ Edit `.env` with your preferred editor. **Do not commit `.env`** — it is liste
 | `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request. Default `24`. | No |
 | `LLM_TOOL_RESULT_KEEP_LAST_ROUNDS` | Number of "rounds" of tool results to keep in full (default: `2`). Older rounds get a short placeholder to reduce context size. | No |
 | `COMFY_ASSISTANT_LOG_LEVEL` | Backend log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Default `INFO`. | No |
+| `COMFY_ASSISTANT_DEBUG_CONTEXT` | When `1`, every `/api/chat` response includes context pipeline debug metrics (X-ComfyAssistant-Context-Debug header, context-debug SSE event). Also available per-request via `?debug=context`. Default `0`. | No |
 
 ### 3. Example configurations
 

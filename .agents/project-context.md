@@ -187,6 +187,10 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - `createSkill`: Create a persistent user skill from a remembered instruction (Phase 3)
 - `deleteSkill`: Delete a user skill by slug (Phase 3)
 - `updateSkill`: Update a user skill by slug — name, description, or instructions (Phase 3)
+- `getUserSkill`: Fetch a user skill's full instructions by slug (on demand)
+- `listUserSkills`: List all user skills with name, description, and slug
+- `listSystemSkills`: List model-specific system skills (e.g. Flux, SDXL) available on demand
+- `getSystemSkill`: Fetch a model-specific system skill's instructions by slug (on demand)
 - `executeWorkflow`: Queue the current workflow, wait for completion, return status + outputs (Phase 4)
 - `applyWorkflowJson`: Load a complete API-format workflow, replacing the current graph (Phase 4)
 - `getExampleWorkflow`: Fetch example workflows extracted from ComfyUI_examples by category (Phase 8)
@@ -210,7 +214,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 ### 3. ComfyUI Integration
 
 - Bottom panel tab for chat interface (terminal-style UI, Phase 5a)
-- **Slash commands** (Phase 5b): `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`; inline autocomplete when typing `/`
+- **Slash commands** (Phase 5b): `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`, `/skill <name>` (backend-handled); inline autocomplete when typing `/`
 - Named sessions via `/rename` or Rename option in thread tab dropdown
 - Direct access to ComfyUI graph via `window.app`
 - Canvas manipulation (add/remove/connect nodes)
@@ -274,6 +278,7 @@ CODEX_COMMAND=codex                  # Optional: codex CLI executable
 CODEX_MODEL=o3                       # Optional: codex model alias
 CLI_PROVIDER_TIMEOUT_SECONDS=180     # Optional: timeout for CLI provider subprocesses
 SEARXNG_URL=http://localhost:8080  # Optional: SearXNG instance for web search (Phase 8)
+COMFY_ASSISTANT_DEBUG_CONTEXT=0    # Optional: when "1", emit context pipeline debug metrics (X-ComfyAssistant-Context-Debug header, context-debug SSE event)
 ```
 OpenAI-compatible providers use `OPENAI_*`. Anthropic provider uses `ANTHROPIC_API_KEY`.
 `claude_code` and `codex` providers use local authenticated CLI executables.

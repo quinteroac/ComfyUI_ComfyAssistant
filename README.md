@@ -24,7 +24,7 @@ In the assistant tab you can type for example:
 
 - **AI chat**: React interface (assistant-ui) with streaming, history, markdown, and reasoning blocks.
 - **Tool calling**: The model uses tools that run in the browser (graph) or via the backend (environment, docs). Tools can add/remove/connect nodes, set widgets, search installed nodes, get models, read docs, manage user skills, and run or load workflows.
-- **Slash commands**: `/help`, `/clear`, `/compact`, `/new`, `/rename`, `/session`, `/sessions` for session management (see [doc/commands.md](doc/commands.md)).
+- **Slash commands**: `/help`, `/clear`, `/compact`, `/new`, `/rename`, `/session`, `/sessions`, `/skill <name>` for session management and skill activation (see [doc/commands.md](doc/commands.md)).
 - **Configurable provider**: OpenAI-compatible, Anthropic API, Claude Code CLI, or Codex CLI.
 - **Rate limit control**: Configurable delay between LLM requests (`LLM_REQUEST_DELAY_SECONDS`) to avoid 429 errors.
 - **Context system**: Base prompts in `system_context/`, user workspace in `user_context/` (SOUL, goals, user skills). Environment summary (nodes, models, packages) is injected when available.
@@ -87,6 +87,8 @@ Main variables:
 | `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max chars from `system_context/` injected per request (default `12000`). |
 | `LLM_USER_CONTEXT_MAX_CHARS` | Max chars for user context block (default `2500`). |
 | `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request (default `24`). |
+| `LLM_TOOL_RESULT_KEEP_LAST_ROUNDS` | Number of tool-call rounds whose results are kept in full (default `2`). Older rounds get a placeholder. |
+| `COMFY_ASSISTANT_DEBUG_CONTEXT` | When `1`, emit context pipeline debug metrics (X-ComfyAssistant-Context-Debug header, context-debug SSE event). |
 
 After changing `.env`, restart ComfyUI.
 
