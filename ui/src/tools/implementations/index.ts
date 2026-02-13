@@ -1,27 +1,25 @@
-/**
- * Barrel export for all tool implementations
- */
-
-export * from './add-node'
-export * from './remove-node'
-export * from './get-workflow-info'
-export * from './connect-nodes'
-export * from './set-node-widget-value'
-export * from './fill-prompt-node'
-export * from './create-skill'
-export * from './delete-skill'
-export * from './get-user-skill'
-export * from './get-system-skill'
-export * from './list-user-skills'
-export * from './list-system-skills'
-export * from './update-skill'
-export * from './refresh-environment'
-export * from './search-installed-nodes'
-export * from './read-documentation'
-export * from './get-available-models'
-export * from './execute-workflow'
-export * from './apply-workflow-json'
-export * from './get-example-workflow'
-export * from './web-search'
-export * from './fetch-web-content'
-export * from './search-node-registry'
+export * from "./add-node";
+export * from "./remove-node";
+export * from "./connect-nodes";
+export * from "./get-workflow-info";
+export * from "./set-node-widget-value";
+export * from "./fill-prompt-node";
+export * from "./create-skill";
+export * from "./delete-skill";
+export * from "./update-skill";
+export * from "./get-user-skill";
+export * from "./list-user-skills";
+export * from "./list-system-skills";
+export * from "./get-system-skill";
+export * from "./refresh-environment";
+export * from "./search-installed-nodes";
+export * from "./read-documentation";
+export * from "./get-available-models";
+export * from "./execute-workflow";
+export * from "./apply-workflow-json";
+export * from "./get-example-workflow";
+export * from "./web-search";
+export * from "./fetch-web-content";
+export * from "./search-node-registry";
+export { searchTemplates as executeSearchTemplates } from "./searchTemplates";
+export { applyTemplate as executeApplyTemplate } from "./applyTemplate";

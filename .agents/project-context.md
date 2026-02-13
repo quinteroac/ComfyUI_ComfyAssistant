@@ -66,14 +66,23 @@ This extension enables users to:
 ```
 ComfyUI_ComfyAssistant/
 ├── .agents/                    # Agent skills and documentation
-│   └── skills/                 # 8 skill modules
-│       ├── assistant-ui/       # assistant-ui architecture
-│       ├── primitives/         # UI primitives
-│       ├── runtime/            # Runtime patterns
-│       ├── setup/              # Setup guides
-│       ├── streaming/          # Streaming protocols
-│       ├── thread-list/        # Thread management
-│       └── tools/              # Agentic tools system ⭐
+│   ├── skills/                 # 15 skill modules
+│   │   ├── assistant-ui/       # assistant-ui architecture
+│   │   ├── primitives/         # UI primitives
+│   │   ├── runtime/            # Runtime patterns
+│   │   ├── setup/              # Setup guides
+│   │   ├── streaming/          # Streaming protocols
+│   │   ├── thread-list/        # Thread management
+│   │   ├── tools/              # Agentic tools system ⭐
+│   │   ├── architecture-overview/
+│   │   ├── backend-architecture/
+│   │   ├── backend-tools-declaration/
+│   │   ├── documentation/
+│   │   ├── environment-and-models/
+│   │   ├── patterns-and-conventions/
+│   │   ├── system-and-user-context/
+│   │   └── ui-integration/
+│   └── *.md                    # Agent investigation or one-off notes (e.g. investigation-tool-order.md)
 │
 ├── system_context/             # Base system prompt (read-only; top-level .md then skills/*/SKILL.md)
 │   ├── 01_role.md
@@ -83,7 +92,11 @@ ComfyUI_ComfyAssistant/
 │   │   ├── 03_node_reference/SKILL.md
 │   │   ├── 04_environment_tools/SKILL.md
 │   │   ├── 05_workflow_execution/SKILL.md
-│   │   └── 06_research_tools/SKILL.md
+│   │   ├── 06_research_tools/SKILL.md
+│   │   ├── 07_workflow_guardrails/SKILL.md
+│   │   ├── 08_comfyui_examples_source/SKILL.md
+│   │   ├── 09_template_library/SKILL.md
+│   │   └── 17_model_loading_rules/SKILL.md
 │   └── README.md
 │
 ├── user_context/               # User workspace; writable by backend only
@@ -95,8 +108,9 @@ ComfyUI_ComfyAssistant/
 │   │   ├── custom_nodes.json   # Custom node packages
 │   │   ├── models.json         # Available models by category
 │   │   └── summary.json        # Brief summary for prompt injection
-│   └── skills/                 # One dir per user skill (SKILL.md with YAML frontmatter)
-│       └── <slug>/SKILL.md     # e.g. use-preview-image/SKILL.md
+│   ├── skills/                 # One dir per user skill (SKILL.md with YAML frontmatter)
+│   │   └── <slug>/SKILL.md     # e.g. use-preview-image/SKILL.md
+│   └── logs/                   # Optional: daily JSONL conversation logs (when COMFY_ASSISTANT_ENABLE_LOGS=1)
 │
 ├── ui/                         # React frontend
 │   ├── src/
@@ -123,6 +137,7 @@ ComfyUI_ComfyAssistant/
 ├── environment_scanner.py     # Scan installed nodes, packages, models (Phase 3)
 ├── skill_manager.py           # Create/list/delete user skills (Phase 3)
 ├── documentation_resolver.py  # Resolve docs for node types and topics (Phase 3)
+├── conversation_logger.py     # Conversation logging to user_context/logs/ (optional)
 ├── api_handlers.py            # Extracted API endpoint handlers (Phase 3 + Phase 8)
 ├── web_search.py              # Web search provider abstraction (Phase 8)
 ├── web_content.py             # URL content extraction (Phase 8)
@@ -197,6 +212,8 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - `webSearch`: Search the web for ComfyUI resources, tutorials, workflows (Phase 8)
 - `fetchWebContent`: Fetch and extract content from a URL, detect embedded workflows (Phase 8)
 - `searchNodeRegistry`: Search the ComfyUI Registry for custom node packages (Phase 8)
+- `searchTemplates`: Search official and community workflow templates by title, description, or category (e.g. wan, flux). Use to find a starting point for complex workflows.
+- `applyTemplate`: Download and apply a selected workflow template to the canvas. Replaces the current graph.
 
 **Architecture:**
 - Tools defined with Zod schemas (frontend)
@@ -281,8 +298,16 @@ GEMINI_CLI_MODEL=auto                # Optional: gemini model name
 CLI_PROVIDER_TIMEOUT_SECONDS=180     # Optional: timeout for CLI provider subprocesses
 SEARXNG_URL=http://localhost:8080  # Optional: SearXNG instance for web search (Phase 8)
 COMFY_ASSISTANT_DEBUG_CONTEXT=0    # Optional: when "1", emit context pipeline debug metrics (X-ComfyAssistant-Context-Debug header, context-debug SSE event)
+COMFY_ASSISTANT_LOG_LEVEL=INFO           # Optional: DEBUG, INFO, WARNING, ERROR. Default: INFO
+COMFY_ASSISTANT_ENABLE_LOGS=0             # Optional: when "1", save conversation logs to user_context/logs/
+LLM_REQUEST_DELAY_SECONDS=1.0             # Optional: delay before each LLM request (avoid 429)
+LLM_SYSTEM_CONTEXT_MAX_CHARS=12000       # Optional: max chars from system_context per request
+LLM_USER_CONTEXT_MAX_CHARS=2500          # Optional: max chars for user context block
+LLM_HISTORY_MAX_MESSAGES=24              # Optional: max non-system messages per request
+LLM_TOOL_RESULT_KEEP_LAST_ROUNDS=2        # Optional: full tool-result rounds kept; older get placeholder
 ```
 OpenAI-compatible providers use `OPENAI_*`. Anthropic provider uses `ANTHROPIC_API_KEY`.
+ANTHROPIC_AUTH_TOKEN is for Claude Code CLI only; this backend uses ANTHROPIC_API_KEY.
 `claude_code`, `codex`, and `gemini_cli` providers use local authenticated CLI executables.
 
 **Frontend** (`ui/.env.local`):
@@ -381,14 +406,21 @@ data: [DONE]
 
 The `.agents/` directory contains comprehensive documentation and guides for AI agents working on this project:
 
+- **architecture-overview**: System flow and architecture
 - **assistant-ui**: Architecture and component patterns
-- **documentation**: When and how to update docs (architecture, patterns, features, phases)
+- **backend-architecture**: Python backend, API, SSE
+- **backend-tools-declaration**: Tool definitions and backend declaration
+- **documentation**: When and how to update docs
+- **environment-and-models**: Environment scanning and models
+- **patterns-and-conventions**: Code and convention quick reference
 - **primitives**: UI primitive components usage
 - **runtime**: Runtime patterns and state management
 - **setup**: Setup and configuration guides
 - **streaming**: Streaming protocols and data formats
+- **system-and-user-context**: System prompts and user context
 - **thread-list**: Thread management patterns
-- **tools**: Complete agentic tools system documentation
+- **tools**: Agentic tools system
+- **ui-integration**: ComfyUI extension, panel, slash commands
 
 Each skill includes:
 - `SKILL.md`: Main skill documentation

@@ -31,6 +31,7 @@ import environment_scanner
 import skill_manager
 import documentation_resolver
 import api_handlers
+import conversation_logger
 from tools_definitions import TOOLS
 
 
@@ -121,6 +122,11 @@ LLM_HISTORY_MAX_MESSAGES = _read_int_env(
 LLM_TOOL_RESULT_KEEP_LAST_ROUNDS = _read_int_env(
     "LLM_TOOL_RESULT_KEEP_LAST_ROUNDS", 2
 )
+
+# Enable conversation logging in user_context/logs/
+COMFY_ASSISTANT_ENABLE_LOGS = os.environ.get(
+    "COMFY_ASSISTANT_ENABLE_LOGS", ""
+).strip().lower() in ("1", "true", "yes")
 
 # Debug: emit context-pipeline metrics in logs, headers, and SSE events.
 # Enabled per-request via ?debug=context or always-on via this env var.
@@ -584,20 +590,42 @@ def _ui_messages_to_openai(messages: list) -> list:
             result.append({"role": "user", "content": content})
 
         elif role == "assistant":
-            openai_msg = {"role": "assistant"}
-
-            # Extract text content
-            content = _extract_content(msg)
-            if content:
-                openai_msg["content"] = content
-
-            # Extract tool calls and results from parts (deduplicate by id so
-            # we never send duplicate tool_calls/tool_results to the LLM)
-            tool_calls = []
-            tool_calls_seen: set[str] = set()
-            tool_results = []
-            tool_results_seen: set[str] = set()
             parts = msg.get("parts", [])
+
+            # Fallback: no parts, use plain content string
+            if not parts:
+                content = msg.get("content", "")
+                if isinstance(content, str) and content:
+                    result.append({"role": "assistant", "content": content})
+                continue
+
+            # Split accumulated parts into per-round OpenAI messages.
+            # A new round starts when a text part appears after tool
+            # invocations in the current round.
+            tool_calls_seen: set[str] = set()
+            tool_results_seen: set[str] = set()
+
+            round_text = ""
+            round_tool_calls: list[dict] = []
+            round_tool_results: list[dict] = []
+            round_has_tools = False  # True once we've seen a tool in this round
+
+            def _flush_round() -> None:
+                """Emit the current round's assistant + tool messages."""
+                nonlocal round_text, round_tool_calls, round_tool_results, round_has_tools
+                openai_msg: dict = {"role": "assistant"}
+                if round_text:
+                    openai_msg["content"] = round_text
+                if round_tool_calls:
+                    openai_msg["tool_calls"] = round_tool_calls
+                if "content" in openai_msg or "tool_calls" in openai_msg:
+                    result.append(openai_msg)
+                result.extend(round_tool_results)
+                # Reset for next round
+                round_text = ""
+                round_tool_calls = []
+                round_tool_results = []
+                round_has_tools = False
 
             for part in parts:
                 if not isinstance(part, dict):
@@ -605,17 +633,23 @@ def _ui_messages_to_openai(messages: list) -> list:
 
                 part_type = part.get("type", "")
 
-                # AI SDK v6 format: type starts with 'tool-' or is 'dynamic-tool'
-                if _is_tool_ui_part(part):
+                if part_type == "text":
+                    text = part.get("text", "")
+                    if text:
+                        # New text after tool invocations → close current round
+                        if round_has_tools:
+                            _flush_round()
+                        round_text += text
+
+                elif _is_tool_ui_part(part):
                     tool_name = _get_tool_name(part)
                     tool_call_id = part.get("toolCallId", "")
                     state = part.get("state", "")
                     args = part.get("input", {})
 
-                    # Add tool call only once per id
                     if tool_call_id and tool_call_id not in tool_calls_seen:
                         tool_calls_seen.add(tool_call_id)
-                        tool_calls.append({
+                        round_tool_calls.append({
                             "id": tool_call_id,
                             "type": "function",
                             "function": {
@@ -624,11 +658,10 @@ def _ui_messages_to_openai(messages: list) -> list:
                             }
                         })
 
-                    # If the tool has completed, add a tool result message (once per id)
                     if state == "output-available" and "output" in part:
                         if tool_call_id and tool_call_id not in tool_results_seen:
                             tool_results_seen.add(tool_call_id)
-                            tool_results.append({
+                            round_tool_results.append({
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps(part.get("output", {}))
@@ -636,7 +669,7 @@ def _ui_messages_to_openai(messages: list) -> list:
                     elif state == "output-error":
                         if tool_call_id and tool_call_id not in tool_results_seen:
                             tool_results_seen.add(tool_call_id)
-                            tool_results.append({
+                            round_tool_results.append({
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps({
@@ -644,12 +677,14 @@ def _ui_messages_to_openai(messages: list) -> list:
                                 })
                             })
 
+                    round_has_tools = True
+
                 # Legacy format: type == 'tool-call'
                 elif part_type == "tool-call":
                     tid = part.get("toolCallId", "")
                     if tid and tid not in tool_calls_seen:
                         tool_calls_seen.add(tid)
-                        tool_calls.append({
+                        round_tool_calls.append({
                             "id": tid,
                             "type": "function",
                             "function": {
@@ -657,17 +692,10 @@ def _ui_messages_to_openai(messages: list) -> list:
                                 "arguments": json.dumps(part.get("args", {}))
                             }
                         })
+                    round_has_tools = True
 
-            if tool_calls:
-                openai_msg["tool_calls"] = tool_calls
-
-            # Only add message if it has content or tool_calls
-            if "content" in openai_msg or "tool_calls" in openai_msg:
-                result.append(openai_msg)
-
-            # Append tool results as separate messages (OpenAI format requires
-            # role='tool' messages after the assistant message with tool_calls)
-            result.extend(tool_results)
+            # Flush the final round
+            _flush_round()
 
         elif role == "tool":
             # Legacy format: separate tool role messages
@@ -1386,17 +1414,32 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     has_system = any(msg.get("role") == "system" for msg in openai_messages)
     has_prior_assistant = any(msg.get("role") == "assistant" for msg in openai_messages)
     metrics["is_first_turn"] = not has_prior_assistant
+
+    # Reload agent_prompts to pick up any changes (useful during development)
+    importlib.reload(agent_prompts)
+    from agent_prompts import get_system_message, get_system_message_continuation
+    import user_context_loader
+
     if not has_system:
+        system_context_text = ""
+        user_context = None
+        environment_summary = ""
+        user_skills_list = []
+        try:
+            user_skills_list = skill_manager.list_skills()
+            environment_summary = user_context_loader.load_environment_summary()
+        except Exception:
+            pass
+
         if has_prior_assistant:
-            openai_messages.insert(0, get_system_message_continuation())
+            openai_messages.insert(0, get_system_message_continuation(
+                user_skills=user_skills_list,
+                environment_summary=environment_summary
+            ))
         else:
-            system_context_text = ""
-            user_context = None
-            environment_summary = ""
             try:
                 system_context_text = user_context_loader.load_system_context(system_context_path)
                 user_context = user_context_loader.load_user_context()
-                environment_summary = user_context_loader.load_environment_summary()
             except Exception:
                 pass
             system_context_text = _smart_truncate_system_context(
@@ -1410,10 +1453,6 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     "Use getWorkflowInfo, addNode, removeNode, connectNodes, setNodeWidgetValue, fillPromptNode when needed. "
                     "Reply in the user's language. For greetings only, reply with text; do not call tools."
                 )
-            try:
-                user_skills_list = skill_manager.list_skills()
-            except Exception:
-                user_skills_list = []
             openai_messages.insert(
                 0,
                 get_system_message(
@@ -2214,10 +2253,56 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         stream_fn = stream_gemini_cli
     else:
         stream_fn = stream_codex
+
+    async def stream_with_logging():
+        if not COMFY_ASSISTANT_ENABLE_LOGS:
+            async for chunk in stream_fn():
+                yield chunk
+            return
+
+        response_text_parts = []
+        response_tool_calls = []
+        thread_id = "default"
+        # Try to find thread_id from last message
+        for msg in reversed(messages):
+            if isinstance(msg, dict) and msg.get("id"):
+                thread_id = msg.get("id")
+                break
+
+        async for chunk in stream_fn():
+            yield chunk
+            
+            # Intercept and accumulate for logging
+            try:
+                line = chunk.decode("utf-8")
+                if line.startswith("data: "):
+                    data = json.loads(line[6:])
+                    if data.get("type") == "text-delta":
+                        response_text_parts.append(data.get("delta", ""))
+                    elif data.get("type") == "tool-input-available":
+                        response_tool_calls.append({
+                            "name": data.get("toolName"),
+                            "input": data.get("input")
+                        })
+            except Exception:
+                pass
+
+        # At the end of the stream, write the log
+        try:
+            full_assistant_reply = "".join(response_text_parts)
+            conversation_logger.log_interaction(
+                thread_id=thread_id,
+                user_message=last_user_text,
+                assistant_response=full_assistant_reply,
+                tool_calls=response_tool_calls
+            )
+        except Exception as log_err:
+            logger.error("[ComfyAssistant] Failed to log interaction: %s", log_err)
+
     resp = web.StreamResponse(status=200, headers=response_headers)
     await resp.prepare(request)
     first_chunk = True
-    async for chunk in stream_fn():
+    async for chunk in stream_with_logging():
         await resp.write(chunk)
         # Emit debug SSE event right after the first event (start)
         if first_chunk and debug_context:

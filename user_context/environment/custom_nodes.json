@@ -185,8 +185,8 @@
     "name": "ComfyUI_ComfyAssistant",
     "has_agents": true,
     "has_readme": true,
-    "description": "A minimal template for creating React/TypeScript frontend extensions for ComfyUI, with complete boilerplate setup including internationalization and unit testing.",
-    "version": "0.1.0"
+    "description": "AI Assistant for ComfyUI with agentic capabilities to interact with workflows.",
+    "version": "0.2.0"
   },
   {
     "name": "ComfyUI_DSS_Wrapper",

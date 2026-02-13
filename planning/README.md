@@ -15,6 +15,7 @@ This directory holds **planning and design documentation** for the project: idea
 
 **Documents in this folder**
 
+- [documentation-update-plan.md](documentation-update-plan.md) — Plan to fix doc-vs-code discrepancies (tools, structure, env vars, API, versions)
 - [comfyui_context_management.md](comfyui_context_management.md) — How the system manages context efficiently (system message, continuation, trimming, on-demand skills)
 - [comfyui_assistant_features.md](comfyui_assistant_features.md) — Product features and audience
 - [comfyui_assistant_design.md](comfyui_assistant_design.md) — Architecture (two agents, .agents/, user context)

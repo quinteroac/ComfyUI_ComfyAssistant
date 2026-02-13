@@ -346,13 +346,13 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "getAvailableModels",
-            "description": "Lists the user's installed model filenames by category (checkpoints, loras, vae, embeddings, etc.). Use when the user asks for model recommendations (e.g. 'what do you recommend for hyperrealistic?', 'which checkpoint for anime?') so you can suggest specific models they have.",
+            "description": "Lists the user's installed model filenames by category (checkpoints, loras, vae, unet, diffusion_models, etc.). IMPORTANT: Modern models like Anima, Flux, or Wan are often in 'diffusion_models' or 'unet' folders, not 'checkpoints'. Use this to verify if the user has a specific model or to make recommendations.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "category": {
                         "type": "string",
-                        "description": "Optional. Filter by category: 'checkpoints', 'loras', 'vae', 'embeddings', etc. If omitted, returns all categories."
+                        "description": "Optional. Filter by category: 'checkpoints', 'loras', 'vae', 'unet', 'diffusion_models', etc. If omitted, returns all categories."
                     }
                 }
             }
@@ -518,6 +518,52 @@ TOOLS = [
                     }
                 },
                 "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "searchTemplates",
+            "description": "Searches for official and community workflow templates by title, description, or category (e.g., 'wan', 'flux', 'anima', 'i2v'). ALWAYS call this tool first before webSearch when the user asks for a workflow for a specific model or task.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Term to search for in template titles or descriptions."
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Optional filter by category (e.g., 'video', 'image', 'generation')."
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "applyTemplate",
+            "description": "Downloads and applies a selected workflow template to the canvas, replacing the current graph. Always searchTemplates first to find the correct id, source, and package.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "The unique identifier or filename of the template."
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": ["official", "custom"],
+                        "description": "The source of the template: 'official' or 'custom'."
+                    },
+                    "package": {
+                        "type": "string",
+                        "description": "Required for 'custom' source: the name of the custom node package providing the template."
+                    }
+                },
+                "required": ["id", "source"]
             }
         }
     },

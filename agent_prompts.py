@@ -15,6 +15,13 @@ SYSTEM_CONTINUATION_CONTENT = (
     "Apply the same rules, tools, and user context as in the initial system message."
 )
 
+WORKFLOW_GUARDRAILS_REMINDER = (
+    "## Workflow guardrails reminder\n\n"
+    "1. If the user mentions a remembered workflow, call `getUserSkill(slug)` before building anything so you can reuse that instruction.\n"
+    "2. Always validate node availability and model filenames with `searchInstalledNodes` and `getAvailableModels` before touching the graph.\n"
+    "3. Default to `applyWorkflowJson` for every complete workflow request; only use `addNode`/`connectNodes` when the user explicitly asks for step-by-step edits."
+)
+
 DEFAULT_USER_CONTEXT_MAX_CHARS = 4000
 DEFAULT_NARRATIVE_MAX_CHARS = 1200
 DEFAULT_MAX_RULES = 12
@@ -250,15 +257,26 @@ def get_system_message(
     }
 
 
-def get_system_message_continuation() -> dict:
+def get_system_message_continuation(
+    user_skills: list[dict] | None = None,
+    environment_summary: str = "",
+) -> dict:
     """
-    Returns a minimal system message for continuation turns.
+    Returns a system message for continuation turns.
 
-    Use this when the conversation already has at least one assistant message:
-    the full context was sent in the first turn, so we only send a short reminder
-    to avoid re-sending the same long context on every request.
+    Includes the user skills index and environment summary to ensure the agent
+    remains aware of available skills and models even in long conversations.
     """
+    parts = [SYSTEM_CONTINUATION_CONTENT, WORKFLOW_GUARDRAILS_REMINDER]
+
+    skills_index = _format_user_skills_index(user_skills or [])
+    if skills_index:
+        parts.append("## Available User Skills\n\n" + skills_index)
+
+    if environment_summary:
+        parts.append("## Installed environment\n\n" + environment_summary)
+
     return {
         "role": "system",
-        "content": SYSTEM_CONTINUATION_CONTENT,
+        "content": "\n\n".join(parts),
     }

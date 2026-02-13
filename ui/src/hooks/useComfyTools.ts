@@ -31,7 +31,9 @@ import {
   searchNodeRegistryDefinition,
   setNodeWidgetValueDefinition,
   updateSkillDefinition,
-  webSearchDefinition
+  webSearchDefinition,
+  searchTemplatesDefinition,
+  applyTemplateDefinition
 } from '@/tools/definitions'
 import {
   executeAddNode,
@@ -56,7 +58,9 @@ import {
   executeSearchNodeRegistry,
   executeSetNodeWidgetValue,
   executeUpdateSkill,
-  executeWebSearch
+  executeWebSearch,
+  executeSearchTemplates,
+  executeApplyTemplate
 } from '@/tools/implementations'
 import type { ToolContext } from '@/tools/types'
 
@@ -295,6 +299,26 @@ export function useComfyTools() {
     parameters: searchNodeRegistryDefinition.parameters,
     execute: async (args) => {
       return executeSearchNodeRegistry(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: searchTemplatesDefinition.name,
+    description: searchTemplatesDefinition.description,
+    parameters: searchTemplatesDefinition.parameters,
+    execute: async (args: any) => {
+      return executeSearchTemplates(args)
+    }
+  })
+
+  useAssistantTool({
+    toolName: applyTemplateDefinition.name,
+    description: applyTemplateDefinition.description,
+    parameters: applyTemplateDefinition.parameters,
+    execute: async (args: any) => {
+      const ctx = getToolContext()
+      if (!ctx) return { success: false, error: 'ComfyUI app is not available' }
+      return executeApplyTemplate(args, ctx)
     }
   })
 }
