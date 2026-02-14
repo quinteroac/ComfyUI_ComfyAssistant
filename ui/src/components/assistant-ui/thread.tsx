@@ -355,11 +355,9 @@ const AssistantMessage: FC = () => {
           •
         </span>
         <div className="aui-assistant-message-content min-w-0 break-words text-[15px] text-foreground leading-relaxed">
-          <MarkdownText />
-
           <MessagePrimitive.Parts
             components={{
-              Text: () => null,
+              Text: MarkdownText,
               Reasoning: (props) => (
                 <details className="aui-reasoning-root" data-part="reasoning">
                   <summary className="aui-reasoning-header">

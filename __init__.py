@@ -300,13 +300,25 @@ def _build_cli_tool_prompt(messages: list[dict]) -> str:
     """Build CLI prompt including tool specs and strict response contract."""
     transcript = _openai_messages_to_cli_prompt(messages)
     tools_json = json.dumps(_cli_tool_specs(), ensure_ascii=False)
+
+    # Check if the last message is a tool result
+    has_recent_tool_results = any(
+        m.get("role") == "tool" for m in messages[-3:] if messages
+    )
+
+    tool_usage_rule = (
+        "- IMPORTANT: If the last messages are [TOOL] results, you MUST respond with text summarizing the results. DO NOT call more tools unless explicitly asked.\n"
+        if has_recent_tool_results else
+        "- If tools are needed, add one or more tool_calls.\n"
+    )
+
     return (
         "You are ComfyUI Assistant backend provider adapter.\n"
         "Decide whether to answer normally or call tools.\n"
         "Return JSON only with this exact shape:\n"
         "{ \"text\": string, \"tool_calls\": [{\"name\": string, \"input_json\": string}] }\n"
         "Rules:\n"
-        "- If tools are needed, add one or more tool_calls.\n"
+        f"{tool_usage_rule}"
         "- If tool_calls is non-empty, keep text brief or empty.\n"
         "- Use only tool names from the provided tool list.\n"
         "- input_json must be a JSON string encoding an object that matches each tool parameter schema.\n\n"
@@ -2054,14 +2066,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             in_tok,
             out_tok,
         )
-        if text:
-            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-            yield _sse_line({
-                "type": "text-delta",
-                "id": text_id,
-                "delta": text,
-            }).encode("utf-8")
-            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+        # Send tool calls; only send text if there are NO tool calls
+        # This ensures auto-resubmit works: tool-invocation is the last part
         for tool_call in tool_calls:
             yield _sse_line({
                 "type": "tool-input-available",
@@ -2069,6 +2075,14 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 "toolName": tool_call["name"],
                 "input": tool_call["input"],
             }).encode("utf-8")
+        if text and not tool_calls:
+            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+            yield _sse_line({
+                "type": "text-delta",
+                "id": text_id,
+                "delta": text,
+            }).encode("utf-8")
+            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
         finish_reason = "tool-calls" if tool_calls else "stop"
         yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
         yield "data: [DONE]\n\n".encode("utf-8")
@@ -2131,14 +2145,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 in_tok,
                 out_tok,
             )
-            if text:
-                yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                yield _sse_line({
-                    "type": "text-delta",
-                    "id": text_id,
-                    "delta": text,
-                }).encode("utf-8")
-                yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+            # Send tool calls; only send text if there are NO tool calls
+            # This ensures auto-resubmit works: tool-invocation is the last part
             for tool_call in tool_calls:
                 yield _sse_line({
                     "type": "tool-input-available",
@@ -2146,6 +2154,14 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     "toolName": tool_call["name"],
                     "input": tool_call["input"],
                 }).encode("utf-8")
+            if text and not tool_calls:
+                yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+                yield _sse_line({
+                    "type": "text-delta",
+                    "id": text_id,
+                    "delta": text,
+                }).encode("utf-8")
+                yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
             finish_reason = "tool-calls" if tool_calls else "stop"
         yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
         yield "data: [DONE]\n\n".encode("utf-8")
@@ -2224,14 +2240,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             in_tok,
             out_tok,
         )
-        if text:
-            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-            yield _sse_line({
-                "type": "text-delta",
-                "id": text_id,
-                "delta": text,
-            }).encode("utf-8")
-            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+        # Send tool calls; only send text if there are NO tool calls
+        # This ensures auto-resubmit works: tool-invocation is the last part
         for tool_call in tool_calls:
             yield _sse_line({
                 "type": "tool-input-available",
@@ -2239,6 +2249,14 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 "toolName": tool_call["name"],
                 "input": tool_call["input"],
             }).encode("utf-8")
+        if text and not tool_calls:
+            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+            yield _sse_line({
+                "type": "text-delta",
+                "id": text_id,
+                "delta": text,
+            }).encode("utf-8")
+            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
         finish_reason = "tool-calls" if tool_calls else "stop"
         yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
         yield "data: [DONE]\n\n".encode("utf-8")

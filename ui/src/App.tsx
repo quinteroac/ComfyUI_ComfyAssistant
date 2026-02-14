@@ -42,18 +42,50 @@ declare global {
  *   [text, tool-invocation(result), text]   ← last part is text → stop
  * vs right after tool execution:
  *   [text, tool-invocation(result)]          ← last part is tool → resubmit
+ *
+ * To prevent infinite loops, we limit auto-resubmit to 3 rounds maximum.
  */
+const MAX_TOOL_ROUNDTRIPS = 3
+let toolRoundtripCount = 0
+
 function shouldResubmitAfterToolResult({
   messages
 }: {
   messages: UIMessage[]
 }): boolean {
-  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false
+  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) {
+    // Reset counter when no tool calls
+    toolRoundtripCount = 0
+    return false
+  }
+
   const lastMsg = messages[messages.length - 1]
   const parts = lastMsg?.parts ?? []
-  if (parts.length === 0) return false
+
+  if (parts.length === 0) {
+    toolRoundtripCount = 0
+    return false
+  }
+
+  const lastPartType = parts[parts.length - 1].type
+  const shouldResubmit = lastPartType !== 'text'
+
+  if (shouldResubmit) {
+    toolRoundtripCount++
+    console.log(`[ComfyAssistant] Tool roundtrip ${toolRoundtripCount}/${MAX_TOOL_ROUNDTRIPS}`)
+
+    if (toolRoundtripCount > MAX_TOOL_ROUNDTRIPS) {
+      console.log('[ComfyAssistant] Max tool roundtrips reached, stopping auto-resubmit')
+      toolRoundtripCount = 0
+      return false
+    }
+  } else {
+    // Reset counter when LLM responds with text
+    toolRoundtripCount = 0
+  }
+
   // If the last part is text, the LLM has already responded to the tool results
-  return parts[parts.length - 1].type !== 'text'
+  return shouldResubmit
 }
 
 // Inner component that has access to runtime context
