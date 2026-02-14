@@ -101,6 +101,7 @@ ComfyUI_ComfyAssistant/
 │
 ├── user_context/               # User workspace; writable by backend only
 │   ├── context.db              # SQLite: rules, preferences, onboarding flag
+│   ├── providers.db            # SQLite: provider configs + active provider
 │   ├── SOUL.md                 # Personality / tone (from onboarding or manual edit)
 │   ├── goals.md                # User goals and experience level
 │   ├── environment/            # Cached environment scan data (Phase 3)
@@ -132,6 +133,8 @@ ComfyUI_ComfyAssistant/
 ├── __init__.py                # Python backend entry point
 ├── agent_prompts.py           # Assembles system message: system_context + environment + user_context
 ├── user_context_store.py     # SQLite store for rules, preferences, onboarding
+├── provider_store.py         # SQLite store for provider configs (providers.db)
+├── provider_manager.py       # Runtime provider config selection + connection tests
 ├── user_context_loader.py     # load_system_context, load_user_context, load_environment_summary
 ├── tools_definitions.py       # Backend tool declarations (single source of truth) ⭐
 ├── environment_scanner.py     # Scan installed nodes, packages, models (Phase 3)
@@ -231,7 +234,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 ### 3. ComfyUI Integration
 
 - Bottom panel tab for chat interface (terminal-style UI, Phase 5a)
-- **Slash commands** (Phase 5b): `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`, `/skill <name>` (backend-handled); inline autocomplete when typing `/`
+- **Slash commands** (Phase 5b): `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`, `/skill <name>` (backend-handled), `/provider-settings`, `/provider list`, `/provider set <name>` (backend-handled); inline autocomplete when typing `/`
 - Named sessions via `/rename` or Rename option in thread tab dropdown
 - Direct access to ComfyUI graph via `window.app`
 - Canvas manipulation (add/remove/connect nodes)
@@ -277,9 +280,13 @@ The **user_context/** directory is the assistant’s writable workspace (created
 
 ## Configuration
 
+**Provider wizard (primary):** Users configure LLM providers (OpenAI-compatible, Anthropic, Claude Code, Codex, Gemini CLI) via the Provider Wizard in the Assistant tab (or `/provider-settings`). Settings are stored in `user_context/providers.db`. See [doc/configuration.md](../doc/configuration.md).
+
+**Backend `.env` (fallback):** If no provider is set in the wizard, the backend falls back to `.env` (see `.env.example`). Used for automation or file-based config.
+
 ### Environment Variables
 
-**Backend** (`.env`):
+**Backend** (`.env` — optional fallback):
 ```bash
 LLM_PROVIDER=openai                  # Optional: openai, anthropic, claude_code, codex, gemini_cli
 OPENAI_API_KEY=gsk_xxx               # OpenAI-compatible provider API key

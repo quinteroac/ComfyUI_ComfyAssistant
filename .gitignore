@@ -21,8 +21,10 @@ project.kdl
 # Keep .agents/ (main skills directory)
 !.agents/
 
-# User context (Phase 1): per-installation data, do not commit
+# User context (Phase 1): per-installation data, do not commit (may contain secrets)
 user_context/context.db
+user_context/providers.db
+user_context/*.db
 user_context/SOUL.md
 user_context/goals.md
 user_context/skills/*.md

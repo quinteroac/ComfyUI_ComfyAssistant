@@ -24,7 +24,13 @@ import {
   fetchOnboardingStatus
 } from '@/components/assistant-ui/onboarding'
 import { Thread } from '@/components/assistant-ui/thread'
+import { ProviderWizard } from '@/components/providers/ProviderWizard'
+import {
+  OPEN_PROVIDER_WIZARD_EVENT,
+  type ProvidersStatus
+} from '@/components/providers/types'
 import { useComfyTools } from '@/hooks/useComfyTools'
+import { useProviders } from '@/hooks/useProviders'
 
 // Type definitions for the global ComfyUI objects
 declare global {
@@ -72,10 +78,14 @@ function shouldResubmitAfterToolResult({
 
   if (shouldResubmit) {
     toolRoundtripCount++
-    console.log(`[ComfyAssistant] Tool roundtrip ${toolRoundtripCount}/${MAX_TOOL_ROUNDTRIPS}`)
+    console.log(
+      `[ComfyAssistant] Tool roundtrip ${toolRoundtripCount}/${MAX_TOOL_ROUNDTRIPS}`
+    )
 
     if (toolRoundtripCount > MAX_TOOL_ROUNDTRIPS) {
-      console.log('[ComfyAssistant] Max tool roundtrips reached, stopping auto-resubmit')
+      console.log(
+        '[ComfyAssistant] Max tool roundtrips reached, stopping auto-resubmit'
+      )
       toolRoundtripCount = 0
       return false
     }
@@ -117,19 +127,73 @@ function AppContent() {
 }
 
 function App() {
+  const { fetchStatus: fetchProvidersStatus } = useProviders()
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null)
+  const [providersStatus, setProvidersStatus] =
+    useState<ProvidersStatus | null>(null)
+  const [showWizard, setShowWizard] = useState(false)
 
   useEffect(() => {
-    fetchOnboardingStatus()
-      .then(({ needsOnboarding: needs }) => setNeedsOnboarding(needs))
-      .catch(() => setNeedsOnboarding(false))
-  }, [])
+    let mounted = true
 
-  if (needsOnboarding === null) {
+    fetchOnboardingStatus()
+      .then(({ needsOnboarding: needs }) => {
+        if (mounted) setNeedsOnboarding(needs)
+      })
+      .catch(() => {
+        if (mounted) setNeedsOnboarding(false)
+      })
+
+    fetchProvidersStatus()
+      .then((status) => {
+        if (mounted) setProvidersStatus(status)
+      })
+      .catch(() => {
+        if (mounted) {
+          setProvidersStatus({
+            needsWizard: false,
+            hasProviders: true,
+            activeProvider: null
+          })
+        }
+      })
+
+    const handleOpenProviderWizard = () => setShowWizard(true)
+    window.addEventListener(
+      OPEN_PROVIDER_WIZARD_EVENT,
+      handleOpenProviderWizard as EventListener
+    )
+
+    return () => {
+      mounted = false
+      window.removeEventListener(
+        OPEN_PROVIDER_WIZARD_EVENT,
+        handleOpenProviderWizard as EventListener
+      )
+    }
+  }, [fetchProvidersStatus])
+
+  if (needsOnboarding === null || providersStatus === null) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
         Loading…
       </div>
+    )
+  }
+
+  if (providersStatus.needsWizard || showWizard) {
+    return (
+      <ProviderWizard
+        mode="full-page"
+        onComplete={() => {
+          setShowWizard(false)
+          setProvidersStatus({
+            ...providersStatus,
+            needsWizard: false,
+            hasProviders: true
+          })
+        }}
+      />
     )
   }
 

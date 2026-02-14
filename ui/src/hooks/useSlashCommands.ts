@@ -44,8 +44,8 @@ export function useSlashCommands() {
     ).toLowerCase()
     const args = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1).trim()
 
-    // /skill <name> is handled by the backend: send the message as-is
-    if (name === 'skill') {
+    // Backend-managed commands: send to backend as-is.
+    if (name === 'skill' || name === 'provider') {
       return false
     }
 

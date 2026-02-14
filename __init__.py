@@ -32,6 +32,8 @@ import skill_manager
 import documentation_resolver
 import api_handlers
 import conversation_logger
+import provider_manager
+import provider_store
 from tools_definitions import TOOLS
 
 
@@ -49,6 +51,8 @@ dist_locales_path = os.path.join(workspace_path, "dist/locales")
 user_context_path = os.path.join(workspace_path, "user_context")
 system_context_path = os.path.join(workspace_path, "system_context")
 user_context_store.set_user_context_path(user_context_path)
+provider_store.init_providers_db()
+provider_manager.reload_provider()
 
 # LLM config from .env
 LLM_PROVIDER = (os.environ.get("LLM_PROVIDER", "") or "").strip().lower()
@@ -154,24 +158,29 @@ def _sse_line(data):
     return f"data: {json.dumps(data)}\n\n"
 
 
-def _has_anthropic_credentials() -> bool:
+def _has_anthropic_credentials(api_key: str | None = None) -> bool:
     """Return True when Anthropic API key auth is available."""
+    if api_key is not None:
+        return bool(api_key)
     return bool(ANTHROPIC_API_KEY)
 
 
-def _has_cli_provider_command(provider: str) -> bool:
+def _has_cli_provider_command(provider: str, command: str | None = None) -> bool:
     """Return True when provider CLI binary is available in PATH."""
     commands = {
         "claude_code": CLAUDE_CODE_COMMAND,
         "codex": CODEX_COMMAND,
         "gemini_cli": GEMINI_CLI_COMMAND,
     }
-    command = commands.get(provider)
-    return bool(command) and shutil.which(command) is not None
+    selected_command = command or commands.get(provider)
+    return bool(selected_command) and shutil.which(selected_command) is not None
 
 
 def _selected_llm_provider() -> str:
     """Resolve active provider from env and available credentials."""
+    active = provider_store.get_active_provider()
+    if active and active.get("provider_type") in {"openai", "anthropic", "claude_code", "codex", "gemini_cli"}:
+        return active["provider_type"]
     if LLM_PROVIDER in {"openai", "anthropic", "claude_code", "codex", "gemini_cli"}:
         return LLM_PROVIDER
     if OPENAI_API_KEY:
@@ -987,6 +996,52 @@ def _inject_skill_if_slash_skill(openai_messages: list[dict]) -> None:
     )
 
 
+def _format_provider_line(provider: dict, active_name: str | None) -> str:
+    marker = "✓" if active_name and provider.get("name") == active_name else " "
+    display_name = provider.get("display_name") or provider.get("name") or "Unnamed"
+    name = provider.get("name") or "unknown"
+    provider_type = provider.get("provider_type") or "unknown"
+    return f"{marker} **{display_name}** (`{name}`) · {provider_type}"
+
+
+def _handle_provider_command(command_text: str) -> dict:
+    """Handle /provider commands and return local text response."""
+    parts = command_text.strip().split()
+    if len(parts) < 2:
+        return {"text": "Usage: /provider <set|list> [name]"}
+
+    subcommand = parts[1].lower()
+    if subcommand == "list":
+        providers = provider_store.get_all_providers()
+        active = provider_store.get_active_provider()
+        active_name = active.get("name") if active else None
+        if not providers:
+            return {"text": "No providers configured yet. Run `/provider-settings`."}
+        lines = ["**Configured Providers**", ""]
+        for provider in providers:
+            lines.append(_format_provider_line(provider, active_name))
+        return {"text": "\n".join(lines)}
+
+    if subcommand == "set":
+        if len(parts) < 3:
+            return {"text": "Usage: /provider set <name>"}
+        name = parts[2].strip()
+        if not name:
+            return {"text": "Usage: /provider set <name>"}
+        success = provider_store.set_active_provider(name)
+        if not success:
+            return {"text": f"Provider `{name}` not found."}
+        provider_manager.reload_provider()
+        return {
+            "text": (
+                f"✓ Active provider set to **{name}**.\n\n"
+                "New messages will use this provider."
+            )
+        }
+
+    return {"text": f"Unknown subcommand: `{subcommand}`. Use `/provider list` or `/provider set <name>`."}
+
+
 def _summarize_tool_result(tool_name: str, result_content: str) -> str:
     """Generate a brief summary of a tool result to replace full content in older rounds.
 
@@ -1354,7 +1409,8 @@ def _get_last_user_text(messages: list) -> str:
     for msg in reversed(messages):
         if msg.get("role") != "user":
             continue
-        content = msg.get("content")
+        # Try "content" first (OpenAI format), then "parts" (UI format)
+        content = msg.get("content") or msg.get("parts")
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -1491,44 +1547,125 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     )
 
     message_id = f"msg_{uuid.uuid4().hex}"
-    selected_provider = _selected_llm_provider()
+    runtime_provider = provider_manager.get_current_provider_config()
+    selected_provider = str(
+        runtime_provider.get("provider_type") or _selected_llm_provider()
+    )
+
+    openai_api_key = OPENAI_API_KEY
+    openai_model = OPENAI_MODEL
+    openai_base_url = OPENAI_API_BASE_URL
+
+    anthropic_api_key = ANTHROPIC_API_KEY
+    anthropic_model = ANTHROPIC_MODEL
+    anthropic_base_url = ANTHROPIC_BASE_URL
+    anthropic_max_tokens = ANTHROPIC_MAX_TOKENS
+
+    claude_code_command = CLAUDE_CODE_COMMAND
+    claude_code_model = CLAUDE_CODE_MODEL
+    codex_command = CODEX_COMMAND
+    codex_model = CODEX_MODEL
+    gemini_cli_command = GEMINI_CLI_COMMAND
+    gemini_cli_model = GEMINI_CLI_MODEL
+    cli_provider_timeout_seconds = CLI_PROVIDER_TIMEOUT_SECONDS
+
+    if selected_provider == "openai":
+        openai_api_key = str(runtime_provider.get("api_key") or "")
+        openai_model = str(runtime_provider.get("model") or OPENAI_MODEL or "gpt-4o")
+        openai_base_url = str(
+            runtime_provider.get("base_url") or OPENAI_API_BASE_URL
+        ).rstrip("/")
+    elif selected_provider == "anthropic":
+        anthropic_api_key = str(runtime_provider.get("api_key") or "")
+        anthropic_model = str(
+            runtime_provider.get("model") or ANTHROPIC_MODEL or "claude-sonnet-4-5"
+        )
+        anthropic_base_url = str(
+            runtime_provider.get("base_url") or ANTHROPIC_BASE_URL
+        ).rstrip("/")
+        try:
+            anthropic_max_tokens = int(
+                runtime_provider.get("max_tokens") or ANTHROPIC_MAX_TOKENS
+            )
+        except (TypeError, ValueError):
+            anthropic_max_tokens = ANTHROPIC_MAX_TOKENS
+    elif selected_provider == "claude_code":
+        claude_code_command = str(runtime_provider.get("cli_command") or CLAUDE_CODE_COMMAND)
+        claude_code_model = str(runtime_provider.get("cli_model") or CLAUDE_CODE_MODEL)
+        try:
+            cli_provider_timeout_seconds = int(
+                runtime_provider.get("timeout_seconds") or CLI_PROVIDER_TIMEOUT_SECONDS
+            )
+        except (TypeError, ValueError):
+            cli_provider_timeout_seconds = CLI_PROVIDER_TIMEOUT_SECONDS
+    elif selected_provider == "codex":
+        codex_command = str(runtime_provider.get("cli_command") or CODEX_COMMAND)
+        codex_model = str(runtime_provider.get("cli_model") or CODEX_MODEL)
+        try:
+            cli_provider_timeout_seconds = int(
+                runtime_provider.get("timeout_seconds") or CLI_PROVIDER_TIMEOUT_SECONDS
+            )
+        except (TypeError, ValueError):
+            cli_provider_timeout_seconds = CLI_PROVIDER_TIMEOUT_SECONDS
+    elif selected_provider == "gemini_cli":
+        gemini_cli_command = str(runtime_provider.get("cli_command") or GEMINI_CLI_COMMAND)
+        gemini_cli_model = str(runtime_provider.get("cli_model") or GEMINI_CLI_MODEL)
+        try:
+            cli_provider_timeout_seconds = int(
+                runtime_provider.get("timeout_seconds") or CLI_PROVIDER_TIMEOUT_SECONDS
+            )
+        except (TypeError, ValueError):
+            cli_provider_timeout_seconds = CLI_PROVIDER_TIMEOUT_SECONDS
+
+    raw_last_user = _get_last_user_text(messages).strip()
+    raw_last_user_lower = raw_last_user.lower()
+    if raw_last_user_lower.startswith("/provider"):
+        command_result = _handle_provider_command(raw_last_user)
+
+        async def stream_local_command():
+            for chunk in _stream_ai_sdk_text(command_result.get("text", ""), message_id):
+                yield chunk.encode("utf-8")
+
+        resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
+        await resp.prepare(request)
+        async for chunk in stream_local_command():
+            await resp.write(chunk)
+        return resp
 
     if selected_provider == "claude_code":
         placeholder = (
-            f"Chat API is not configured. Install `{CLAUDE_CODE_COMMAND}` "
-            "or set CLAUDE_CODE_COMMAND to the correct executable."
+            f"Chat API is not configured. Install `{claude_code_command}` "
+            "or set CLI command in provider settings."
         )
-        has_provider_credentials = _has_cli_provider_command("claude_code")
+        has_provider_credentials = _has_cli_provider_command(
+            "claude_code", command=claude_code_command
+        )
     elif selected_provider == "codex":
         placeholder = (
-            f"Chat API is not configured. Install `{CODEX_COMMAND}` "
-            "or set CODEX_COMMAND to the correct executable."
+            f"Chat API is not configured. Install `{codex_command}` "
+            "or set CLI command in provider settings."
         )
-        has_provider_credentials = _has_cli_provider_command("codex")
+        has_provider_credentials = _has_cli_provider_command(
+            "codex", command=codex_command
+        )
     elif selected_provider == "gemini_cli":
         placeholder = (
-            f"Chat API is not configured. Install `{GEMINI_CLI_COMMAND}` "
-            "or set GEMINI_CLI_COMMAND to the correct executable."
+            f"Chat API is not configured. Install `{gemini_cli_command}` "
+            "or set CLI command in provider settings."
         )
-        has_provider_credentials = _has_cli_provider_command("gemini_cli")
+        has_provider_credentials = _has_cli_provider_command(
+            "gemini_cli", command=gemini_cli_command
+        )
     elif selected_provider == "anthropic":
-        if ANTHROPIC_AUTH_TOKEN and not ANTHROPIC_API_KEY:
-            placeholder = (
-                "ANTHROPIC_AUTH_TOKEN from `claude setup-token` cannot "
-                "authenticate api.anthropic.com/v1/messages in this backend. "
-                "Set ANTHROPIC_API_KEY in .env."
-            )
-        else:
-            placeholder = (
-                "Chat API is not configured. Set ANTHROPIC_API_KEY in .env."
-            )
-        has_provider_credentials = _has_anthropic_credentials()
+        placeholder = (
+            "Chat API is not configured. Set an Anthropic API key in provider settings."
+        )
+        has_provider_credentials = _has_anthropic_credentials(anthropic_api_key)
     else:
         placeholder = (
-            "Chat API is not configured. Set OPENAI_API_KEY in .env "
-            "(copy from .env.example)."
+            "Chat API is not configured. Set an OpenAI API key in provider settings."
         )
-        has_provider_credentials = bool(OPENAI_API_KEY)
+        has_provider_credentials = bool(openai_api_key)
 
     if not has_provider_credentials:
         async def stream_placeholder():
@@ -1540,9 +1677,11 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             await resp.write(chunk)
         return resp
 
-    # Slash commands are handled client-side, except /skill <name> which is handled in the backend.
-    raw_last_user = _get_last_user_text(messages).strip()
-    if raw_last_user.startswith("/") and not raw_last_user.strip().lower().startswith("/skill"):
+    # Slash commands are handled client-side, except /skill and /provider commands.
+    if raw_last_user.startswith("/") and not (
+        raw_last_user_lower.startswith("/skill")
+        or raw_last_user_lower.startswith("/provider")
+    ):
         async def stream_empty():
             yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
             yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
@@ -1607,8 +1746,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         from openai import AsyncOpenAI
         # Limit retries on 429 so we fail fast and show a clear message instead of long waits.
         client = AsyncOpenAI(
-            api_key=OPENAI_API_KEY,
-            base_url=OPENAI_API_BASE_URL,
+            api_key=openai_api_key,
+            base_url=openai_base_url,
             max_retries=2,
         )
 
@@ -1640,7 +1779,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             for _compact_attempt in range(_MAX_CONTEXT_COMPACT_RETRIES + 1):
                 try:
                     stream = await client.chat.completions.create(
-                        model=OPENAI_MODEL,
+                        model=openai_model,
                         messages=retry_messages,
                         tools=TOOLS_DEFINITIONS,
                         tool_choice="auto",
@@ -1858,7 +1997,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             "Content-Type": "application/json",
             "anthropic-version": "2023-06-01",
         }
-        headers["x-api-key"] = ANTHROPIC_API_KEY
+        headers["x-api-key"] = anthropic_api_key
 
         try:
             await asyncio.sleep(LLM_REQUEST_DELAY_SECONDS)
@@ -1871,8 +2010,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     retry_messages
                 )
                 payload = {
-                    "model": ANTHROPIC_MODEL,
-                    "max_tokens": ANTHROPIC_MAX_TOKENS,
+                    "model": anthropic_model,
+                    "max_tokens": anthropic_max_tokens,
                     "messages": anthropic_messages,
                     "tools": _openai_tools_to_anthropic(TOOLS_DEFINITIONS),
                     "tool_choice": {"type": "auto"},
@@ -1882,7 +2021,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
 
                 async with ClientSession() as session:
                     async with session.post(
-                        f"{ANTHROPIC_BASE_URL}/v1/messages",
+                        f"{anthropic_base_url}/v1/messages",
                         headers=headers,
                         json=payload,
                     ) as response:
@@ -2023,14 +2162,14 @@ async def chat_api_handler(request: web.Request) -> web.Response:
 
         prompt = _build_cli_tool_prompt(openai_messages)
         schema_json = json.dumps(_cli_response_schema(), ensure_ascii=False)
-        cmd = [CLAUDE_CODE_COMMAND, "-p", prompt]
-        if CLAUDE_CODE_MODEL:
-            cmd.extend(["--model", CLAUDE_CODE_MODEL])
+        cmd = [claude_code_command, "-p", prompt]
+        if claude_code_model:
+            cmd.extend(["--model", claude_code_model])
         cmd.extend(["--output-format", "json", "--json-schema", schema_json])
 
         rc, stdout, stderr, timed_out = await _run_cli_command(
             cmd,
-            CLI_PROVIDER_TIMEOUT_SECONDS,
+            cli_provider_timeout_seconds,
         )
         if timed_out:
             yield _sse_line({
@@ -2042,7 +2181,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             return
 
         if rc != 0:
-            message = stderr.strip() or stdout.strip() or f"{CLAUDE_CODE_COMMAND} exited with code {rc}"
+            message = stderr.strip() or stdout.strip() or f"{claude_code_command} exited with code {rc}"
             yield _sse_line({"type": "error", "errorText": message}).encode("utf-8")
             yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
             yield "data: [DONE]\n\n".encode("utf-8")
@@ -2096,7 +2235,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             json.dump(_cli_response_schema(), schema_file, ensure_ascii=False)
             schema_file.flush()
             cmd = [
-                CODEX_COMMAND,
+                codex_command,
                 "exec",
                 "--skip-git-repo-check",
                 "--color",
@@ -2107,12 +2246,12 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 tmp.name,
                 prompt,
             ]
-            if CODEX_MODEL:
-                cmd.extend(["--model", CODEX_MODEL])
+            if codex_model:
+                cmd.extend(["--model", codex_model])
 
             rc, stdout, stderr, timed_out = await _run_cli_command(
                 cmd,
-                CLI_PROVIDER_TIMEOUT_SECONDS,
+                cli_provider_timeout_seconds,
             )
             if timed_out:
                 yield _sse_line({
@@ -2124,7 +2263,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                 return
 
             if rc != 0:
-                message = stderr.strip() or stdout.strip() or f"{CODEX_COMMAND} exited with code {rc}"
+                message = stderr.strip() or stdout.strip() or f"{codex_command} exited with code {rc}"
                 yield _sse_line({"type": "error", "errorText": message}).encode("utf-8")
                 yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
                 yield "data: [DONE]\n\n".encode("utf-8")
@@ -2178,13 +2317,13 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             + "\n\nIMPORTANT: You MUST respond with a single JSON object matching this schema:\n"
             + schema_json
         )
-        cmd = [GEMINI_CLI_COMMAND, "-p", full_prompt, "--output-format", "json"]
-        if GEMINI_CLI_MODEL:
-            cmd.extend(["-m", GEMINI_CLI_MODEL])
+        cmd = [gemini_cli_command, "-p", full_prompt, "--output-format", "json"]
+        if gemini_cli_model:
+            cmd.extend(["-m", gemini_cli_model])
 
         rc, stdout, stderr, timed_out = await _run_cli_command(
             cmd,
-            CLI_PROVIDER_TIMEOUT_SECONDS,
+            cli_provider_timeout_seconds,
         )
         if timed_out:
             yield _sse_line({
@@ -2196,7 +2335,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             return
 
         if rc != 0:
-            message = stderr.strip() or stdout.strip() or f"{GEMINI_CLI_COMMAND} exited with code {rc}"
+            message = stderr.strip() or stdout.strip() or f"{gemini_cli_command} exited with code {rc}"
             yield _sse_line({"type": "error", "errorText": message}).encode("utf-8")
             yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
             yield "data: [DONE]\n\n".encode("utf-8")
@@ -2374,6 +2513,7 @@ _phase3_handlers = api_handlers.create_handlers(
     environment_dir=environment_dir,
     system_context_path=system_context_path,
 )
+_provider_handlers = api_handlers.create_provider_handlers()
 
 # Register the chat API route (must be registered before static routes so /api/chat is handled)
 server.PromptServer.instance.app.add_routes([
@@ -2383,6 +2523,8 @@ server.PromptServer.instance.app.add_routes([
 ])
 # Register Phase 3 routes (environment, docs, skills)
 api_handlers.register_routes(server.PromptServer.instance.app, _phase3_handlers)
+# Register provider wizard routes
+api_handlers.register_provider_routes(server.PromptServer.instance.app, _provider_handlers)
 
 # Register Phase 8 routes (research: web search, content fetch, node registry)
 _phase8_handlers = api_handlers.create_research_handlers()

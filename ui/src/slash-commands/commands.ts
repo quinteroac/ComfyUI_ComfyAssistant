@@ -1,6 +1,8 @@
 /**
  * Slash command implementations.
  */
+import { OPEN_PROVIDER_WIZARD_EVENT } from '@/components/providers/types'
+
 import type { SlashCommand } from './registry'
 import type { SlashCommandContext } from './types'
 
@@ -61,6 +63,9 @@ function cmdHelp(_args: string, ctx: SlashCommandContext) {
     '| `/rename <name>` | Rename the current session |',
     '| `/session <id>` | Switch to a session by id |',
     '| `/sessions` | List all sessions |',
+    '| `/provider-settings` | Open provider settings wizard |',
+    '| `/provider list` | List configured providers |',
+    '| `/provider set <name>` | Set active provider |',
     '',
     'Type a message to chat with the assistant. Use slash commands for quick actions.'
   ]
@@ -184,6 +189,11 @@ function cmdSession(args: string, ctx: SlashCommandContext) {
   ctx.appendLocal(`Switched to session ${token}`)
 }
 
+function cmdProviderSettings(_args: string, ctx: SlashCommandContext) {
+  window.dispatchEvent(new CustomEvent(OPEN_PROVIDER_WIZARD_EVENT))
+  ctx.appendLocal('Opening provider settings wizard...')
+}
+
 export const COMMANDS: SlashCommand[] = [
   {
     name: 'help',
@@ -195,6 +205,18 @@ export const COMMANDS: SlashCommand[] = [
     name: 'skill',
     description: 'Activate a user skill by name or slug',
     usage: '/skill <name>',
+    execute: () => {} // Handled by backend; message is sent as-is
+  },
+  {
+    name: 'provider-settings',
+    description: 'Open provider configuration wizard',
+    usage: '/provider-settings',
+    execute: cmdProviderSettings
+  },
+  {
+    name: 'provider',
+    description: 'List or switch providers',
+    usage: '/provider <set|list> [name]',
     execute: () => {} // Handled by backend; message is sent as-is
   },
   {
