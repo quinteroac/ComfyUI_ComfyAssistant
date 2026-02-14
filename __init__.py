@@ -58,6 +58,11 @@ from provider_streaming import (
     stream_gemini_cli,
     stream_openai,
 )
+from sse_streaming import (
+    UI_MESSAGE_STREAM_HEADERS,
+    _sse_line,
+    _stream_ai_sdk_text,
+)
 
 
 # Load .env from extension folder
@@ -150,21 +155,8 @@ COMFY_ASSISTANT_DEBUG_CONTEXT = os.environ.get(
 # Maximum automatic compaction retries when the LLM returns 413 / context-too-large.
 _MAX_CONTEXT_COMPACT_RETRIES = 2
 
-# AI SDK UI Message Stream headers (required by AssistantChatTransport)
-UI_MESSAGE_STREAM_HEADERS = {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "Connection": "keep-alive",
-    "X-Vercel-AI-UI-Message-Stream": "v1",
-}
-
 # Tools definitions: imported from tools_definitions.py (single source of truth)
 TOOLS_DEFINITIONS = TOOLS
-
-
-def _sse_line(data):
-    """Format a JSON object as an SSE data line."""
-    return f"data: {json.dumps(data)}\n\n"
 
 
 def _has_anthropic_credentials(api_key: str | None = None) -> bool:
@@ -186,34 +178,6 @@ def _selected_llm_provider() -> str:
     if _has_anthropic_credentials():
         return "anthropic"
     return "openai"
-
-
-def _stream_ai_sdk_text(text: str, message_id: str):
-    """Generate AI SDK Data Stream protocol chunks for a simple text message."""
-    text_id = f"msg_{uuid.uuid4().hex[:24]}"
-    yield _sse_line({"type": "start", "messageId": message_id})
-    yield _sse_line({"type": "text-start", "id": text_id})
-    if text:
-        yield _sse_line({"type": "text-delta", "id": text_id, "delta": text})
-    yield _sse_line({"type": "text-end", "id": text_id})
-    yield _sse_line({"type": "finish", "finishReason": "stop"})
-    yield "data: [DONE]\n\n"
-
-
-def _is_tool_ui_part(part: dict) -> bool:
-    """Check if a message part is a tool invocation (AI SDK v6 format).
-    Static tools have type 'tool-<name>', dynamic tools have type 'dynamic-tool'."""
-    part_type = part.get("type", "")
-    return part_type.startswith("tool-") or part_type == "dynamic-tool"
-
-
-def _get_tool_name(part: dict) -> str:
-    """Extract tool name from a tool UI part."""
-    part_type = part.get("type", "")
-    if part_type == "dynamic-tool":
-        return part.get("toolName", "")
-    # Static: type is 'tool-<name>', extract everything after first 'tool-'
-    return "-".join(part_type.split("-")[1:])
 
 
 def _openai_message_content_to_str(msg: dict) -> str:

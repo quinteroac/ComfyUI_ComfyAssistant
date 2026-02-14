@@ -25,15 +25,10 @@ from context_management import (
     _estimate_tokens,
     _compact_messages_for_retry,
 )
+from sse_streaming import _sse_line
 from tools_definitions import TOOLS
 
 TOOLS_DEFINITIONS = TOOLS
-
-
-def _sse_line(data: dict) -> str:
-    """Format a JSON object as an SSE data line."""
-    return f"data: {json.dumps(data)}\n\n"
-
 
 def _parse_thinking_tags(text: str) -> tuple[list[str], str]:
     """Parse <think> tags from text and return reasoning parts + cleaned text."""

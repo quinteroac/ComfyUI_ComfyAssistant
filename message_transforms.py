@@ -7,6 +7,7 @@ import logging
 import re
 import uuid
 
+from sse_streaming import _get_tool_name, _is_tool_ui_part
 from tools_definitions import TOOLS
 
 logger = logging.getLogger("ComfyUI_ComfyAssistant.message_transforms")
@@ -355,22 +356,6 @@ def _openai_messages_to_anthropic(messages: list[dict]) -> tuple[str, list[dict]
 
     system_text = "\n\n".join(system_parts).strip()
     return system_text, _merge_adjacent_anthropic_messages(anthropic_messages)
-
-
-def _is_tool_ui_part(part: dict) -> bool:
-    """Check if a message part is a tool invocation (AI SDK v6 format).
-    Static tools have type 'tool-<name>', dynamic tools have type 'dynamic-tool'."""
-    part_type = part.get("type", "")
-    return part_type.startswith("tool-") or part_type == "dynamic-tool"
-
-
-def _get_tool_name(part: dict) -> str:
-    """Extract tool name from a tool UI part."""
-    part_type = part.get("type", "")
-    if part_type == "dynamic-tool":
-        return part.get("toolName", "")
-    # Static: type is 'tool-<name>', extract everything after first 'tool-'
-    return "-".join(part_type.split("-")[1:])
 
 
 def _ui_messages_to_openai(messages: list) -> list:
