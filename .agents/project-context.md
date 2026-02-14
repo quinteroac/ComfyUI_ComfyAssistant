@@ -40,6 +40,9 @@ This extension enables users to:
 - **LLM Provider**: OpenAI-compatible provider API (OpenAI-compatible)
 - **Streaming**: Server-Sent Events (SSE)
 - **Environment**: python-dotenv 1.0.0
+- **Architecture pattern**: Modular backend decomposition (Phases 1-8) with `__init__.py` as orchestrator
+- **Module categories**: Pure Transformation, Provider, Command, Storage, API modules
+- **Reference**: See `.agents/conventions.md` → `Backend Module Organization` for module templates and rules
 
 ### Integration Points
 
@@ -135,7 +138,13 @@ ComfyUI_ComfyAssistant/
 ├── user_context_store.py     # SQLite store for rules, preferences, onboarding
 ├── provider_store.py         # SQLite store for provider configs (providers.db)
 ├── provider_manager.py       # Runtime provider config selection + connection tests
-├── provider_streaming.py     # Extracted provider streaming generators (OpenAI/Anthropic/CLI adapters)
+├── message_transforms.py     # Pure transformations: UI/OpenAI/Anthropic/CLI message formats
+├── context_management.py     # Context truncation, history trim, token estimation, compaction
+├── provider_streaming.py     # Provider streaming generators (OpenAI/Anthropic/CLI adapters)
+├── cli_providers.py          # CLI provider command detection utilities
+├── sse_streaming.py          # SSE headers and stream event formatting helpers
+├── slash_commands.py         # Slash command handling (/provider, /skill)
+├── chat_utilities.py         # Shared chat helpers and context-too-large detection
 ├── user_context_loader.py     # load_system_context, load_user_context, load_environment_summary
 ├── tools_definitions.py       # Backend tool declarations (single source of truth) ⭐
 ├── environment_scanner.py     # Scan installed nodes, packages, models (Phase 3)
