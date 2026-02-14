@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import uuid
+from collections.abc import AsyncGenerator
 import server
 from aiohttp import web
 import folder_paths
@@ -45,6 +46,7 @@ from context_management import (
     _build_conversation_summary,
     _build_tool_name_map,
     _count_request_tokens,
+    _estimate_tokens,
     _format_context_log_summary,
     _smart_truncate_system_context,
     _trim_old_tool_results,
@@ -67,6 +69,14 @@ from slash_commands import (
     _handle_provider_command,
     _inject_skill_if_slash_skill,
     _resolve_skill_by_name_or_slug,
+)
+from chat_utilities import (
+    _get_last_openai_user_text,
+    _get_last_user_text,
+    _is_context_too_large_error,
+    _is_context_too_large_response,
+    _openai_message_content_to_str,
+    _set_openai_message_content,
 )
 
 
@@ -156,6 +166,9 @@ COMFY_ASSISTANT_ENABLE_LOGS = os.environ.get(
 COMFY_ASSISTANT_DEBUG_CONTEXT = os.environ.get(
     "COMFY_ASSISTANT_DEBUG_CONTEXT", ""
 ).strip().lower() in ("1", "true", "yes")
+LLM_VERBOSE_LOGGING = os.environ.get(
+    "LLM_VERBOSE_LOGGING", ""
+).strip().lower() in ("1", "true", "yes")
 
 # Maximum automatic compaction retries when the LLM returns 413 / context-too-large.
 _MAX_CONTEXT_COMPACT_RETRIES = 2
@@ -185,68 +198,6 @@ def _selected_llm_provider() -> str:
     return "openai"
 
 
-def _openai_message_content_to_str(msg: dict) -> str:
-    """Extract plain text content from an OpenAI-format message."""
-    content = msg.get("content")
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return " ".join(
-            str(p.get("text", "")) for p in content if isinstance(p, dict)
-        )
-    return ""
-
-
-def _set_openai_message_content(msg: dict, text: str) -> None:
-    """Set an OpenAI-format message content to a plain string."""
-    msg["content"] = text
-
-
-def _is_context_too_large_error(exc: Exception) -> bool:
-    """Return True if the exception signals that the request payload / context is too large."""
-    status = getattr(exc, "status_code", None) or (
-        getattr(getattr(exc, "response", None), "status_code", None)
-    )
-    if status == 413:
-        return True
-    # OpenAI and many compatible providers return 400 for context_length_exceeded
-    if status == 400:
-        msg = str(exc).lower()
-        for pattern in (
-            "context length",
-            "maximum context",
-            "token limit",
-            "too many tokens",
-            "payload too large",
-            "content_length",
-            "context_length",
-            "max_tokens",
-            "input too long",
-        ):
-            if pattern in msg:
-                return True
-    return False
-
-
-def _is_context_too_large_response(status: int, body: str) -> bool:
-    """Return True if an HTTP response status+body indicates context too large (Anthropic path)."""
-    if status == 413:
-        return True
-    if status == 400:
-        lower = body.lower()
-        for pattern in (
-            "context length",
-            "input too long",
-            "too many tokens",
-            "token limit",
-            "payload too large",
-            "max_tokens",
-        ):
-            if pattern in lower:
-                return True
-    return False
-
-
 # Print the current paths for debugging
 print(f"ComfyUI_example_frontend_extension workspace path: {workspace_path}")
 print(f"Dist path: {dist_path}")
@@ -254,95 +205,78 @@ print(f"Dist locales path: {dist_locales_path}")
 print(f"Locales exist: {os.path.exists(dist_locales_path)}")
 
 
-def _get_last_user_text(messages: list) -> str:
-    """Extract the most recent user text from UI messages."""
-    for msg in reversed(messages):
-        if msg.get("role") != "user":
-            continue
-        # Try "content" first (OpenAI format), then "parts" (UI format)
-        content = msg.get("content") or msg.get("parts")
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            parts = []
-            for part in content:
-                if isinstance(part, dict) and part.get("type") == "text":
-                    text = part.get("text")
-                    if text:
-                        parts.append(text)
-            return "".join(parts)
-        return ""
-    return ""
+
+async def _create_empty_stream_response(
+    request: web.Request,
+    message_id: str | None = None,
+) -> web.Response:
+    """Return an empty SSE stream (start/finish/DONE)."""
+    stream_message_id = message_id or f"msg_{uuid.uuid4().hex}"
+
+    async def stream_empty():
+        yield _sse_line({"type": "start", "messageId": stream_message_id}).encode("utf-8")
+        yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
+        yield "data: [DONE]\n\n".encode("utf-8")
+
+    resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
+    await resp.prepare(request)
+    async for chunk in stream_empty():
+        await resp.write(chunk)
+    return resp
 
 
-def _get_last_openai_user_text(messages: list) -> str:
-    """Extract the most recent user content from OpenAI-format messages."""
-    for msg in reversed(messages):
-        if msg.get("role") != "user":
-            continue
-        content = msg.get("content")
-        if isinstance(content, str):
-            return content
-        return ""
-    return ""
-
-
-async def chat_api_handler(request: web.Request) -> web.Response:
-    """Handle POST /api/chat. Uses an OpenAI-compatible provider when API key is set.
-    Returns AI SDK UI Message Stream format for AssistantChatTransport."""
+async def _prepare_chat_request(request: web.Request) -> tuple[list[dict], dict]:
+    """Parse request payload and return OpenAI-style messages plus metrics state."""
     try:
         body = await request.json() if request.body_exists else {}
     except json.JSONDecodeError:
-        return web.json_response(
-            {"error": "Invalid JSON body"},
-            status=400,
-        )
+        raise ValueError("Invalid JSON body")
+
     messages = body.get("messages", [])
-    # If the last message is a local slash response, do not call the LLM.
+    metrics: dict = {
+        "_raw_messages": messages,
+        "_message_id": f"msg_{uuid.uuid4().hex}",
+        "_debug_context": COMFY_ASSISTANT_DEBUG_CONTEXT or (
+            request.query.get("debug") == "context"
+        ),
+    }
+
+    raw_last_user = _get_last_user_text(messages).strip()
+    metrics["_raw_last_user"] = raw_last_user
+    metrics["_raw_last_user_lower"] = raw_last_user.lower()
+
     if messages:
         last_msg = messages[-1]
         if isinstance(last_msg, dict) and last_msg.get("role") == "assistant":
             content = _extract_content(last_msg)
             if isinstance(content, str) and "<!-- local:slash -->" in content:
-                async def stream_empty():
-                    yield _sse_line({"type": "start", "messageId": f"msg_{uuid.uuid4().hex}"}).encode("utf-8")
-                    yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-                    yield "data: [DONE]\n\n".encode("utf-8")
+                metrics["_local_empty_stream"] = True
+                return ([], metrics)
 
-                resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
-                await resp.prepare(request)
-                async for chunk in stream_empty():
-                    await resp.write(chunk)
-                return resp
     openai_messages = _ui_messages_to_openai(messages)
 
-    # DEBUG: Log to diagnose duplication
     logger.info("[DEBUG] Input messages count: %d", len(messages))
     logger.info("[DEBUG] Converted openai_messages count: %d", len(openai_messages))
     for i, msg in enumerate(openai_messages):
-        logger.info("[DEBUG] Message %d: role=%s content=%s", i, msg.get("role"), str(msg.get("content", ""))[:100])
+        logger.info(
+            "[DEBUG] Message %d: role=%s content=%s",
+            i,
+            msg.get("role"),
+            str(msg.get("content", ""))[:100],
+        )
 
-    # Context pipeline metrics (collected throughout the handler)
-    metrics: dict = {}
-    debug_context = COMFY_ASSISTANT_DEBUG_CONTEXT or (
-        request.query.get("debug") == "context"
-    )
+    return (openai_messages, metrics)
 
-    # Reload agent_prompts to pick up any changes (useful during development)
+
+def _build_system_message_block(openai_messages: list[dict], metrics: dict) -> None:
+    """Inject system block when missing, using full context only on first turn."""
     importlib.reload(agent_prompts)
     from agent_prompts import get_system_message, get_system_message_continuation
     import user_context_loader
 
-    # Add system message if not present. Send full context only on first turn to avoid
-    # re-sending the same long context on every request; use short continuation otherwise.
     has_system = any(msg.get("role") == "system" for msg in openai_messages)
     has_prior_assistant = any(msg.get("role") == "assistant" for msg in openai_messages)
     metrics["is_first_turn"] = not has_prior_assistant
-
-    # Reload agent_prompts to pick up any changes (useful during development)
-    importlib.reload(agent_prompts)
-    from agent_prompts import get_system_message, get_system_message_continuation
-    import user_context_loader
 
     if not has_system:
         system_context_text = ""
@@ -356,10 +290,13 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             pass
 
         if has_prior_assistant:
-            openai_messages.insert(0, get_system_message_continuation(
-                user_skills=user_skills_list,
-                environment_summary=environment_summary
-            ))
+            openai_messages.insert(
+                0,
+                get_system_message_continuation(
+                    user_skills=user_skills_list,
+                    environment_summary=environment_summary,
+                ),
+            )
         else:
             try:
                 system_context_text = user_context_loader.load_system_context(system_context_path)
@@ -388,9 +325,11 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     metrics=metrics,
                 ),
             )
-    # Handle /skill <name>: resolve skill and inject into this turn; replace user message
+
+
+def _apply_context_pipeline(openai_messages: list[dict], metrics: dict) -> list[dict]:
+    """Apply slash-skill injection and context trimming pipeline."""
     _inject_skill_if_slash_skill(openai_messages)
-    # Keep full tool results only for the last N rounds; older ones get a short placeholder
     openai_messages = _trim_old_tool_results(
         openai_messages,
         LLM_TOOL_RESULT_KEEP_LAST_ROUNDS,
@@ -401,8 +340,15 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         LLM_HISTORY_MAX_MESSAGES,
         metrics=metrics,
     )
+    return openai_messages
 
-    message_id = f"msg_{uuid.uuid4().hex}"
+
+def _select_provider_and_stream(
+    openai_messages: list[dict],
+    metrics: dict,
+) -> AsyncGenerator[bytes, None]:
+    """Resolve provider config and return the selected stream generator."""
+    message_id = str(metrics.get("_message_id") or f"msg_{uuid.uuid4().hex}")
     runtime_provider = provider_manager.get_current_provider_config()
     selected_provider = str(
         runtime_provider.get("provider_type") or _selected_llm_provider()
@@ -473,8 +419,8 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         except (TypeError, ValueError):
             cli_provider_timeout_seconds = CLI_PROVIDER_TIMEOUT_SECONDS
 
-    raw_last_user = _get_last_user_text(messages).strip()
-    raw_last_user_lower = raw_last_user.lower()
+    raw_last_user = str(metrics.get("_raw_last_user", "")).strip()
+    raw_last_user_lower = str(metrics.get("_raw_last_user_lower", "")).strip()
     if raw_last_user_lower.startswith("/provider"):
         command_result = _handle_provider_command(raw_last_user)
 
@@ -482,11 +428,7 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             for chunk in _stream_ai_sdk_text(command_result.get("text", ""), message_id):
                 yield chunk.encode("utf-8")
 
-        resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
-        await resp.prepare(request)
-        async for chunk in stream_local_command():
-            await resp.write(chunk)
-        return resp
+        return stream_local_command()
 
     if selected_provider == "claude_code":
         placeholder = (
@@ -527,13 +469,9 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         async def stream_placeholder():
             for chunk in _stream_ai_sdk_text(placeholder, message_id):
                 yield chunk.encode("utf-8")
-        resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
-        await resp.prepare(request)
-        async for chunk in stream_placeholder():
-            await resp.write(chunk)
-        return resp
 
-    # Slash commands are handled client-side, except /skill and /provider commands.
+        return stream_placeholder()
+
     if raw_last_user.startswith("/") and not (
         raw_last_user_lower.startswith("/skill")
         or raw_last_user_lower.startswith("/provider")
@@ -543,32 +481,27 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
             yield "data: [DONE]\n\n".encode("utf-8")
 
-        resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
-        await resp.prepare(request)
-        async for chunk in stream_empty():
-            await resp.write(chunk)
-        return resp
-    # If no user message remains after filtering, do not call the LLM.
+        return stream_empty()
+
     last_user_text = _get_last_openai_user_text(openai_messages).strip()
+    metrics["_last_user_text"] = last_user_text
     if not last_user_text:
         async def stream_empty():
             yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
             yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
             yield "data: [DONE]\n\n".encode("utf-8")
 
-        resp = web.StreamResponse(status=200, headers=UI_MESSAGE_STREAM_HEADERS)
-        await resp.prepare(request)
-        async for chunk in stream_empty():
-            await resp.write(chunk)
-        return resp
+        return stream_empty()
 
     request_tokens_est = _count_request_tokens(openai_messages)
-    metrics["total_messages"] = len(openai_messages)
-    metrics["total_chars"] = sum(
+    total_chars = sum(
         len(m.get("content", "")) if isinstance(m.get("content"), str) else 0
         for m in openai_messages
     )
+    metrics["total_messages"] = len(openai_messages)
+    metrics["total_chars"] = total_chars
     metrics["total_tokens_est"] = request_tokens_est
+    metrics["total_tokens_quick_est"] = _estimate_tokens("x" * total_chars) if total_chars else 0
     metrics["provider"] = selected_provider
     logger.info(
         "[ComfyAssistant] context: %s",
@@ -578,24 +511,6 @@ async def chat_api_handler(request: web.Request) -> web.Response:
         "[ComfyAssistant] context metrics: %s",
         json.dumps(metrics, default=str),
     )
-
-    # Prepare response headers (add debug header when enabled)
-    if debug_context:
-        response_headers = dict(UI_MESSAGE_STREAM_HEADERS)
-        header_metrics = {
-            k: metrics[k] for k in (
-                "total_tokens_est", "total_messages", "total_chars",
-                "system_context_truncated", "user_context_truncated",
-                "tool_rounds_omitted", "tool_rounds_total",
-                "history_trimmed", "conversation_summary_injected",
-                "is_first_turn", "provider",
-            ) if k in metrics
-        }
-        response_headers["X-ComfyAssistant-Context-Debug"] = json.dumps(
-            header_metrics, separators=(",", ":")
-        )
-    else:
-        response_headers = UI_MESSAGE_STREAM_HEADERS
 
     if selected_provider == "openai":
         async def stream_fn():
@@ -669,25 +584,54 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             ):
                 yield chunk
 
+    return stream_fn()
+
+
+async def _create_streaming_response(
+    stream_gen: AsyncGenerator[bytes, None],
+    request: web.Request,
+    metrics: dict,
+) -> web.Response:
+    """Build StreamResponse, wrap stream with logging, and emit debug metadata."""
+    debug_context = bool(metrics.get("_debug_context"))
+    header_debug_enabled = debug_context or LLM_VERBOSE_LOGGING
+    raw_messages = metrics.get("_raw_messages") or []
+    last_user_text = str(metrics.get("_last_user_text") or "")
+
+    if header_debug_enabled:
+        response_headers = dict(UI_MESSAGE_STREAM_HEADERS)
+        header_metrics = {
+            k: metrics[k] for k in (
+                "total_tokens_est", "total_messages", "total_chars",
+                "system_context_truncated", "user_context_truncated",
+                "tool_rounds_omitted", "tool_rounds_total",
+                "history_trimmed", "conversation_summary_injected",
+                "is_first_turn", "provider",
+            ) if k in metrics
+        }
+        response_headers["X-ComfyAssistant-Context-Debug"] = json.dumps(
+            header_metrics, separators=(",", ":")
+        )
+    else:
+        response_headers = UI_MESSAGE_STREAM_HEADERS
+
     async def stream_with_logging():
         if not COMFY_ASSISTANT_ENABLE_LOGS:
-            async for chunk in stream_fn():
+            async for chunk in stream_gen:
                 yield chunk
             return
 
         response_text_parts = []
         response_tool_calls = []
         thread_id = "default"
-        # Try to find thread_id from last message
-        for msg in reversed(messages):
+        for msg in reversed(raw_messages):
             if isinstance(msg, dict) and msg.get("id"):
                 thread_id = msg.get("id")
                 break
 
-        async for chunk in stream_fn():
+        async for chunk in stream_gen:
             yield chunk
-            
-            # Intercept and accumulate for logging
+
             try:
                 line = chunk.decode("utf-8")
                 if line.startswith("data: "):
@@ -697,19 +641,18 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     elif data.get("type") == "tool-input-available":
                         response_tool_calls.append({
                             "name": data.get("toolName"),
-                            "input": data.get("input")
+                            "input": data.get("input"),
                         })
             except Exception:
                 pass
 
-        # At the end of the stream, write the log
         try:
             full_assistant_reply = "".join(response_text_parts)
             conversation_logger.log_interaction(
                 thread_id=thread_id,
                 user_message=last_user_text,
                 assistant_response=full_assistant_reply,
-                tool_calls=response_tool_calls
+                tool_calls=response_tool_calls,
             )
         except Exception as log_err:
             logger.error("[ComfyAssistant] Failed to log interaction: %s", log_err)
@@ -719,7 +662,6 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     first_chunk = True
     async for chunk in stream_with_logging():
         await resp.write(chunk)
-        # Emit debug SSE event right after the first event (start)
         if first_chunk and debug_context:
             first_chunk = False
             debug_event = _sse_line({
@@ -728,6 +670,30 @@ async def chat_api_handler(request: web.Request) -> web.Response:
             })
             await resp.write(debug_event.encode("utf-8"))
     return resp
+
+
+async def chat_api_handler(request: web.Request) -> web.Response:
+    """Handle POST /api/chat with AI streaming."""
+    try:
+        openai_messages, metrics = await _prepare_chat_request(request)
+    except ValueError:
+        return web.json_response(
+            {"error": "Invalid JSON body"},
+            status=400,
+        )
+
+    if metrics.get("_local_empty_stream"):
+        return await _create_empty_stream_response(
+            request,
+            message_id=str(metrics.get("_message_id") or ""),
+        )
+
+    _build_system_message_block(openai_messages, metrics)
+    openai_messages = _apply_context_pipeline(openai_messages, metrics)
+
+    stream_gen = _select_provider_and_stream(openai_messages, metrics)
+
+    return await _create_streaming_response(stream_gen, request, metrics)
 
 
 async def user_context_status_handler(request: web.Request) -> web.Response:
