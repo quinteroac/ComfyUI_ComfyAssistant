@@ -114,7 +114,6 @@ function WizardBody({
 export function ProviderWizard({
   mode,
   onComplete,
-  onClose
 }: ProviderWizardProps) {
   const { fetchCliStatus } = useProviders()
   const [step, setStep] = useState<WizardStep>('select')
