@@ -68,7 +68,7 @@ With `watch` running, source changes are rebuilt automatically. Refresh the brow
 | No Assistant tab in bottom panel | Ensure the extension is in `custom_nodes/ComfyUI_ComfyAssistant` and that you ran `npm run build` inside `ui/`. Restart ComfyUI. |
 | Tab is empty or shows errors | Check the browser console (F12). Re-run `cd ui && npm run build` and restart ComfyUI. |
 | "Module not found" or build errors | Run `cd ui && npm install` again and then `npm run build`. |
-| Assistant does not answer | Configure the API key and (if needed) base URL in `.env` — see [Configuration](configuration.md). |
+| Assistant does not answer | Configure a provider via the **Provider Wizard** in the Assistant tab (or `/provider-settings`). Optional: use `.env` fallback — see [Configuration](configuration.md). |
 
 ## Next steps
 

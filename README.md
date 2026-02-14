@@ -62,40 +62,9 @@ Restart ComfyUI. Without `npm run build`, the extension will not have the compil
 
 ### Configuration
 
-Copy the example env file and edit `.env` in the node root:
+**Provider wizard (recommended):** On first use, the **Provider Wizard** opens in the Assistant tab so you can add an LLM provider (OpenAI-compatible, Anthropic, Claude Code, Codex, Gemini CLI). Settings are stored in `user_context/providers.db`. To open the wizard again later, use the slash command `/provider-settings`. See [Configuration](doc/configuration.md) for details.
 
-```bash
-cp .env.example .env
-```
-
-Main variables:
-
-| Variable | Description |
-|----------|-------------|
-| `LLM_PROVIDER` | Optional: `openai`, `anthropic`, `claude_code`, or `codex` (auto-detected if omitted). |
-| `OPENAI_API_KEY` | API key for OpenAI-compatible providers. |
-| `OPENAI_API_BASE_URL` | Base URL for the API (default: `https://api.openai.com/v1`). Change this to use another provider. |
-| `OPENAI_MODEL` | Model (optional; default depends on provider). |
-| `ANTHROPIC_API_KEY` | Direct Anthropic API key. |
-| `ANTHROPIC_MODEL` | Anthropic model (default: `claude-sonnet-4-5`). |
-| `ANTHROPIC_BASE_URL` | Anthropic base URL (default: `https://api.anthropic.com`). |
-| `CLAUDE_CODE_COMMAND` | Claude Code executable name/path (default: `claude`). |
-| `CLAUDE_CODE_MODEL` | Optional Claude Code model alias. |
-| `CODEX_COMMAND` | Codex executable name/path (default: `codex`). |
-| `CODEX_MODEL` | Optional Codex model id/alias. |
-| `GEMINI_CLI_COMMAND` | Gemini CLI executable name/path (default: `gemini`). |
-| `GEMINI_CLI_MODEL` | Optional Gemini CLI model name. |
-| `CLI_PROVIDER_TIMEOUT_SECONDS` | Timeout for CLI provider subprocesses (default: `180`). |
-| `LLM_REQUEST_DELAY_SECONDS` | Seconds to wait before each LLM request (default `1.0`). Increase if you get 429 errors. |
-| `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max chars from `system_context/` injected per request (default `12000`). |
-| `LLM_USER_CONTEXT_MAX_CHARS` | Max chars for user context block (default `2500`). |
-| `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request (default `24`). |
-| `LLM_TOOL_RESULT_KEEP_LAST_ROUNDS` | Number of tool-call rounds whose results are kept in full (default `2`). Older rounds get a placeholder. |
-| `COMFY_ASSISTANT_DEBUG_CONTEXT` | When `1`, emit context pipeline debug metrics (X-ComfyAssistant-Context-Debug header, context-debug SSE event). |
-
-After changing `.env`, restart ComfyUI.
-
-Note: `claude_code` and `codex` providers now use structured JSON output to map tool calls into the existing frontend tool pipeline. This is adapter-based and may vary with CLI version changes.
+**Optional `.env` fallback:** If no provider is configured in the wizard, the backend falls back to `.env` (copy from `.env.example`). Useful for automation or when you prefer file-based config. Main variables: `LLM_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, `OPENAI_MODEL`, `ANTHROPIC_*`, `CLAUDE_CODE_*`, `CODEX_*`, `GEMINI_CLI_*`, `LLM_REQUEST_DELAY_SECONDS`, and other options listed in `.env.example`. After changing provider settings (wizard or `.env`), restart ComfyUI.
 
 ### Assistant tools
 
@@ -127,7 +96,7 @@ ComfyUI_ComfyAssistant/
 ├── environment_scanner.py   # Scan nodes, packages, models; cache in user_context/environment/
 ├── skill_manager.py         # User skill create/list/delete/update
 ├── documentation_resolver.py # Resolve docs for node types and topics
-├── .env / .env.example     # Config (API key, URL, delay)
+├── .env.example            # Optional env fallback (wizard stores providers in user_context/providers.db)
 ├── system_context/         # Base prompts (role, tools, node refs)
 │   ├── 01_role.md
 │   └── skills/             # System skills (SKILL.md per capability)

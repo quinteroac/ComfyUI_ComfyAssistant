@@ -1,118 +1,52 @@
 # Configuration
 
-This guide covers the initial setup of the ComfyUI Assistant: API configuration and optional first-time onboarding.
+This guide covers initial setup: provider configuration wizard, optional `.env` fallback, and first-time onboarding.
 
-## API configuration (required)
+## Provider configuration wizard (required)
 
-The assistant needs an LLM provider to generate responses. Configuration is done via a `.env` file in the extension root (`ComfyUI_ComfyAssistant/`).
+The assistant needs at least one configured provider to generate responses.
 
-### 1. Create the .env file
+### First-time flow
 
-From the extension root:
+1. Open the Assistant tab.
+2. If no providers are configured, the **Provider Wizard** opens in full-page mode.
+3. Configure one of: `openai`, `anthropic`, `claude_code`, `codex`, `gemini_cli`.
+4. Save and continue to chat.
 
-```bash
-cp .env.example .env
-```
+Provider settings are stored in:
 
-Edit `.env` with your preferred editor. **Do not commit `.env`** — it is listed in `.gitignore` because it may contain secrets.
+- `user_context/providers.db`
+- Table: `providers`
+- API keys are stored base64-encoded (local obfuscation only)
 
-### 2. Main variables
+### Provider rules
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `LLM_PROVIDER` | Optional provider selector: `openai`, `anthropic`, `claude_code`, or `codex`. If unset, backend auto-selects based on available credentials. | No |
-| `OPENAI_API_KEY` | API key for OpenAI-compatible provider. Required when using `openai` provider. | Conditional |
-| `OPENAI_API_BASE_URL` | Base URL of the API. Change this to use your provider endpoint. | No (default: `https://api.openai.com/v1`) |
-| `OPENAI_MODEL` | Model name. Optional; value depends on the provider. | No |
-| `ANTHROPIC_API_KEY` | Direct Anthropic API key. Required when using `anthropic` provider. | Conditional |
-| `ANTHROPIC_MODEL` | Anthropic model name. | No (default: `claude-sonnet-4-5`) |
-| `ANTHROPIC_BASE_URL` | Anthropic API base URL. | No (default: `https://api.anthropic.com`) |
-| `ANTHROPIC_MAX_TOKENS` | Max output tokens for Anthropic Messages API calls. | No (default: `4096`) |
-| `CLAUDE_CODE_COMMAND` | Claude Code executable name/path. | No (default: `claude`) |
-| `CLAUDE_CODE_MODEL` | Optional Claude Code model alias. | No |
-| `CODEX_COMMAND` | Codex executable name/path. | No (default: `codex`) |
-| `CODEX_MODEL` | Optional Codex model id/alias. | No |
-| `GEMINI_CLI_COMMAND` | Gemini CLI executable name/path. | No (default: `gemini`) |
-| `GEMINI_CLI_MODEL` | Optional Gemini CLI model name. | No |
-| `CLI_PROVIDER_TIMEOUT_SECONDS` | Timeout for CLI providers in seconds. | No (default: `180`) |
-| `SEARXNG_URL` | SearXNG instance URL for web search (Phase 8). | No (e.g. `http://localhost:8080`) |
-| `LLM_REQUEST_DELAY_SECONDS` | Delay in seconds before each LLM request. Default `1.0`. Increase if you get 429 rate limit errors. | No |
-| `LLM_SYSTEM_CONTEXT_MAX_CHARS` | Max characters from `system_context/` injected per request. Default `12000`. | No |
-| `LLM_USER_CONTEXT_MAX_CHARS` | Max characters for the formatted user context block. Default `2500`. | No |
-| `LLM_HISTORY_MAX_MESSAGES` | Max non-system messages sent to LLM per request. Default `24`. | No |
-| `LLM_TOOL_RESULT_KEEP_LAST_ROUNDS` | Number of "rounds" of tool results to keep in full (default: `2`). Older rounds get a short placeholder to reduce context size. | No |
-| `COMFY_ASSISTANT_LOG_LEVEL` | Backend log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Default `INFO`. | No |
-| `COMFY_ASSISTANT_DEBUG_CONTEXT` | When `1`, every `/api/chat` response includes context pipeline debug metrics (X-ComfyAssistant-Context-Debug header, context-debug SSE event). Also available per-request via `?debug=context`. Default `0`. | No |
+- API providers (`openai`, `anthropic`): multiple named configs allowed.
+- CLI providers (`claude_code`, `codex`, `gemini_cli`): one config per type, name must equal provider type.
+- Exactly one provider is active at a time.
+- Switch active provider at runtime with `/provider set <name>`.
 
-### 3. Example configurations
+### Open provider settings later
 
-**OpenAI-compatible:**
+- Slash command: `/provider-settings`
+- This opens the wizard in modal mode without interrupting first-time onboarding state.
 
-```bash
-OPENAI_API_KEY=sk_your_api_key_here
-OPENAI_API_BASE_URL=https://api.openai.com/v1
-# OPENAI_MODEL=gpt-4o-mini
-COMFY_ASSISTANT_LOG_LEVEL=INFO
-```
+---
 
-**Anthropic with API key:**
+## `.env` fallback (optional)
 
-```bash
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-api03-your_key_here
-# ANTHROPIC_MODEL=claude-sonnet-4-5
-```
+There is **no migration from `.env` to `providers.db`**.  
+If no active DB provider exists, backend still falls back to `.env` values for compatibility.
 
-> Note: `ANTHROPIC_AUTH_TOKEN` from `claude setup-token` does not authenticate direct `api.anthropic.com/v1/messages` calls in this backend path.
+Common fallback vars:
 
-**Claude Code CLI (`claude setup-token`):**
-
-```bash
-LLM_PROVIDER=claude_code
-# Optional
-# CLAUDE_CODE_COMMAND=claude
-# CLAUDE_CODE_MODEL=sonnet
-```
-
-**Codex CLI:**
-
-```bash
-LLM_PROVIDER=codex
-# Optional
-# CODEX_COMMAND=codex
-# CODEX_MODEL=o3
-```
-
-**Gemini CLI (`gemini login`):**
-
-```bash
-LLM_PROVIDER=gemini_cli
-# Optional
-# GEMINI_CLI_COMMAND=gemini
-# GEMINI_CLI_MODEL=auto
-```
-
-> `claude_code`, `codex`, and `gemini_cli` providers use structured JSON adapters to emit backend tool calls into the existing frontend tool pipeline. Behavior can vary if CLI output contracts change between versions.
-
-**OpenAI:**
-
-```bash
-OPENAI_API_KEY=sk-your_openai_key_here
-OPENAI_API_BASE_URL=https://api.openai.com/v1
-# OPENAI_MODEL=gpt-4o
-```
-
-**Local / Ollama:**
-
-```bash
-OPENAI_API_KEY=ollama
-OPENAI_API_BASE_URL=http://localhost:11434/v1
-# OPENAI_MODEL=llama3.2
-```
-
-### 4. Apply changes
-
-After editing `.env`, **restart ComfyUI** so the backend loads the new values.
+- `LLM_PROVIDER`
+- `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, `OPENAI_MODEL`
+- `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_MAX_TOKENS`
+- `CLAUDE_CODE_COMMAND`, `CLAUDE_CODE_MODEL`
+- `CODEX_COMMAND`, `CODEX_MODEL`
+- `GEMINI_CLI_COMMAND`, `GEMINI_CLI_MODEL`
+- `CLI_PROVIDER_TIMEOUT_SECONDS`
 
 ---
 
@@ -155,6 +89,7 @@ The folder `user_context/` is the assistant’s **user workspace**:
 | Path | Purpose |
 |------|---------|
 | `context.db` | SQLite database: rules, preferences, onboarding flag (created automatically). |
+| `providers.db` | SQLite database: provider configs and active provider selection. |
 | `SOUL.md` | Personality / tone (from onboarding or manual edit). |
 | `goals.md` | Your goals and experience level. |
 | `skills/` | User-defined skills — see [User skills](skills.md). |

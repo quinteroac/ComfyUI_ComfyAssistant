@@ -1,6 +1,6 @@
 # Slash Commands
 
-The assistant supports local slash commands for quick actions. Most commands are handled entirely in the UI and are not sent to the LLM. **Exception:** `/skill <name>` is sent to the backend, which resolves the skill and injects its instructions for that turn.
+The assistant supports local slash commands for quick actions. Most commands are handled entirely in the UI and are not sent to the LLM. **Backend-managed commands:** `/skill <name>` and `/provider ...`.
 
 ## Commands
 
@@ -14,9 +14,13 @@ The assistant supports local slash commands for quick actions. Most commands are
 | `/sessions` | List all sessions with index and id. | `/sessions` |
 | `/session <id|index|name>` | Switch to a session by id, index (1-based), or exact name. | `/session 2` |
 | `/skill <name>` | Activate a user skill by name or slug (e.g. `/skill use-preview-image`). The backend resolves the skill and injects its instructions for this turn only. | `/skill use-preview-image` |
+| `/provider-settings` | Open the provider configuration wizard modal. | `/provider-settings` |
+| `/provider list` | List configured providers and mark the active one. | `/provider list` |
+| `/provider set <name>` | Set the active provider at runtime. | `/provider set openai-main` |
 
 ## Notes
 
 - `/skill <name>` is handled by the backend; the message is sent to the LLM and the skill content is injected as the user message for that turn. Use **listUserSkills** (or ask the assistant) to see available skill names/slugs.
+- `/provider ...` is handled by the backend and does not call the LLM.
 - Session names are case-insensitive matches for `/session <name>`.
 - If multiple sessions have the same name, use the index or id shown in `/sessions`.

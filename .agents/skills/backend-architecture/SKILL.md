@@ -19,6 +19,8 @@ The Python backend lives at the project root. ComfyUI loads `__init__.py` as a c
 | `tools_definitions.py` | `TOOLS` list in OpenAI function calling format; `get_tools()`, `get_tool_names()` |
 | `user_context_loader.py` | `load_system_context()`, `load_user_context()`, `load_environment_summary()`, `load_skills()` |
 | `user_context_store.py` | SQLite store (`context.db`): rules, preferences, onboarding state |
+| `provider_store.py` | SQLite store (`providers.db`): provider CRUD, validation, active provider |
+| `provider_manager.py` | Runtime provider selection, DB/env fallback, provider connection tests |
 | `environment_scanner.py` | `scan_environment()`, node/package/model scanning, search, cache management |
 | `skill_manager.py` | Create/list/delete/update user skills in `user_context/skills/` |
 | `documentation_resolver.py` | Resolve documentation for node types and topics |
@@ -80,6 +82,13 @@ Finish reasons: `stop`, `tool-calls`, `length`, `content-filter`.
 | `/api/user-context/skills` | GET | `skills_handler` | List user skills |
 | `/api/user-context/skills/{slug}` | DELETE | `skill_delete_handler` | Delete skill |
 | `/api/user-context/skills/{slug}` | PATCH | `skill_update_handler` | Update skill |
+| `/api/providers/status` | GET | provider handlers | Wizard status / first-time check |
+| `/api/providers` | GET/POST | provider handlers | List/create providers |
+| `/api/providers/{name}` | PATCH/DELETE | provider handlers | Update/delete provider |
+| `/api/providers/{name}/activate` | POST | provider handlers | Set active provider |
+| `/api/providers/{name}/test` | POST | provider handlers | Test saved provider |
+| `/api/providers/test-config` | POST | provider handlers | Test unsaved config payload |
+| `/api/providers/cli-status` | GET | provider handlers | Detect CLI availability/path |
 
 ## Environment Variables
 
@@ -118,14 +127,18 @@ See "chat_api_handler Lifecycle" above. Messages arrive as AI SDK UIMessages, ge
 Two ways: (1) `LLM_REQUEST_DELAY_SECONDS` adds a delay before each LLM call; (2) if OpenAI-compatible provider returns HTTP 429, the handler catches it and streams a friendly "Rate limited" text message instead of an error.
 
 ### How do I change the LLM provider?
-Set `LLM_PROVIDER` in `.env`:
+Primary path: configure providers in the wizard (`/provider-settings`) and switch with:
+- `/provider list`
+- `/provider set <name>`
+
+Fallback path: set `LLM_PROVIDER` in `.env`:
 - `openai`: use `OPENAI_API_KEY` (+ optional `OPENAI_API_BASE_URL`, `OPENAI_MODEL`)
 - `anthropic`: use `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`)
 - `claude_code`: use local `claude` CLI (authenticated)
 - `codex`: use local `codex` CLI (authenticated)
 - `gemini_cli`: use local `gemini` CLI (authenticated)
 
-If `LLM_PROVIDER` is omitted, the backend auto-selects based on available credentials.
+If no active DB provider exists, backend falls back to `.env` auto-selection.
 
 ## Related Skills
 

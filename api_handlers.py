@@ -8,6 +8,7 @@ aiohttp request handlers that return web.Response.
 
 import json
 import logging
+import shutil
 
 from aiohttp import web
 
@@ -20,6 +21,8 @@ import comfyui_examples
 import web_search
 import web_content
 import node_registry
+import provider_manager
+import provider_store
 
 logger = logging.getLogger("ComfyUI_ComfyAssistant.api")
 
@@ -268,6 +271,188 @@ def register_routes(app, handlers: dict) -> None:
         web.patch("/api/user-context/skills/{slug}", handlers["skill_update"]),
         web.get("/api/system-context/skills", handlers["system_context_skills_list"]),
         web.get("/api/system-context/skills/{slug}", handlers["system_context_skill_get"]),
+    ])
+
+
+def _provider_record_for_response(provider: dict) -> dict:
+    item = dict(provider)
+    encoded = item.pop("api_key", None)
+    if isinstance(encoded, str) and encoded:
+        try:
+            decoded = provider_store.decode_api_key(encoded)
+        except Exception:
+            decoded = ""
+        item["api_key_preview"] = (
+            f"{decoded[:4]}...{decoded[-4:]}" if len(decoded) > 8 else "****"
+        )
+    return item
+
+
+def create_provider_handlers() -> dict:
+    """Create handler functions for provider configuration endpoints."""
+
+    async def providers_status_handler(_request: web.Request) -> web.Response:
+        provider_store.init_providers_db()
+        providers = provider_store.get_all_providers()
+        active = provider_store.get_active_provider()
+        return web.json_response({
+            "needsWizard": len(providers) == 0,
+            "hasProviders": len(providers) > 0,
+            "activeProvider": active["name"] if active else None,
+        })
+
+    async def providers_list_handler(_request: web.Request) -> web.Response:
+        provider_store.init_providers_db()
+        providers = provider_store.get_all_providers()
+        masked = [_provider_record_for_response(p) for p in providers]
+        return web.json_response({"providers": masked})
+
+    async def providers_create_handler(request: web.Request) -> web.Response:
+        try:
+            data = await request.json() if request.body_exists else {}
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+        provider_type = str(data.get("provider_type") or "")
+        valid, error = provider_store.validate_provider_config(provider_type, data)
+        if not valid:
+            return web.json_response({"error": error}, status=400)
+
+        if data.get("api_key"):
+            data["api_key"] = provider_store.encode_api_key(str(data["api_key"]))
+
+        try:
+            provider = provider_store.create_provider(data)
+        except Exception as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
+        if provider.get("is_active"):
+            provider_manager.reload_provider()
+
+        return web.json_response({"provider": _provider_record_for_response(provider)})
+
+    async def providers_update_handler(request: web.Request) -> web.Response:
+        name = request.match_info["name"]
+        existing = provider_store.get_provider_by_name(name)
+        if existing is None:
+            return web.json_response({"error": "Provider not found"}, status=404)
+
+        try:
+            data = await request.json() if request.body_exists else {}
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+        merged = {**existing, **data}
+        provider_type = str(merged.get("provider_type") or "")
+        if provider_type in {"openai", "anthropic"}:
+            if data.get("api_key"):
+                merged["api_key"] = str(data["api_key"])
+            elif existing.get("api_key"):
+                merged["api_key"] = provider_store.decode_api_key(existing["api_key"])
+            else:
+                merged["api_key"] = ""
+
+        valid, error = provider_store.validate_provider_config(provider_type, merged)
+        if not valid:
+            return web.json_response({"error": error}, status=400)
+
+        update_data = dict(data)
+        if update_data.get("api_key"):
+            update_data["api_key"] = provider_store.encode_api_key(
+                str(update_data["api_key"])
+            )
+
+        try:
+            provider = provider_store.update_provider(name, update_data)
+        except Exception as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
+        if provider.get("is_active"):
+            provider_manager.reload_provider()
+
+        return web.json_response({"provider": _provider_record_for_response(provider)})
+
+    async def providers_delete_handler(request: web.Request) -> web.Response:
+        name = request.match_info["name"]
+        existing = provider_store.get_provider_by_name(name)
+        if existing is None:
+            return web.json_response({"error": "Provider not found"}, status=404)
+        success = provider_store.delete_provider(name)
+        if not success:
+            return web.json_response({"error": "Provider not found"}, status=404)
+        if existing.get("is_active"):
+            provider_manager.reload_provider()
+        return web.json_response({"ok": True})
+
+    async def providers_activate_handler(request: web.Request) -> web.Response:
+        name = request.match_info["name"]
+        success = provider_store.set_active_provider(name)
+        if not success:
+            return web.json_response({"error": "Provider not found"}, status=404)
+        provider_manager.reload_provider()
+        return web.json_response({"ok": True, "activeProvider": name})
+
+    async def providers_test_handler(request: web.Request) -> web.Response:
+        name = request.match_info["name"]
+        success, message = await provider_manager.test_provider_connection(name)
+        return web.json_response({"success": success, "message": message})
+
+    async def providers_test_config_handler(request: web.Request) -> web.Response:
+        try:
+            data = await request.json() if request.body_exists else {}
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+        provider_type = str(data.get("provider_type") or "")
+        valid, error = provider_store.validate_provider_config(provider_type, data)
+        if not valid:
+            return web.json_response({"success": False, "message": error})
+        success, message = await provider_manager.test_provider_config(data)
+        return web.json_response({"success": success, "message": message})
+
+    async def providers_cli_status_handler(_request: web.Request) -> web.Response:
+        claude_path = shutil.which("claude")
+        codex_path = shutil.which("codex")
+        gemini_path = shutil.which("gemini")
+        return web.json_response({
+            "claude_code": {
+                "available": bool(claude_path),
+                "detectedPath": claude_path,
+            },
+            "codex": {
+                "available": bool(codex_path),
+                "detectedPath": codex_path,
+            },
+            "gemini_cli": {
+                "available": bool(gemini_path),
+                "detectedPath": gemini_path,
+            },
+        })
+
+    return {
+        "providers_status": providers_status_handler,
+        "providers_list": providers_list_handler,
+        "providers_create": providers_create_handler,
+        "providers_update": providers_update_handler,
+        "providers_delete": providers_delete_handler,
+        "providers_activate": providers_activate_handler,
+        "providers_test": providers_test_handler,
+        "providers_test_config": providers_test_config_handler,
+        "providers_cli_status": providers_cli_status_handler,
+    }
+
+
+def register_provider_routes(app, handlers: dict) -> None:
+    """Register provider configuration API routes on the aiohttp app."""
+    app.add_routes([
+        web.get("/api/providers/status", handlers["providers_status"]),
+        web.get("/api/providers", handlers["providers_list"]),
+        web.post("/api/providers", handlers["providers_create"]),
+        web.patch("/api/providers/{name}", handlers["providers_update"]),
+        web.delete("/api/providers/{name}", handlers["providers_delete"]),
+        web.post("/api/providers/{name}/activate", handlers["providers_activate"]),
+        web.post("/api/providers/{name}/test", handlers["providers_test"]),
+        web.post("/api/providers/test-config", handlers["providers_test_config"]),
+        web.get("/api/providers/cli-status", handlers["providers_cli_status"]),
     ])
 
 
