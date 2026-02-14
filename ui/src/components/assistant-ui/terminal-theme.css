@@ -3,6 +3,14 @@
    Replaces assistant-ui-theme.css + chat-styles.css
    ============================================ */
 
+/* ComfyUI bottom panel that wraps the Assistant tab - remove grey box/rounded look */
+[data-comfy-assistant-panel='true'] {
+  background: #0f0f0f !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 /* ============================================
    Root & Thread
    ============================================ */
@@ -546,7 +554,7 @@
   letter-spacing: 0.05em;
 }
 
-/* Tool fallback (tool calls) - terminal style */
+/* Tool fallback (tool calls) - terminal log line style */
 #comfyui-assistant-root .aui-tool-fallback-root,
 #comfyui-assistant-root .aui-tool-fallback-trigger,
 #comfyui-assistant-root .aui-tool-fallback-content,
@@ -554,35 +562,81 @@
 #comfyui-assistant-root .aui-tool-fallback-result,
 #comfyui-assistant-root .aui-tool-fallback-error {
   font-family: inherit;
-  font-size: 14px;
+  border: none !important;
 }
 
-#comfyui-assistant-root .aui-tool-fallback-root {
-  border-radius: 0;
-  border: none;
-  background: #141414;
-  padding: 0.25rem 0.5rem;
+/* Terminal log line: no card/box; inline styles on component enforce this */
+#comfyui-assistant-root .aui-tool-fallback-root,
+#comfyui-assistant-root .comfy-assistant-tool-line {
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.125rem 0 !important;
+  box-shadow: none !important;
 }
 
 #comfyui-assistant-root .aui-tool-fallback-trigger {
-  color: hsl(var(--foreground));
-  padding: 0.25rem 0;
-  font-size: 13px;
+  color: hsl(var(--terminal-dim)) !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0.125rem 0 0.125rem 2ch !important;
+  font-size: 15px !important;
+  font-style: italic !important;
+  line-height: 1.5 !important;
   letter-spacing: 0.01em;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-trigger:hover {
+  color: hsl(var(--foreground));
+  background: transparent !important;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-trigger-label-wrapper,
+#comfyui-assistant-root .aui-tool-fallback-trigger-label-wrapper span {
+  color: hsl(var(--terminal-dim)) !important;
+  font-style: italic !important;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-trigger-icon,
+#comfyui-assistant-root .aui-tool-fallback-prefix {
+  color: hsl(var(--terminal-dim)) !important;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-trigger:hover .aui-tool-fallback-trigger-label-wrapper,
+#comfyui-assistant-root .aui-tool-fallback-trigger:hover .aui-tool-fallback-trigger-label-wrapper span {
+  color: hsl(var(--foreground)) !important;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-trigger:hover .aui-tool-fallback-trigger-icon,
+#comfyui-assistant-root .aui-tool-fallback-trigger:hover .aui-tool-fallback-prefix {
+  color: hsl(var(--foreground)) !important;
 }
 
 #comfyui-assistant-root .aui-tool-fallback-content {
   color: hsl(var(--foreground));
+  font-size: 13px;
+  border: none !important;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-detail {
+  border: none !important;
+}
+
+#comfyui-assistant-root .aui-tool-fallback-content .aui-tool-fallback-args,
+#comfyui-assistant-root .aui-tool-fallback-content .aui-tool-fallback-result,
+#comfyui-assistant-root .aui-tool-fallback-content .aui-tool-fallback-error {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 #comfyui-assistant-root .aui-tool-fallback-args-value,
 #comfyui-assistant-root .aui-tool-fallback-result-content {
   font-family: inherit;
-  font-size: 16px;
-  background: #101010;
+  font-size: 13px;
+  background: transparent;
   border: none;
   border-radius: 0;
-  padding: 0.35rem 0.5rem;
+  padding: 0.25rem 0;
 }
 
 /* Action bar in messages - terminal font */

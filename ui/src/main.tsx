@@ -98,8 +98,10 @@ async function initializeExtension(): Promise<void> {
           type: 'custom' as const,
           render: (element: HTMLElement) => {
             console.log('Rendering ComfyUI Assistant (bottom panel)')
+            // Override ComfyUI/PrimeVue panel styles so the Assistant tab has terminal look (no grey box/rounded panel)
+            element.setAttribute('data-comfy-assistant-panel', 'true')
             element.style.cssText =
-              'height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column'
+              'height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column;background:#0f0f0f;border:none;border-radius:0;box-shadow:none'
             const container = document.createElement('div')
             container.id = 'comfyui-assistant-root'
             container.style.cssText =

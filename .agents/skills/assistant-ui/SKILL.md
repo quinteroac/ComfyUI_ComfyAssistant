@@ -15,7 +15,7 @@ How ComfyUI Assistant uses the assistant-ui library. For generic library referen
 |------|---------|
 | `ui/src/components/assistant-ui/thread.tsx` | Main Thread component: messages, composer, slash command autocomplete, branch picker |
 | `ui/src/components/assistant-ui/markdown-text.tsx` | Markdown rendering for assistant messages (syntax highlighting, code blocks) |
-| `ui/src/components/assistant-ui/tool-fallback.tsx` | Renders tool call results inline (name, status, expandable details) |
+| `ui/src/components/assistant-ui/tool-fallback.tsx` | Renders tool calls as terminal log lines (prefix `›`, name, status icon); details (args, result, error) expand on click |
 | `ui/src/components/assistant-ui/attachment.tsx` | File attachment display |
 | `ui/src/components/assistant-ui/onboarding.tsx` | First-time onboarding flow (personality, goals) |
 | `ui/src/components/assistant-ui/thread-list.tsx` | Thread list (hidden in UI; sessions managed via slash commands) |
@@ -40,7 +40,7 @@ The chat uses a terminal aesthetic, not a typical chat bubble UI:
 ### Assistant Messages
 1. **Text parts**: Rendered via `MarkdownText` component (hidden raw text, visible markdown)
 2. **Reasoning parts**: Collapsible `<details>` block with "Reasoning" summary
-3. **Tool parts**: Rendered via `ToolFallback` component (shows tool name, status, expandable JSON)
+3. **Tool parts**: Rendered via `ToolFallback` component. Each tool appears as a single terminal-style log line (prefix `›`, status icon, tool name, chevron). Collapsed by default; click to expand args, result, or error. Styling matches terminal dim/foreground; no card or box so the chat stays readable.
 
 ### User Messages
 - Simple text with `>` prefix
