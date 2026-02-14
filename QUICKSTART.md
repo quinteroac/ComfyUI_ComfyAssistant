@@ -46,6 +46,16 @@ Try these natural language commands to interact with your graph:
 - `"Connect the VAE output of the loader to the VAE input of the decode node"`
 - `"Set the steps to 25 and CFG to 7.5 on the sampler"`
 
+### 4. Apply Complete Workflows (by model)
+The assistant can load **full workflows** in one go instead of adding nodes one by one:
+
+- `"Load the official SDXL workflow"`
+- `"I want a Flux dev text-to-image workflow"`
+- `"Apply the Wan 2.1 video generation template"`
+- `"Give me a complete img2img workflow with upscale"`
+
+It will search the template library or generate the workflow and apply it to the canvas. If required models are missing, the assistant will tell you what to download and where.
+
 ---
 
 ## Advanced Features
