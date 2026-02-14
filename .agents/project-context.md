@@ -135,6 +135,7 @@ ComfyUI_ComfyAssistant/
 ├── user_context_store.py     # SQLite store for rules, preferences, onboarding
 ├── provider_store.py         # SQLite store for provider configs (providers.db)
 ├── provider_manager.py       # Runtime provider config selection + connection tests
+├── provider_streaming.py     # Extracted provider streaming generators (OpenAI/Anthropic/CLI adapters)
 ├── user_context_loader.py     # load_system_context, load_user_context, load_environment_summary
 ├── tools_definitions.py       # Backend tool declarations (single source of truth) ⭐
 ├── environment_scanner.py     # Scan installed nodes, packages, models (Phase 3)

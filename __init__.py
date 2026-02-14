@@ -5,9 +5,8 @@ import logging
 import uuid
 import re
 import shutil
-import tempfile
 import server
-from aiohttp import web, ClientSession
+from aiohttp import web
 import folder_paths
 import nodes
 import importlib
@@ -36,19 +35,7 @@ import provider_manager
 import provider_store
 from tools_definitions import TOOLS
 from message_transforms import (
-    _build_cli_tool_prompt,
-    _cli_response_schema,
-    _cli_tool_specs,
     _extract_content,
-    _extract_json_from_text,
-    _merge_adjacent_anthropic_messages,
-    _normalize_cli_structured_response,
-    _normalize_tool_result_content,
-    _openai_messages_to_anthropic,
-    _openai_messages_to_cli_prompt,
-    _openai_tools_to_anthropic,
-    _parse_cli_tool_calls,
-    _stringify_message_content,
     _ui_messages_to_openai,
 )
 from context_management import (
@@ -58,16 +45,18 @@ from context_management import (
     LLM_USER_CONTEXT_MAX_CHARS,
     _build_conversation_summary,
     _build_tool_name_map,
-    _compact_messages_for_retry,
     _count_request_tokens,
-    _estimate_tokens,
     _format_context_log_summary,
     _smart_truncate_system_context,
-    _summarize_section,
-    _summarize_tool_result,
     _trim_old_tool_results,
     _trim_openai_history,
-    _truncate_chars,
+)
+from provider_streaming import (
+    stream_anthropic,
+    stream_claude_code,
+    stream_codex,
+    stream_gemini_cli,
+    stream_openai,
 )
 
 
@@ -208,31 +197,6 @@ def _selected_llm_provider() -> str:
     if _has_anthropic_credentials():
         return "anthropic"
     return "openai"
-
-
-async def _run_cli_command(
-    cmd: list[str],
-    timeout_seconds: int,
-) -> tuple[int, str, str, bool]:
-    """Run a CLI command with timeout, returning rc/stdout/stderr/timed_out."""
-    process = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    try:
-        stdout, stderr = await asyncio.wait_for(
-            process.communicate(),
-            timeout=timeout_seconds,
-        )
-        out_str = stdout.decode("utf-8", errors="replace")
-        err_str = stderr.decode("utf-8", errors="replace")
-        rc = process.returncode or 0
-        return (rc, out_str, err_str, False)
-    except asyncio.TimeoutError:
-        process.kill()
-        await process.wait()
-        return (124, "", f"Timed out after {timeout_seconds}s", True)
 
 
 def _stream_ai_sdk_text(text: str, message_id: str):
@@ -444,26 +408,6 @@ print(f"Dist locales path: {dist_locales_path}")
 print(f"Locales exist: {os.path.exists(dist_locales_path)}")
 
 
-def _parse_thinking_tags(text: str) -> tuple[list, str]:
-    """Parse <think> tags from text and return reasoning parts + cleaned text."""
-    import re
-
-    reasoning_parts = []
-    # Find all <think>...</think> blocks
-    think_pattern = r'<think>(.*?)</think>'
-    matches = re.finditer(think_pattern, text, re.DOTALL)
-
-    for match in matches:
-        thinking_text = match.group(1).strip()
-        if thinking_text:
-            reasoning_parts.append(thinking_text)
-
-    # Remove all <think> tags from text
-    cleaned_text = re.sub(think_pattern, '', text, flags=re.DOTALL).strip()
-
-    return reasoning_parts, cleaned_text
-
-
 def _get_last_user_text(messages: list) -> str:
     """Extract the most recent user text from UI messages."""
     for msg in reversed(messages):
@@ -525,6 +469,12 @@ async def chat_api_handler(request: web.Request) -> web.Response:
                     await resp.write(chunk)
                 return resp
     openai_messages = _ui_messages_to_openai(messages)
+
+    # DEBUG: Log to diagnose duplication
+    logger.info("[DEBUG] Input messages count: %d", len(messages))
+    logger.info("[DEBUG] Converted openai_messages count: %d", len(openai_messages))
+    for i, msg in enumerate(openai_messages):
+        logger.info("[DEBUG] Message %d: role=%s content=%s", i, msg.get("role"), str(msg.get("content", ""))[:100])
 
     # Context pipeline metrics (collected throughout the handler)
     metrics: dict = {}
@@ -801,675 +751,77 @@ async def chat_api_handler(request: web.Request) -> web.Response:
     else:
         response_headers = UI_MESSAGE_STREAM_HEADERS
 
-    async def stream_openai():
-        # Call an OpenAI-compatible API and stream response.
-        from openai import AsyncOpenAI
-        # Limit retries on 429 so we fail fast and show a clear message instead of long waits.
-        client = AsyncOpenAI(
-            api_key=openai_api_key,
-            base_url=openai_base_url,
-            max_retries=2,
-        )
-
-        text_id = f"msg_{uuid.uuid4().hex[:24]}"
-        reasoning_id = None
-        buffer = ""
-        reasoning_sent = False
-        text_sent = False  # True once we have sent at least one text-delta (so UI shows a message)
-        text_start_emitted = False  # True after we emit text-start (only once per message)
-        text_end_sent = False  # True after we emit text-end (must be before tool-input-available for client)
-        # Buffer for accumulating tool call chunks
-        tool_calls_buffer = {}
-        # Accumulate assistant response for debug log
-        response_text_parts = []
-        response_tool_calls = []
-        # Capture finish_reason and usage from the LLM streaming response (last chunk)
-        llm_finish_reason = None
-        usage_prompt_tokens = None
-        usage_completion_tokens = None
-
-        yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
-
-        try:
-            await asyncio.sleep(LLM_REQUEST_DELAY_SECONDS)
-
-            # Retry with automatic compaction on 413 / context-too-large
-            retry_messages = openai_messages
-            stream = None
-            for _compact_attempt in range(_MAX_CONTEXT_COMPACT_RETRIES + 1):
-                try:
-                    stream = await client.chat.completions.create(
-                        model=openai_model,
-                        messages=retry_messages,
-                        tools=TOOLS_DEFINITIONS,
-                        tool_choice="auto",
-                        stream=True,
-                    )
-                    break  # create() succeeded
-                except Exception as create_exc:
-                    if _compact_attempt < _MAX_CONTEXT_COMPACT_RETRIES and _is_context_too_large_error(create_exc):
-                        logger.warning(
-                            "[ComfyAssistant] context too large (compact attempt %d/%d), "
-                            "applying automatic compaction...",
-                            _compact_attempt + 1,
-                            _MAX_CONTEXT_COMPACT_RETRIES,
-                        )
-                        retry_messages = _compact_messages_for_retry(
-                            retry_messages, _compact_attempt + 1
-                        )
-                        new_est = _count_request_tokens(retry_messages)
-                        logger.info(
-                            "[ComfyAssistant] compacted: %d messages, ~%d tokens (was ~%d)",
-                            len(retry_messages),
-                            new_est,
-                            request_tokens_est,
-                        )
-                        continue
-                    raise  # non-retryable or final attempt — propagate to outer handler
-
-            async for chunk in stream:
-                choice = chunk.choices[0] if chunk.choices else None
-                if not choice:
-                    continue
-
-                # Last chunk may carry finish_reason and usage
-                if choice.finish_reason:
-                    llm_finish_reason = choice.finish_reason
-                if getattr(chunk, "usage", None):
-                    u = chunk.usage
-                    if getattr(u, "prompt_tokens", None) is not None:
-                        usage_prompt_tokens = u.prompt_tokens
-                    if getattr(u, "completion_tokens", None) is not None:
-                        usage_completion_tokens = u.completion_tokens
-
-                delta = choice.delta
-                
-                # Handle text content
-                if delta.content:
-                    buffer += delta.content
-
-                    # Check if we have complete thinking blocks
-                    if '<think>' in buffer and '</think>' in buffer:
-                        reasoning_parts, cleaned_text = _parse_thinking_tags(buffer)
-
-                        # Send reasoning parts
-                        for reasoning_text in reasoning_parts:
-                            if not reasoning_sent:
-                                reasoning_id = f"reasoning_{uuid.uuid4().hex[:24]}"
-                                yield _sse_line({"type": "reasoning-start", "id": reasoning_id}).encode("utf-8")
-                                reasoning_sent = True
-                            yield _sse_line({"type": "reasoning-delta", "id": reasoning_id, "delta": reasoning_text}).encode("utf-8")
-
-                        if reasoning_sent and reasoning_id:
-                            yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
-                            reasoning_sent = False
-
-                        # Start text part for cleaned content (only once)
-                        if cleaned_text and not text_start_emitted:
-                            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                            text_start_emitted = True
-
-                        if cleaned_text:
-                            yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
-                            text_sent = True
-                            response_text_parts.append(cleaned_text)
-
-                        buffer = ""
-                    else:
-                        # Stream normally if no complete thinking blocks yet
-                        if not '<think>' in buffer:
-                            if not text_start_emitted:
-                                yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                                text_start_emitted = True
-                            yield _sse_line({"type": "text-delta", "id": text_id, "delta": delta.content}).encode("utf-8")
-                            text_sent = True
-                            response_text_parts.append(delta.content)
-                            buffer = ""
-                
-                # Handle tool calls (Data Stream Protocol format)
-                if delta.tool_calls:
-                    for tool_call_delta in delta.tool_calls:
-                        index = tool_call_delta.index
-                        
-                        # Initialize tool call buffer if needed
-                        if index not in tool_calls_buffer:
-                            tool_calls_buffer[index] = {
-                                "id": "",
-                                "name": "",
-                                "arguments": "",
-                                "completed": False,
-                            }
-                        tool_call_data = tool_calls_buffer[index]
-                        if tool_call_delta.id:
-                            tool_call_data["id"] = tool_call_delta.id
-                        if tool_call_delta.function:
-                            if tool_call_delta.function.name:
-                                tool_call_data["name"] = tool_call_delta.function.name
-                            if tool_call_delta.function.arguments:
-                                tool_call_data["arguments"] += tool_call_delta.function.arguments
-                        # Do not emit tool-input-start / tool-input-delta here. Emitting
-                        # only tool-input-available at the end avoids duplicate keys in
-                        # assistant-ui (Duplicate key toolCallId-... in tapResources),
-                        # which can occur when the client processes tool-input-available
-                        # before the part from tool-input-start is committed.
-
-            # Process any remaining buffer
-            if buffer:
-                reasoning_parts, cleaned_text = _parse_thinking_tags(buffer)
-
-                for reasoning_text in reasoning_parts:
-                    reasoning_id = f"reasoning_{uuid.uuid4().hex[:24]}"
-                    yield _sse_line({"type": "reasoning-start", "id": reasoning_id}).encode("utf-8")
-                    yield _sse_line({"type": "reasoning-delta", "id": reasoning_id, "delta": reasoning_text}).encode("utf-8")
-                    yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
-
-                if cleaned_text:
-                    if not text_start_emitted:
-                        yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                        text_start_emitted = True
-                    yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
-                    text_sent = True
-                    response_text_parts.append(cleaned_text)
-
-            # Do NOT emit placeholder text when model returns only tool calls.
-            # assistant-ui already renders tool-call parts, so the UI won't be empty.
-
-            # Close text part before tool calls so the client can finalize the message and run tools
-            if text_sent and text_id and not text_end_sent:
-                yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-                text_end_sent = True
-
-            # Emit tool-input-available for all complete tool calls
-            for index, tool_call in tool_calls_buffer.items():
-                if tool_call["id"] and tool_call["name"] and tool_call["arguments"] and not tool_call["completed"]:
-                    try:
-                        args = json.loads(tool_call["arguments"])
-                        response_tool_calls.append({"name": tool_call["name"], "input": args})
-                        yield _sse_line({
-                            "type": "tool-input-available",
-                            "toolCallId": tool_call["id"],
-                            "toolName": tool_call["name"],
-                            "input": args
-                        }).encode("utf-8")
-                        tool_call["completed"] = True
-                    except json.JSONDecodeError:
-                        # JSON not valid yet, skip
-                        pass
-
-            # Token count for this request (real usage or estimate)
-            out_tokens = usage_completion_tokens
-            if out_tokens is None:
-                out_tokens = _estimate_tokens("".join(response_text_parts))
-            in_tokens = usage_prompt_tokens if usage_prompt_tokens is not None else request_tokens_est
-            logger.info(
-                "[ComfyAssistant] tokens in=%s out=%s provider=openai",
-                in_tokens,
-                out_tokens,
-            )
-
-        except Exception as e:
-            logger.debug("LLM request failed: %s", e, exc_info=True)
-            status = getattr(e, "status_code", None) or (
-                getattr(getattr(e, "response", None), "status_code", None)
-            )
-            if status == 429:
-                yield _sse_line({
-                    "type": "error",
-                    "errorText": "Rate limit exceeded (429). Please wait a minute and try again.",
-                }).encode("utf-8")
-            elif _is_context_too_large_error(e):
-                yield _sse_line({
-                    "type": "error",
-                    "errorText": (
-                        "Context too large for the model even after automatic compaction. "
-                        "Try starting a new conversation or reducing history."
-                    ),
-                }).encode("utf-8")
-            else:
-                yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
-
-        if text_sent and text_id and not text_end_sent:
-            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-        # Map OpenAI finish_reason to AI SDK format (underscore → hyphen)
-        finish_reason_map = {
-            "stop": "stop",
-            "tool_calls": "tool-calls",
-            "length": "length",
-            "content_filter": "content-filter",
-        }
-        ai_finish = finish_reason_map.get(llm_finish_reason or "stop", "stop")
-        yield _sse_line({"type": "finish", "finishReason": ai_finish}).encode("utf-8")
-        yield "data: [DONE]\n\n".encode("utf-8")
-
-    async def stream_anthropic():
-        text_id = f"msg_{uuid.uuid4().hex[:24]}"
-        text_sent = False
-        text_start_emitted = False
-        text_end_sent = False
-        response_text_parts = []
-        response_tool_calls = []
-        pending_tool_calls = []
-        ai_finish = "stop"
-
-        yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
-
-        headers = {
-            "Content-Type": "application/json",
-            "anthropic-version": "2023-06-01",
-        }
-        headers["x-api-key"] = anthropic_api_key
-
-        try:
-            await asyncio.sleep(LLM_REQUEST_DELAY_SECONDS)
-
-            # Retry with automatic compaction on 413 / context-too-large
-            retry_messages = openai_messages
-            api_data = None  # parsed JSON response on success
-            for _compact_attempt in range(_MAX_CONTEXT_COMPACT_RETRIES + 1):
-                system_text, anthropic_messages = _openai_messages_to_anthropic(
-                    retry_messages
-                )
-                payload = {
-                    "model": anthropic_model,
-                    "max_tokens": anthropic_max_tokens,
-                    "messages": anthropic_messages,
-                    "tools": _openai_tools_to_anthropic(TOOLS_DEFINITIONS),
-                    "tool_choice": {"type": "auto"},
-                }
-                if system_text:
-                    payload["system"] = system_text
-
-                async with ClientSession() as session:
-                    async with session.post(
-                        f"{anthropic_base_url}/v1/messages",
-                        headers=headers,
-                        json=payload,
-                    ) as response:
-                        response_text = await response.text()
-
-                        # Check for context-too-large and retry with compaction
-                        if _is_context_too_large_response(response.status, response_text):
-                            if _compact_attempt < _MAX_CONTEXT_COMPACT_RETRIES:
-                                logger.warning(
-                                    "[ComfyAssistant] context too large (compact attempt %d/%d), "
-                                    "applying automatic compaction...",
-                                    _compact_attempt + 1,
-                                    _MAX_CONTEXT_COMPACT_RETRIES,
-                                )
-                                retry_messages = _compact_messages_for_retry(
-                                    retry_messages, _compact_attempt + 1
-                                )
-                                new_est = _count_request_tokens(retry_messages)
-                                logger.info(
-                                    "[ComfyAssistant] compacted: %d messages, ~%d tokens (was ~%d)",
-                                    len(retry_messages),
-                                    new_est,
-                                    request_tokens_est,
-                                )
-                                continue
-                            # Exhausted retries — show user-friendly error
-                            yield _sse_line({
-                                "type": "error",
-                                "errorText": (
-                                    "Context too large for the model even after automatic compaction. "
-                                    "Try starting a new conversation or reducing history."
-                                ),
-                            }).encode("utf-8")
-                            break
-
-                        if response.status >= 400:
-                            if response.status == 429:
-                                yield _sse_line({
-                                    "type": "error",
-                                    "errorText": "Rate limit exceeded (429). Please wait a minute and try again.",
-                                }).encode("utf-8")
-                            else:
-                                error_detail = ""
-                                try:
-                                    error_obj = json.loads(response_text)
-                                    if isinstance(error_obj, dict):
-                                        error = error_obj.get("error", {})
-                                        if isinstance(error, dict):
-                                            error_detail = error.get("message", "")
-                                except json.JSONDecodeError:
-                                    pass
-                                message = error_detail or response_text or "Unknown provider error"
-                                yield _sse_line({
-                                    "type": "error",
-                                    "errorText": f"Anthropic API error ({response.status}): {message}",
-                                }).encode("utf-8")
-                            break
-                        # Success — process response content
-                        api_data = json.loads(response_text)
-                        break  # exit retry loop
-
-            # Process successful response (if any)
-            if api_data is not None:
-                blocks = api_data.get("content", [])
-                stop_reason = api_data.get("stop_reason")
-                if stop_reason == "tool_use":
-                    ai_finish = "tool-calls"
-                elif stop_reason == "max_tokens":
-                    ai_finish = "length"
-
-                for block in blocks:
-                    if not isinstance(block, dict):
-                        continue
-                    block_type = block.get("type")
-                    if block_type == "text":
-                        text = block.get("text", "")
-                        if not text:
-                            continue
-                        if not text_start_emitted:
-                            yield _sse_line({
-                                "type": "text-start",
-                                "id": text_id
-                            }).encode("utf-8")
-                            text_start_emitted = True
-                        yield _sse_line({
-                            "type": "text-delta",
-                            "id": text_id,
-                            "delta": text
-                        }).encode("utf-8")
-                        text_sent = True
-                        response_text_parts.append(text)
-
-                    if block_type == "tool_use":
-                        tool_call_id = block.get("id", "")
-                        tool_name = block.get("name", "")
-                        tool_input = block.get("input", {})
-                        if tool_call_id and tool_name:
-                            call_payload = {
-                                "name": tool_name,
-                                "input": tool_input,
-                            }
-                            response_tool_calls.append(call_payload)
-                            pending_tool_calls.append({
-                                "toolCallId": tool_call_id,
-                                "toolName": tool_name,
-                                "input": tool_input if isinstance(tool_input, dict) else {}
-                            })
-                usage = api_data.get("usage") or {}
-                in_tok = usage.get("input_tokens") or request_tokens_est
-                out_tok = usage.get("output_tokens")
-                if out_tok is None:
-                    out_tok = _estimate_tokens("".join(response_text_parts))
-                logger.info(
-                    "[ComfyAssistant] tokens in=%s out=%s provider=anthropic",
-                    in_tok,
-                    out_tok,
-                )
-        except Exception as e:
-            logger.debug("Anthropic request failed: %s", e, exc_info=True)
-            yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
-
-        if text_sent and text_id and not text_end_sent:
-            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-            text_end_sent = True
-        for tool_call in pending_tool_calls:
-            yield _sse_line({
-                "type": "tool-input-available",
-                "toolCallId": tool_call["toolCallId"],
-                "toolName": tool_call["toolName"],
-                "input": tool_call["input"],
-            }).encode("utf-8")
-        yield _sse_line({"type": "finish", "finishReason": ai_finish}).encode("utf-8")
-        yield "data: [DONE]\n\n".encode("utf-8")
-
-    async def stream_claude_code():
-        text_id = f"msg_{uuid.uuid4().hex[:24]}"
-        yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
-
-        prompt = _build_cli_tool_prompt(openai_messages)
-        schema_json = json.dumps(_cli_response_schema(), ensure_ascii=False)
-        cmd = [claude_code_command, "-p", prompt]
-        if claude_code_model:
-            cmd.extend(["--model", claude_code_model])
-        cmd.extend(["--output-format", "json", "--json-schema", schema_json])
-
-        rc, stdout, stderr, timed_out = await _run_cli_command(
-            cmd,
-            cli_provider_timeout_seconds,
-        )
-        if timed_out:
-            yield _sse_line({
-                "type": "error",
-                "errorText": stderr,
-            }).encode("utf-8")
-            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-            yield "data: [DONE]\n\n".encode("utf-8")
-            return
-
-        if rc != 0:
-            message = stderr.strip() or stdout.strip() or f"{claude_code_command} exited with code {rc}"
-            yield _sse_line({"type": "error", "errorText": message}).encode("utf-8")
-            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-            yield "data: [DONE]\n\n".encode("utf-8")
-            return
-
-        text, tool_calls = _normalize_cli_structured_response(stdout)
-        # Token count: claude_code envelope may include usage
-        parsed_env = _extract_json_from_text(stdout)
-        in_tok = request_tokens_est
-        out_tok = None
-        if isinstance(parsed_env, dict):
-            usage = parsed_env.get("usage") or {}
-            if usage.get("input_tokens") is not None:
-                in_tok = usage["input_tokens"]
-            if usage.get("output_tokens") is not None:
-                out_tok = usage["output_tokens"]
-        if out_tok is None:
-            out_tok = _estimate_tokens(text)
-        logger.info(
-            "[ComfyAssistant] tokens in=%s out=%s provider=claude_code",
-            in_tok,
-            out_tok,
-        )
-        # Send tool calls; only send text if there are NO tool calls
-        # This ensures auto-resubmit works: tool-invocation is the last part
-        for tool_call in tool_calls:
-            yield _sse_line({
-                "type": "tool-input-available",
-                "toolCallId": f"call_{uuid.uuid4().hex[:12]}",
-                "toolName": tool_call["name"],
-                "input": tool_call["input"],
-            }).encode("utf-8")
-        if text and not tool_calls:
-            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-            yield _sse_line({
-                "type": "text-delta",
-                "id": text_id,
-                "delta": text,
-            }).encode("utf-8")
-            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-        finish_reason = "tool-calls" if tool_calls else "stop"
-        yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
-        yield "data: [DONE]\n\n".encode("utf-8")
-
-    async def stream_codex():
-        text_id = f"msg_{uuid.uuid4().hex[:24]}"
-        yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
-
-        prompt = _build_cli_tool_prompt(openai_messages)
-        with tempfile.NamedTemporaryFile(prefix="codex-last-", suffix=".txt", delete=True) as tmp, tempfile.NamedTemporaryFile(prefix="codex-schema-", suffix=".json", mode="w", encoding="utf-8", delete=True) as schema_file:
-            json.dump(_cli_response_schema(), schema_file, ensure_ascii=False)
-            schema_file.flush()
-            cmd = [
-                codex_command,
-                "exec",
-                "--skip-git-repo-check",
-                "--color",
-                "never",
-                "--output-schema",
-                schema_file.name,
-                "-o",
-                tmp.name,
-                prompt,
-            ]
-            if codex_model:
-                cmd.extend(["--model", codex_model])
-
-            rc, stdout, stderr, timed_out = await _run_cli_command(
-                cmd,
-                cli_provider_timeout_seconds,
-            )
-            if timed_out:
-                yield _sse_line({
-                    "type": "error",
-                    "errorText": stderr,
-                }).encode("utf-8")
-                yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-                yield "data: [DONE]\n\n".encode("utf-8")
-                return
-
-            if rc != 0:
-                message = stderr.strip() or stdout.strip() or f"{codex_command} exited with code {rc}"
-                yield _sse_line({"type": "error", "errorText": message}).encode("utf-8")
-                yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-                yield "data: [DONE]\n\n".encode("utf-8")
-                return
-
-            last_message = ""
-            try:
-                with open(tmp.name, "r", encoding="utf-8") as f:
-                    last_message = f.read().strip()
-            except Exception:
-                last_message = ""
-            raw = last_message or stdout.strip()
-            text, tool_calls = _normalize_cli_structured_response(raw)
-            in_tok = request_tokens_est
-            out_tok = _estimate_tokens(text)
-            logger.info(
-                "[ComfyAssistant] tokens in=%s out=%s provider=codex",
-                in_tok,
-                out_tok,
-            )
-            # Send tool calls; only send text if there are NO tool calls
-            # This ensures auto-resubmit works: tool-invocation is the last part
-            for tool_call in tool_calls:
-                yield _sse_line({
-                    "type": "tool-input-available",
-                    "toolCallId": f"call_{uuid.uuid4().hex[:12]}",
-                    "toolName": tool_call["name"],
-                    "input": tool_call["input"],
-                }).encode("utf-8")
-            if text and not tool_calls:
-                yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                yield _sse_line({
-                    "type": "text-delta",
-                    "id": text_id,
-                    "delta": text,
-                }).encode("utf-8")
-                yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-            finish_reason = "tool-calls" if tool_calls else "stop"
-        yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
-        yield "data: [DONE]\n\n".encode("utf-8")
-
-    async def stream_gemini_cli():
-        text_id = f"msg_{uuid.uuid4().hex[:24]}"
-        yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
-
-        prompt = _build_cli_tool_prompt(openai_messages)
-        # Gemini CLI does not support --json-schema; embed schema in prompt text
-        schema_json = json.dumps(_cli_response_schema(), ensure_ascii=False)
-        full_prompt = (
-            prompt
-            + "\n\nIMPORTANT: You MUST respond with a single JSON object matching this schema:\n"
-            + schema_json
-        )
-        cmd = [gemini_cli_command, "-p", full_prompt, "--output-format", "json"]
-        if gemini_cli_model:
-            cmd.extend(["-m", gemini_cli_model])
-
-        rc, stdout, stderr, timed_out = await _run_cli_command(
-            cmd,
-            cli_provider_timeout_seconds,
-        )
-        if timed_out:
-            yield _sse_line({
-                "type": "error",
-                "errorText": stderr,
-            }).encode("utf-8")
-            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-            yield "data: [DONE]\n\n".encode("utf-8")
-            return
-
-        if rc != 0:
-            message = stderr.strip() or stdout.strip() or f"{gemini_cli_command} exited with code {rc}"
-            yield _sse_line({"type": "error", "errorText": message}).encode("utf-8")
-            yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-            yield "data: [DONE]\n\n".encode("utf-8")
-            return
-
-        # Gemini CLI JSON envelope: {"response": "...", "stats": {...}, "error": {...}}
-        # Unwrap the envelope before normalizing.
-        raw = stdout.strip()
-        in_tok = request_tokens_est
-        out_tok = None
-        gemini_env = _extract_json_from_text(raw)
-        if isinstance(gemini_env, dict) and "response" in gemini_env:
-            # Extract token stats from Gemini envelope
-            stats = gemini_env.get("stats")
-            if isinstance(stats, dict):
-                if stats.get("inputTokens") is not None:
-                    in_tok = stats["inputTokens"]
-                elif stats.get("input_tokens") is not None:
-                    in_tok = stats["input_tokens"]
-                if stats.get("outputTokens") is not None:
-                    out_tok = stats["outputTokens"]
-                elif stats.get("output_tokens") is not None:
-                    out_tok = stats["output_tokens"]
-            # Check for Gemini-level error
-            gemini_error = gemini_env.get("error")
-            if isinstance(gemini_error, dict) and gemini_error.get("message"):
-                yield _sse_line({
-                    "type": "error",
-                    "errorText": gemini_error["message"],
-                }).encode("utf-8")
-                yield _sse_line({"type": "finish", "finishReason": "stop"}).encode("utf-8")
-                yield "data: [DONE]\n\n".encode("utf-8")
-                return
-            raw = gemini_env["response"] if isinstance(gemini_env["response"], str) else json.dumps(gemini_env["response"])
-
-        text, tool_calls = _normalize_cli_structured_response(raw)
-        if out_tok is None:
-            out_tok = _estimate_tokens(text)
-        logger.info(
-            "[ComfyAssistant] tokens in=%s out=%s provider=gemini_cli",
-            in_tok,
-            out_tok,
-        )
-        # Send tool calls; only send text if there are NO tool calls
-        # This ensures auto-resubmit works: tool-invocation is the last part
-        for tool_call in tool_calls:
-            yield _sse_line({
-                "type": "tool-input-available",
-                "toolCallId": f"call_{uuid.uuid4().hex[:12]}",
-                "toolName": tool_call["name"],
-                "input": tool_call["input"],
-            }).encode("utf-8")
-        if text and not tool_calls:
-            yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-            yield _sse_line({
-                "type": "text-delta",
-                "id": text_id,
-                "delta": text,
-            }).encode("utf-8")
-            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-        finish_reason = "tool-calls" if tool_calls else "stop"
-        yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
-        yield "data: [DONE]\n\n".encode("utf-8")
-
     if selected_provider == "openai":
-        stream_fn = stream_openai
+        async def stream_fn():
+            async for chunk in stream_openai(
+                message_id=message_id,
+                openai_messages=openai_messages,
+                openai_api_key=openai_api_key,
+                openai_base_url=openai_base_url,
+                openai_model=openai_model,
+                llm_request_delay_seconds=LLM_REQUEST_DELAY_SECONDS,
+                max_context_compact_retries=_MAX_CONTEXT_COMPACT_RETRIES,
+                request_tokens_est=request_tokens_est,
+                logger=logger,
+                is_context_too_large_error=_is_context_too_large_error,
+                count_request_tokens=_count_request_tokens,
+                tools_definitions=TOOLS_DEFINITIONS,
+            ):
+                yield chunk
     elif selected_provider == "anthropic":
-        stream_fn = stream_anthropic
+        async def stream_fn():
+            async for chunk in stream_anthropic(
+                message_id=message_id,
+                openai_messages=openai_messages,
+                anthropic_api_key=anthropic_api_key,
+                anthropic_model=anthropic_model,
+                anthropic_max_tokens=anthropic_max_tokens,
+                anthropic_base_url=anthropic_base_url,
+                llm_request_delay_seconds=LLM_REQUEST_DELAY_SECONDS,
+                max_context_compact_retries=_MAX_CONTEXT_COMPACT_RETRIES,
+                request_tokens_est=request_tokens_est,
+                logger=logger,
+                is_context_too_large_response=_is_context_too_large_response,
+                count_request_tokens=_count_request_tokens,
+                tools_definitions=TOOLS_DEFINITIONS,
+            ):
+                yield chunk
     elif selected_provider == "claude_code":
-        stream_fn = stream_claude_code
+        async def stream_fn():
+            async for chunk in stream_claude_code(
+                message_id=message_id,
+                openai_messages=openai_messages,
+                claude_code_command=claude_code_command,
+                claude_code_model=claude_code_model,
+                cli_provider_timeout_seconds=cli_provider_timeout_seconds,
+                request_tokens_est=request_tokens_est,
+                logger=logger,
+            ):
+                yield chunk
     elif selected_provider == "gemini_cli":
-        stream_fn = stream_gemini_cli
+        async def stream_fn():
+            async for chunk in stream_gemini_cli(
+                message_id=message_id,
+                openai_messages=openai_messages,
+                gemini_cli_command=gemini_cli_command,
+                gemini_cli_model=gemini_cli_model,
+                cli_provider_timeout_seconds=cli_provider_timeout_seconds,
+                request_tokens_est=request_tokens_est,
+                logger=logger,
+            ):
+                yield chunk
     else:
-        stream_fn = stream_codex
+        async def stream_fn():
+            async for chunk in stream_codex(
+                message_id=message_id,
+                openai_messages=openai_messages,
+                codex_command=codex_command,
+                codex_model=codex_model,
+                cli_provider_timeout_seconds=cli_provider_timeout_seconds,
+                request_tokens_est=request_tokens_est,
+                logger=logger,
+            ):
+                yield chunk
 
     async def stream_with_logging():
         if not COMFY_ASSISTANT_ENABLE_LOGS:
