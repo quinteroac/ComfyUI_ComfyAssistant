@@ -319,6 +319,71 @@ except Exception as e:
 result = await api_call()  # Might crash
 ```
 
+## Backend Module Organization
+
+The backend uses a modular architecture where `__init__.py` orchestrates requests and delegates focused responsibilities to specialized modules.
+
+### Module categories
+
+- **Pure Transformation modules**: Convert/normalize data formats without side effects.
+- **Provider modules**: Provider selection, provider-specific streaming, and provider CLI detection.
+- **Command modules**: Parse and execute command-like features (for example slash commands).
+- **Storage modules**: Persistent state and configuration access (SQLite/context stores).
+- **API modules**: HTTP handlers, SSE formatting, and chat orchestration.
+
+### Refactored modules from `__init__.py` (Phases 1-8)
+
+| Module | Category | Responsibility |
+|--------|----------|----------------|
+| `message_transforms.py` | Pure Transformation | Message conversion across UI/OpenAI/Anthropic/CLI formats |
+| `context_management.py` | Pure Transformation | Truncation, history trimming, token estimation, compaction |
+| `provider_streaming.py` | Provider | Provider-specific async streaming generators and retries |
+| `cli_providers.py` | Provider | CLI provider binary discovery and availability checks |
+| `sse_streaming.py` | API | SSE headers, event serialization, and stream helpers |
+| `slash_commands.py` | Command | `/provider` and `/skill` command parsing/dispatch |
+| `chat_utilities.py` | API | Shared chat helpers for parsing and context-too-large detection |
+
+### Module pattern template
+
+Use this template when creating backend modules:
+
+```python
+"""Short module summary."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+logger = logging.getLogger("ComfyUI_ComfyAssistant.example_module")
+
+
+def normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalize a payload into the backend internal shape."""
+    return {
+        "id": str(payload.get("id", "")),
+        "name": str(payload.get("name", "")),
+    }
+
+
+async def execute_action(name: str) -> dict[str, Any]:
+    """Execute one focused action and return a structured result."""
+    if not name:
+        return {"success": False, "error": "name is required"}
+    return {"success": True, "data": {"name": name}}
+
+
+__all__ = ["normalize_payload", "execute_action"]
+```
+
+### Rules for creating new backend modules
+
+- Keep modules under **1,000 lines**; split before crossing that limit.
+- Enforce **single responsibility** per module.
+- Add **type hints** to all function signatures and key internal structures.
+- Add **docstrings** for the module and all public functions.
+- Keep cross-module dependencies directional (helpers should not import orchestrators).
+
 ## File Structure Conventions
 
 ### Directory Organization

@@ -13,7 +13,14 @@ The Python backend lives at the project root. ComfyUI loads `__init__.py` as a c
 
 | File | Purpose |
 |------|---------|
-| `__init__.py` | Entry point: route registration, `chat_api_handler`, SSE streaming, message conversion, auto-scan startup |
+| `__init__.py` | Entry point + orchestrator: route registration and composition of specialized backend modules |
+| `message_transforms.py` | Core layer: pure message transformations across UI/OpenAI/Anthropic/CLI formats |
+| `context_management.py` | Core layer: context trimming, truncation, token estimation, and compaction |
+| `chat_utilities.py` | Core/API helper layer: shared chat helpers and context-too-large detection |
+| `provider_streaming.py` | Provider layer: provider-specific streaming generators (OpenAI/Anthropic/CLI adapters) |
+| `cli_providers.py` | Provider layer: CLI binary discovery for claude/codex/gemini providers |
+| `sse_streaming.py` | API layer: AI SDK SSE headers and event serialization helpers |
+| `slash_commands.py` | Features layer: slash command handling (`/provider`, `/skill`) |
 | `api_handlers.py` | Environment, docs, and skills API handlers (factory pattern via `create_handlers`) |
 | `agent_prompts.py` | `get_system_message()` -- assembles system_context + environment + user_context |
 | `tools_definitions.py` | `TOOLS` list in OpenAI function calling format; `get_tools()`, `get_tool_names()` |
@@ -24,6 +31,44 @@ The Python backend lives at the project root. ComfyUI loads `__init__.py` as a c
 | `environment_scanner.py` | `scan_environment()`, node/package/model scanning, search, cache management |
 | `skill_manager.py` | Create/list/delete/update user skills in `user_context/skills/` |
 | `documentation_resolver.py` | Resolve documentation for node types and topics |
+
+## Refactored Module Structure
+
+### Layered separation of concerns
+
+```
+Core Layer
+├── message_transforms.py
+├── context_management.py
+└── chat_utilities.py
+
+Provider Layer
+├── provider_streaming.py
+└── cli_providers.py
+
+Features Layer
+├── slash_commands.py
+└── sse_streaming.py
+
+Orchestrator
+└── __init__.py (wires modules, registers routes, selects provider path)
+```
+
+### Module dependency graph
+
+```
+__init__.py
+├── message_transforms.py
+├── context_management.py
+├── chat_utilities.py
+├── provider_streaming.py
+│   ├── message_transforms.py
+│   ├── context_management.py
+│   └── sse_streaming.py
+├── cli_providers.py
+├── sse_streaming.py
+└── slash_commands.py
+```
 
 ## `chat_api_handler` Lifecycle
 

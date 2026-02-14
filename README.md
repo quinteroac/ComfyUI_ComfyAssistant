@@ -24,6 +24,7 @@ In the assistant tab you can type for example:
 
 - **AI chat**: React interface (assistant-ui) with streaming, history, markdown, and reasoning blocks.
 - **Tool calling**: The model uses tools that run in the browser (graph) or via the backend (environment, docs, research). Tools can add/remove/connect nodes, set widgets, search installed nodes, get models, read docs, manage user skills, run or load workflows, search the web, and explore the ComfyUI Registry.
+- **Modular backend architecture**: `__init__.py` delegates responsibilities to focused modules (`message_transforms.py`, `context_management.py`, `provider_streaming.py`, `cli_providers.py`, `sse_streaming.py`, `slash_commands.py`, `chat_utilities.py`) for clearer maintenance and safer refactors.
 - **Slash commands**: `/help`, `/clear`, `/compact`, `/new`, `/rename`, `/session`, `/sessions`, `/skill <name>` for session management and skill activation (see [doc/commands.md](doc/commands.md)).
 - **Configurable provider**: OpenAI-compatible, Anthropic API, Claude Code CLI, Gemini CLI, or Codex CLI.
 - **Research capabilities**: Search the web for tutorials/workflows, fetch URL content, and discover custom nodes on the registry.
@@ -87,7 +88,14 @@ See [doc/base-tools.md](doc/base-tools.md) for natural-language examples and det
 
 ```
 ComfyUI_ComfyAssistant/
-├── __init__.py              # Extension entry, API routes, chat/SSE handler
+├── __init__.py              # Extension entry + backend orchestrator
+├── message_transforms.py    # Message format transforms (UI/OpenAI/Anthropic/CLI)
+├── context_management.py    # Context truncation, history trim, token estimation
+├── provider_streaming.py    # Provider-specific streaming generators
+├── cli_providers.py         # CLI provider command detection
+├── sse_streaming.py         # SSE protocol helpers
+├── slash_commands.py        # Slash command handling
+├── chat_utilities.py        # Shared chat parsing and context-limit helpers
 ├── agent_prompts.py         # System message assembly
 ├── api_handlers.py          # Environment, docs, user-context API handlers
 ├── tools_definitions.py     # Tool definitions for the LLM (backend)
