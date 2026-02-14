@@ -37,7 +37,7 @@ Both sides must stay in sync: same tool names, same parameter names and types.
 | `getAvailableModels` | Environment | List models by category |
 | `readDocumentation` | Environment | Fetch docs for a topic |
 | `executeWorkflow` | Execution | Queue workflow and wait for result |
-| `applyWorkflowJson` | Execution | Load a complete API-format workflow |
+| `applyWorkflowJson` | Execution | Load a complete workflow (API or frontend format) |
 | `getExampleWorkflow` | Research | Fetch example workflows from ComfyUI_examples |
 
 ### Tool categories

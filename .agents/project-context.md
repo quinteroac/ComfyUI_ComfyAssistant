@@ -207,7 +207,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - `listSystemSkills`: List model-specific system skills (e.g. Flux, SDXL) available on demand
 - `getSystemSkill`: Fetch a model-specific system skill's instructions by slug (on demand)
 - `executeWorkflow`: Queue the current workflow, wait for completion, return status + outputs (Phase 4)
-- `applyWorkflowJson`: Load a complete API-format workflow, replacing the current graph (Phase 4)
+- `applyWorkflowJson`: Load a complete workflow (API format or frontend format with nodes/links), replacing the current graph (Phase 4)
 - `getExampleWorkflow`: Fetch example workflows extracted from ComfyUI_examples by category (Phase 8)
 - `webSearch`: Search the web for ComfyUI resources, tutorials, workflows (Phase 8)
 - `fetchWebContent`: Fetch and extract content from a URL, detect embedded workflows (Phase 8)

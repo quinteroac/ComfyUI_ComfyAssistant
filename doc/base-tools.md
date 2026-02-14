@@ -26,7 +26,7 @@ This page describes what the assistant can do (the "base tools") and how you can
 | **listSystemSkills** | List model-specific system skills (e.g. Flux, SDXL) available on demand. |
 | **getSystemSkill** | Fetch a model-specific system skill's instructions by slug (on demand). |
 | **executeWorkflow** | Queue the current workflow and wait for completion; returns status and output summary (images, errors, timing). |
-| **applyWorkflowJson** | Load a complete API-format workflow, replacing the current graph. |
+| **applyWorkflowJson** | Load a complete workflow (API or frontend format: nodes + links), replacing the current graph. |
 | **getExampleWorkflow** | Fetch example workflows extracted from ComfyUI_examples by category. |
 | **webSearch** | Search the web for ComfyUI resources, tutorials, workflows. |
 | **fetchWebContent** | Fetch and extract content from a URL; can detect embedded workflows. |
@@ -121,7 +121,7 @@ The assistant will use **deleteSkill** (with the skill's slug) to remove it, or 
 - "Execute the queue"
 - "Load this workflow: [paste JSON]"
 
-The assistant uses **executeWorkflow** to queue and run the current graph, or **applyWorkflowJson** to load a complete workflow from API-format JSON.
+The assistant uses **executeWorkflow** to queue and run the current graph, or **applyWorkflowJson** to load a complete workflow from JSON (API format or frontend format with nodes/links).
 
 ### Research and discovery
 
@@ -146,7 +146,7 @@ The assistant uses **webSearch**, **fetchWebContent**, **searchNodeRegistry**, a
 ## Limits
 
 - **Tools run in the browser** (graph tools): They only see what ComfyUI exposes via its frontend API (`window.app`). Custom nodes are supported as long as they are registered in your ComfyUI instance.
-- **Workflow execution** is supported via **executeWorkflow** (queue and wait) and **applyWorkflowJson** (load full workflow from API-format JSON).
+- **Workflow execution** is supported via **executeWorkflow** (queue and wait) and **applyWorkflowJson** (load full workflow from API- or frontend-format JSON).
 
 ---
 

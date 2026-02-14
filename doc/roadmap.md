@@ -90,7 +90,7 @@ See [Phase 3 implementation notes](../development/phase_3/implemented.md).
 **Delivered:**
 
 - **executeWorkflow** — Queue the current workflow, wait for completion via ComfyUI events (`executed`, `execution_success`, `execution_error`, `execution_interrupted`), return status and output summary (images, errors, timing).
-- **applyWorkflowJson** — Load a complete API-format workflow in one call, replacing the current graph. Pre-validates node types against `LiteGraph.registered_node_types`. Ensures `_meta.title` is present.
+- **applyWorkflowJson** — Load a complete workflow in one call (API format or frontend format with nodes/links), replacing the current graph. For API format, pre-validates node types and ensures `_meta.title`; for frontend format uses `loadGraphData` (e.g. templates, exported workflows).
 - System prompt skill (`05_workflow_execution/SKILL.md`) with API format specification, example txt2img workflow, build-then-run pattern, and guidelines for verifying node types and models before generating workflows.
 
 See [Phase 4 implementation notes](../development/phase_4/implemented.md).

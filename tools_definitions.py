@@ -378,13 +378,13 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "applyWorkflowJson",
-            "description": "Loads a complete ComfyUI workflow in API format, replacing the current graph. Use for complex multi-node workflows that would take many addNode/connectNodes calls. Always call searchInstalledNodes and getAvailableModels first to verify node types and model filenames.",
+            "description": "Loads a complete ComfyUI workflow, replacing the current graph. Accepts two formats: (1) API format: object with string node IDs as keys and values { class_type, inputs, optional _meta.title }. (2) Frontend format: object with nodes (array) and links (array), as exported by ComfyUI or returned by official/custom templates. Use for complex workflows that would take many addNode/connectNodes calls. Prefer applyTemplate when loading from template id; use applyWorkflowJson for raw JSON. Always call searchInstalledNodes and getAvailableModels first when building or validating workflows.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "workflow": {
                         "type": "object",
-                        "description": "ComfyUI API-format workflow. Keys are string node IDs (e.g. '1', '2'). Each value has: class_type (string), inputs (object with scalar values or [nodeId, outputIndex] links), and optional _meta.title (string).",
+                        "description": "Workflow in either format. API format: keys are string node IDs (e.g. '1', '2'), each value has class_type (string), inputs (object), optional _meta.title. Frontend format: object with nodes (array of node objects with id, type, pos, widgets_values, etc.) and links (array of link tuples). Templates and ComfyUI exports typically use frontend format.",
                         "additionalProperties": {
                             "type": "object",
                             "properties": {

@@ -1,3 +1,4 @@
+import type { JSONSchema7 } from "json-schema";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { searchTemplatesSchema } from "./searchTemplates";
 import { applyTemplateSchema } from "./applyTemplate";
@@ -30,11 +31,11 @@ export * from "./search-node-registry";
 export const searchTemplatesDefinition = {
   name: "searchTemplates",
   description: "Searches for official and community workflow templates by title, description, or category (e.g., 'wan', 'flux'). Use this to find a starting point for complex workflows.",
-  parameters: zodToJsonSchema(searchTemplatesSchema),
+  parameters: zodToJsonSchema(searchTemplatesSchema) as JSONSchema7,
 };
 
 export const applyTemplateDefinition = {
   name: "applyTemplate",
   description: "Downloads and applies a selected workflow template to the canvas. Replaces the current graph.",
-  parameters: zodToJsonSchema(applyTemplateSchema),
+  parameters: zodToJsonSchema(applyTemplateSchema) as JSONSchema7,
 };
