@@ -4,7 +4,6 @@ import json
 import logging
 import uuid
 import re
-import shutil
 import server
 from aiohttp import web
 import folder_paths
@@ -33,6 +32,7 @@ import api_handlers
 import conversation_logger
 import provider_manager
 import provider_store
+from cli_providers import _has_cli_provider_command
 from tools_definitions import TOOLS
 from message_transforms import (
     _extract_content,
@@ -172,17 +172,6 @@ def _has_anthropic_credentials(api_key: str | None = None) -> bool:
     if api_key is not None:
         return bool(api_key)
     return bool(ANTHROPIC_API_KEY)
-
-
-def _has_cli_provider_command(provider: str, command: str | None = None) -> bool:
-    """Return True when provider CLI binary is available in PATH."""
-    commands = {
-        "claude_code": CLAUDE_CODE_COMMAND,
-        "codex": CODEX_COMMAND,
-        "gemini_cli": GEMINI_CLI_COMMAND,
-    }
-    selected_command = command or commands.get(provider)
-    return bool(selected_command) and shutil.which(selected_command) is not None
 
 
 def _selected_llm_provider() -> str:
