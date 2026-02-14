@@ -11,7 +11,7 @@ This directory holds **planning and design documentation** for the project: idea
 **Audience**
 
 - **Humans**: contributors and maintainers who want context on how and why things are planned
-- **Agents**: AI assistants that need project context; see [AGENTS.md](../AGENTS.md) and `.agents/` for conventions and where to look first
+- **Agents**: AI assistants that need project context; see [AGENTS.md](../../AGENTS.md) and `.agents/` for conventions and where to look first
 
 **Documents in this folder**
 

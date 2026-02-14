@@ -33,7 +33,7 @@ Phase 2 adds the ability for the assistant to fully configure node widgets, enab
 - `ui/src/tools/implementations/set-node-widget-value.ts` — Widget value setting logic
 - `ui/src/tools/definitions/fill-prompt-node.ts` — Zod schema
 - `ui/src/tools/implementations/fill-prompt-node.ts` — Prompt filling (delegates to setNodeWidgetValue)
-- `development/phase_2/implemented.md` — This file
+- `.project/development/phase_2/implemented.md` — This file
 
 ### Modified files (11)
 - `ui/src/tools/implementations/get-workflow-info.ts` — Added WidgetInfo interface and widget population

@@ -29,9 +29,9 @@ Each skill has a corresponding human-readable developer doc in `doc/dev_docs/` -
 The `documentation` skill ([.agents/skills/documentation/SKILL.md](../../.agents/skills/documentation/SKILL.md)) defines when and how to update documentation:
 
 - **When** to update docs (architecture, patterns, new features, phase work, user-facing changes)
-- **What** to update: sources of truth (project-context, conventions, skills, development/, doc/, README, tools_definitions)
+- **What** to update: sources of truth (project-context, conventions, skills, .project/development/, doc/, README, tools_definitions)
 - A **checklist** before marking a change complete
-- Rules for **phase implementation** (`development/<phase>/implemented.md`) and **documentation debt**
+- Rules for **phase implementation** (`.project/development/<phase>/implemented.md`) and **documentation debt**
 
 When you want the agent to handle doc updates in line with the project rules, ask it to **read and apply the documentation skill** (see prompt below). The skill mirrors the Documentation Maintenance Protocol in `.agents/conventions.md` and keeps doc updates consistent.
 
@@ -82,7 +82,7 @@ Review the files I changed for security and validation: no API keys or secrets i
 ### 4. Documentation sync
 
 ```
-I changed [describe what: e.g. added a new tool, changed the context flow]. According to .agents/conventions.md (Documentation Maintenance Protocol), which files must be updated? List them and update them: .agents/project-context.md, .agents/conventions.md, .agents/skills/*, doc/dev_docs/*, README, development/* as applicable. Check the project-specific skills (architecture-overview, backend-architecture, backend-tools-declaration, system-and-user-context, environment-and-models, ui-integration, assistant-ui) and update any that are affected by this change.
+I changed [describe what: e.g. added a new tool, changed the context flow]. According to .agents/conventions.md (Documentation Maintenance Protocol), which files must be updated? List them and update them: .agents/project-context.md, .agents/conventions.md, .agents/skills/*, doc/dev_docs/*, README, .project/development/* as applicable. Check the project-specific skills (architecture-overview, backend-architecture, backend-tools-declaration, system-and-user-context, environment-and-models, ui-integration, assistant-ui) and update any that are affected by this change.
 ```
 
 ### 5. New tool checklist
@@ -99,13 +99,13 @@ I added a new tool [name]. Please verify:
 ### 6. Phase implementation doc
 
 ```
-I implemented [phase name]. Create or update development/<phase_name>/implemented.md with: deliverables, files and routes changed, and a short iteration log entry, following the format of development/phase_1/implemented.md and development/phase_2/implemented.md.
+I implemented [phase name]. Create or update .project/development/<phase_name>/implemented.md with: deliverables, files and routes changed, and a short iteration log entry, following the format of .project/development/phase_1/implemented.md and .project/development/phase_2/implemented.md.
 ```
 
 ### 7. Quick “did I miss any docs?”
 
 ```
-I changed [brief description]. Per the Documentation Maintenance Protocol in .agents/conventions.md, did I miss updating any of: .agents/project-context.md, .agents/conventions.md, .agents/skills/, doc/, README, or development/? If yes, update them.
+I changed [brief description]. Per the Documentation Maintenance Protocol in .agents/conventions.md, did I miss updating any of: .agents/project-context.md, .agents/conventions.md, .agents/skills/, doc/, README, or .project/development/? If yes, update them.
 ```
 
 ### 8. Apply the documentation skill
@@ -119,7 +119,7 @@ Read and apply the documentation skill: .agents/skills/documentation/SKILL.md. M
 For phase work only:
 
 ```
-I implemented [phase name]. Apply the documentation skill (.agents/skills/documentation/SKILL.md) for phase implementation: create or update development/<phase_name>/implemented.md with deliverables, files changed, and iteration log, following the format of existing phase_0/phase_1/phase_2.
+I implemented [phase name]. Apply the documentation skill (.agents/skills/documentation/SKILL.md) for phase implementation: create or update .project/development/<phase_name>/implemented.md with deliverables, files changed, and iteration log, following the format of existing .project/development/phase_0/phase_1/phase_2.
 ```
 
 ### 9. Understand the architecture
@@ -157,7 +157,7 @@ Git
 Documentation
 - [ ] If architecture/pattern/feature changed: .agents/project-context.md, .agents/conventions.md, relevant .agents/skills/ updated
 - [ ] If user-facing: doc/ or README updated
-- [ ] If implementing a phase: development/<phase>/implemented.md added or updated
+- [ ] If implementing a phase: .project/development/<phase>/implemented.md added or updated
 
 Tests & build
 - [ ] npm test passes; npm run build passes in ui/

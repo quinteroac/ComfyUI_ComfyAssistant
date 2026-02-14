@@ -45,7 +45,7 @@
 | `ui/src/tools/implementations/search-installed-nodes.ts` | searchInstalledNodes implementation |
 | `ui/src/tools/implementations/read-documentation.ts` | readDocumentation implementation |
 | `system_context/skills/04_environment_tools/SKILL.md` | LLM guidance for new tools |
-| `development/phase_3/implemented.md` | This file |
+| `.project/development/phase_3/implemented.md` | This file |
 
 ## Modified files (12)
 

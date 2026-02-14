@@ -82,7 +82,7 @@ If you change **architecture**, **patterns**, or **features**, update:
 - `.agents/conventions.md` — When patterns or practices change.
 - Relevant `.agents/skills/` docs — When that area (e.g. tools) changes.
 - `README.md` or `doc/` — When user-facing behavior or usage changes.
-- `development/<phase>/implemented.md` — When implementing or iterating a phase.
+- `.project/development/<phase>/implemented.md` — When implementing or iterating a phase.
 
 **Golden rule:** If code changes, documentation changes. No exceptions.
 
@@ -104,8 +104,8 @@ npm run build       # Build
 
 ## Planning and development phases
 
-- **Planning / design docs** → `planning/` (not at repo root).
-- **Phase implementation** → One folder per phase under `development/` (e.g. `development/phase_1/implemented.md`). When implementing or iterating a phase, add or update the `implemented.md` in that folder.
+- **Planning / design docs** → `.project/planning/` (not at repo root).
+- **Phase implementation** → One folder per phase under `.project/development/` (e.g. `.project/development/phase_1/implemented.md`). When implementing or iterating a phase, add or update the `implemented.md` in that folder.
 
 ---
 

@@ -177,8 +177,8 @@ Add a "Rename" option to the `ThreadListItemMore` dropdown menu:
 
 ### Step 7: Documentation
 
-- Create `development/phase_5b/implemented.md`
-- Update `planning/comfyui_assistant_development_phases.md` (mark 5b done)
+- Create `.project/development/phase_5b/implemented.md`
+- Update `.project/planning/comfyui_assistant_development_phases.md` (mark 5b done)
 - Update `.agents/project-context.md` (mention slash commands)
 
 ---
@@ -193,8 +193,8 @@ Add a "Rename" option to the `ThreadListItemMore` dropdown menu:
 | `ui/src/hooks/useSlashCommands.ts` | Create | Hook: tryExecute + getSuggestions |
 | `ui/src/components/assistant-ui/thread.tsx` | Modify | Intercept composer, autocomplete popup |
 | `ui/src/components/assistant-ui/thread-list.tsx` | Modify | Add rename menu item |
-| `development/phase_5b/implemented.md` | Create | Phase record |
-| `planning/comfyui_assistant_development_phases.md` | Update | Mark 5b done |
+| `.project/development/phase_5b/implemented.md` | Create | Phase record |
+| `.project/planning/comfyui_assistant_development_phases.md` | Update | Mark 5b done |
 | `.agents/project-context.md` | Update | Mention slash commands |
 
 ---

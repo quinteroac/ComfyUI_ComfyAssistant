@@ -87,6 +87,10 @@ ComfyUI_ComfyAssistant/
 │   │   └── ui-integration/
 │   └── *.md                    # Agent investigation or one-off notes (e.g. investigation-tool-order.md)
 │
+├── .project/                   # Planning and development docs (not application code)
+│   ├── planning/               # Planning, design, WIP (see .project/planning/README.md)
+│   └── development/            # Phase implementation docs (e.g. phase_1/implemented.md)
+│
 ├── system_context/             # Base system prompt (read-only; top-level .md then skills/*/SKILL.md)
 │   ├── 01_role.md
 │   ├── skills/                 # Base capabilities (Agent Skills standard: dir/SKILL.md with frontmatter)

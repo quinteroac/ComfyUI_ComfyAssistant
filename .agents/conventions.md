@@ -391,10 +391,9 @@ __all__ = ["normalize_payload", "execute_action"]
 ```
 project/
 ├── .agents/              # Agent documentation (English only)
-├── development/          # Phase implementation docs (see below)
-│   └── phase_N/         # One folder per development phase
-│       └── implemented.md
-├── planning/             # Planning, design, ideas, WIP docs (see below)
+├── .project/             # Planning and development docs (see below)
+│   ├── planning/        # Planning, design, ideas, WIP (see .project/planning/README.md)
+│   └── development/     # Phase implementation docs (e.g. phase_1/implemented.md)
 ├── ui/                   # Frontend (TypeScript/React)
 │   ├── src/
 │   │   ├── components/   # Reusable UI components
@@ -408,19 +407,19 @@ project/
 
 ### Planning and design documents
 
-**All planning, design, and idea documentation must go in the `planning/` directory.**
+**All planning, design, and idea documentation must go in the `.project/planning/` directory.**
 
-- Use `planning/` for: ideas, roadmaps, implementation notes, feature specs, alternatives considered, and any document that does not describe shipped functionality or official API/user docs.
-- Do not add such documents at the repo root or scattered in other folders; keep them under `planning/` so they are easy to find and do not clutter the main docs (e.g. `.agents/`, `README.md`).
-- See `planning/README.md` for the purpose of the directory and what belongs there.
+- Use `.project/planning/` for: ideas, roadmaps, implementation notes, feature specs, alternatives considered, and any document that does not describe shipped functionality or official API/user docs.
+- Do not add such documents at the repo root or scattered in other folders; keep them under `.project/planning/` so they are easy to find and do not clutter the main docs (e.g. `.agents/`, `README.md`).
+- See `.project/planning/README.md` for the purpose of the directory and what belongs there.
 
 ### Development phase implementation
 
-**Whenever an agent implements a development phase, it MUST leave an implementation document under `development/` in a folder named after the phase.**
+**Whenever an agent implements a development phase, it MUST leave an implementation document under `.project/development/` in a folder named after the phase.**
 
-- Create a folder `development/<phase_name>/` (e.g. `development/phase_1/`, `development/phase_2/`).
+- Create a folder `.project/development/<phase_name>/` (e.g. `.project/development/phase_1/`, `.project/development/phase_2/`).
 - Add or update a document (e.g. `implemented.md`) in that folder describing what was implemented: deliverables, files and routes, and any iteration notes.
-- Use this as the single place to record and update implementation details for that phase as work is iterated (see e.g. `development/phase_1/implemented.md`).
+- Use this as the single place to record and update implementation details for that phase as work is iterated (see e.g. `.project/development/phase_1/implemented.md`).
 
 This keeps a clear record of what each phase delivered and how it evolved.
 
@@ -1023,8 +1022,8 @@ These files are the **primary sources of truth** and must stay current:
 | `.agents/project-context.md` | Overall project understanding | Architecture, tech stack, or structure changes |
 | `.agents/conventions.md` | Development standards | Pattern or practice changes |
 | `.agents/skills/` | Agent skills (including vibecoding skills) | Whenever the corresponding area of the system changes (UI, backend, architecture, data model, tools) |
-| `development/` | Phase implementation docs | When implementing or iterating a phase (one folder per phase, e.g. `phase_1/implemented.md`) |
-| `planning/` | Planning, design, ideas, WIP docs | New planning/design docs go here (not at root) |
+| `.project/development/` | Phase implementation docs | When implementing or iterating a phase (one folder per phase, e.g. `phase_1/implemented.md`) |
+| `.project/planning/` | Planning, design, ideas, WIP docs | New planning/design docs go here (not at root) |
 | `README.md` | User-facing docs | Feature additions or usage changes |
 | `tools_definitions.py` | Backend tool declarations | Any tool modification |
 
