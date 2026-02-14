@@ -193,7 +193,7 @@ This document defines a **phased development plan** from the current MVP to the 
 
 **Deliverables:**
 
-1. **Risks document** — `development/phase_6/risks_from_phase_3.md`: four risk areas (APIs, background scan, prompt injection, patch) with concrete mitigations and checklists.
+1. **Risks document** — `.project/development/phase_6/risks_from_phase_3.md`: four risk areas (APIs, background scan, prompt injection, patch) with concrete mitigations and checklists.
 2. **Backend APIs** — Confirm Phase 3 endpoints follow the same access policy as the rest of the backend; document route list and assumptions (e.g. same origin, no new public exposure).
 3. **Background scanning** — Ensure scan failure does not block startup; optional: make auto-scan configurable; define or enforce limits (scan duration, cache/summary size).
 4. **Prompt injection** — Document that the environment summary is from our controlled cache (not raw user input); keep or define a strict size limit for the injected summary; document in security/context docs.
@@ -203,7 +203,7 @@ This document defines a **phased development plan** from the current MVP to the 
 
 **Dependencies:** Phase 3 done. Can be done after or in parallel with Phase 4/5/8/9/10.
 
-**Reference:** [development/phase_6/risks_from_phase_3.md](../development/phase_6/risks_from_phase_3.md) for the detailed checklist.
+**Reference:** [.project/development/phase_6/risks_from_phase_3.md](../development/phase_6/risks_from_phase_3.md) for the detailed checklist.
 
 ---
 

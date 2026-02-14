@@ -79,7 +79,7 @@ See [Base tools](base-tools.md).
 - **Auto-scan on startup** — Non-blocking initial scan after ComfyUI loads.
 - **API handlers extracted** to `api_handlers.py` for maintainability.
 
-See [Phase 3 implementation notes](../development/phase_3/implemented.md).
+See [Phase 3 implementation notes](../.project/development/phase_3/implemented.md).
 
 ---
 
@@ -93,7 +93,7 @@ See [Phase 3 implementation notes](../development/phase_3/implemented.md).
 - **applyWorkflowJson** — Load a complete workflow in one call (API format or frontend format with nodes/links), replacing the current graph. For API format, pre-validates node types and ensures `_meta.title`; for frontend format uses `loadGraphData` (e.g. templates, exported workflows).
 - System prompt skill (`05_workflow_execution/SKILL.md`) with API format specification, example txt2img workflow, build-then-run pattern, and guidelines for verifying node types and models before generating workflows.
 
-See [Phase 4 implementation notes](../development/phase_4/implemented.md).
+See [Phase 4 implementation notes](../.project/development/phase_4/implemented.md).
 
 ---
 
@@ -107,7 +107,7 @@ See [Phase 4 implementation notes](../development/phase_4/implemented.md).
 - **Terminal UI:** Monospace font, flat blocks, compact spacing, `›` / `•` prefixes, reasoning blocks as collapsible `[thinking...]`.
 - **Thread list:** Horizontal tab bar; sessions managed via slash commands (see Phase 5b).
 
-See [Phase 5a implementation notes](../development/phase_5a/implemented.md).
+See [Phase 5a implementation notes](../.project/development/phase_5a/implemented.md).
 
 ---
 
@@ -121,7 +121,7 @@ See [Phase 5a implementation notes](../development/phase_5a/implemented.md).
 - **Inline autocomplete:** When typing `/`, suggestions appear with command name and description.
 - **Named sessions:** Rename via `/rename` or thread tab dropdown.
 
-See [Phase 5b implementation notes](../development/phase_5b/implemented.md) and [Slash commands](commands.md).
+See [Phase 5b implementation notes](../.project/development/phase_5b/implemented.md) and [Slash commands](commands.md).
 
 ---
 
@@ -137,7 +137,7 @@ See [Phase 5b implementation notes](../development/phase_5b/implemented.md) and 
 - **getExampleWorkflow** — Fetch example workflows extracted from ComfyUI_examples by category.
 - **API endpoints:** `/api/research/search`, `/api/research/fetch`, `/api/research/registry`, `/api/research/examples`.
 
-See [Phase 8 implementation notes](../development/phase_8/implemented.md).
+See [Phase 8 implementation notes](../.project/development/phase_8/implemented.md).
 
 ---
 
@@ -170,5 +170,5 @@ Each phase is designed to be **shippable** on its own (e.g. “Phase 1 release�
 
 ## More detail
 
-- Implementation notes for completed phases: [development/](../development/) (e.g. `phase_0/implemented.md`, `phase_3/implemented.md`, `phase_4/implemented.md`, `phase_5a/implemented.md`, `phase_5b/implemented.md`, `phase_8/implemented.md`).
-- Full phase definitions and success criteria: [planning/comfyui_assistant_development_phases.md](../planning/comfyui_assistant_development_phases.md).
+- Implementation notes for completed phases: [.project/development/](../.project/development/) (e.g. `phase_0/implemented.md`, `phase_3/implemented.md`, `phase_4/implemented.md`, `phase_5a/implemented.md`, `phase_5b/implemented.md`, `phase_8/implemented.md`).
+- Full phase definitions and success criteria: [.project/planning/comfyui_assistant_development_phases.md](../.project/planning/comfyui_assistant_development_phases.md).

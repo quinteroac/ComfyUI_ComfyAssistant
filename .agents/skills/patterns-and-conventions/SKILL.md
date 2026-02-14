@@ -57,8 +57,8 @@ Quick-reference of `.agents/conventions.md`. Read the full file for details; thi
 
 | Directory | Purpose | Examples |
 |-----------|---------|---------|
-| `planning/` | Ideas, roadmaps, specs, WIP | Feature proposals, phase plans |
-| `development/` | Phase implementation records | `phase_1/implemented.md` |
+| `.project/planning/` | Ideas, roadmaps, specs, WIP | Feature proposals, phase plans |
+| `.project/development/` | Phase implementation records | `phase_1/implemented.md` |
 | `.agents/` | Agent skills and project docs | Skills, conventions, project context |
 | `doc/` | User and developer documentation | Install guide, tools reference |
 
@@ -70,7 +70,7 @@ Quick-reference of `.agents/conventions.md`. Read the full file for details; thi
 Read the "Documentation Maintenance Protocol" in `.agents/conventions.md` section 7. It has a checklist per change type (architecture, patterns, features).
 
 ### Where do planning docs go?
-Always under `planning/`. Never at the repo root.
+Always under `.project/planning/`. Never at the repo root.
 
 ### Where do implementation records go?
-Under `development/<phase_name>/implemented.md`.
+Under `.project/development/<phase_name>/implemented.md`.

@@ -19,7 +19,7 @@
 | `ui/src/tools/definitions/apply-workflow-json.ts` | Zod schema + definition for applyWorkflowJson |
 | `ui/src/tools/implementations/apply-workflow-json.ts` | Validate node types + load via `app.loadApiJson` |
 | `system_context/skills/05_workflow_execution/SKILL.md` | LLM guidance, API format spec, examples |
-| `development/phase_4/implemented.md` | This file |
+| `.project/development/phase_4/implemented.md` | This file |
 
 ## Modified files
 

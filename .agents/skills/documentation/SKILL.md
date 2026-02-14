@@ -14,7 +14,7 @@ description: When and how to update project documentation. Use whenever you chan
 | **Architecture changes** | project-context, skills (e.g. tools), READMEs, API docs |
 | **Pattern or practice changes** | conventions.md, relevant skill references, README examples |
 | **New feature (tool, component, API)** | project-context, relevant skill, README, tool defs if tools |
-| **Phase implementation or iteration** | `development/<phase_name>/implemented.md` |
+| **Phase implementation or iteration** | `.project/development/<phase_name>/implemented.md` |
 | **User-facing behavior or usage** | `doc/`, README |
 | **New or changed endpoints, routes** | project-context, API docs, README if user-facing |
 
@@ -27,8 +27,8 @@ Before committing any such change, ask: **"What documentation does this change a
 | `.agents/project-context.md` | Project overview, architecture, structure, features | Architecture, stack, structure, or new features |
 | `.agents/conventions.md` | Development standards | New or changed patterns, practices |
 | `.agents/skills/<topic>/` | Topic-specific guides (e.g. tools, runtime) | That area changes (e.g. new tool → tools skill) |
-| `development/<phase>/implemented.md` | Phase deliverables and iteration log | Implementing or iterating that phase |
-| `planning/` | Planning, design, WIP | New planning docs go here (not at root) |
+| `.project/development/<phase>/implemented.md` | Phase deliverables and iteration log | Implementing or iterating that phase |
+| `.project/planning/` | Planning, design, WIP | New planning docs go here (not at root) |
 | `README.md` | User-facing overview and usage | Feature or usage changes |
 | `doc/` | User and developer docs (installation, config, skills, tools, roadmap, dev_docs) | User-facing behavior, setup, or dev process |
 | `tools_definitions.py` | Backend tool declarations | Any tool addition or change |
@@ -42,7 +42,7 @@ Details and examples: [.agents/conventions.md](../../conventions.md) — "Docume
 - [ ] Updated relevant `.agents/skills/` (e.g. tools, setup) if that area changed
 - [ ] Updated `README.md` if usage or features changed
 - [ ] Updated `doc/` if user-facing behavior, setup, or dev process changed
-- [ ] Added or updated `development/<phase>/implemented.md` if implementing or iterating a phase
+- [ ] Added or updated `.project/development/<phase>/implemented.md` if implementing or iterating a phase
 - [ ] Updated tool definitions (frontend + `tools_definitions.py`) if tools changed
 - [ ] Added or updated JSDoc / docstrings for new or changed code
 - [ ] Verified links and references in updated docs still work
@@ -51,13 +51,13 @@ Details and examples: [.agents/conventions.md](../../conventions.md) — "Docume
 
 When implementing or iterating a **development phase**:
 
-1. Create or use the folder `development/<phase_name>/` (e.g. `development/phase_3/`).
+1. Create or use the folder `.project/development/<phase_name>/` (e.g. `.project/development/phase_3/`).
 2. Add or update `implemented.md` in that folder with:
    - Summary and status
    - Deliverables (what was built)
    - Files and routes changed
    - Short iteration log
-3. Follow the format of existing `development/phase_0/implemented.md`, `phase_1/implemented.md`, `phase_2/implemented.md`.
+3. Follow the format of existing `.project/development/phase_0/implemented.md`, `phase_1/implemented.md`, `phase_2/implemented.md`.
 
 ## Outdated documentation
 
