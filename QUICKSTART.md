@@ -65,6 +65,11 @@ You can ask the assistant to run your workflow:
 - `"Run the current workflow"`
 - `"Generate an image with the prompt 'a futuristic city'"`
 
+You can also **give a prompt and let the assistant do the rest**: it will fill the prompt into your workflow (positive/negative text nodes) and execute it. Examples:
+- `"Generate 'a cyberpunk street at night'"`
+- `"Run it with the prompt 'sunset over mountains'"`
+- `"Make an image: a cat wearing a top hat"`
+
 ### 🔍 Research Tools
 The assistant can search the web or the Comfy Registry:
 - `"Search for a tutorial on ControlNet for ComfyUI"`
