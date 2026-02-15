@@ -1,6 +1,6 @@
 # ComfyUI Assistant
 
-An AI assistant for ComfyUI: control and explore your workflows with natural language from a chat in the bottom panel.
+An AI assistant for ComfyUI: control and explore your workflows with natural language from a chat in the bottom panel. The assistant lives in **Console** — open Console, then the **ComfyUI Assistant** tab to start chatting.
 
 - Chat with an AI that understands ComfyUI and can add nodes, connect them, run workflows, and search your environment.
 - Works with any OpenAI-compatible API (or Claude Code, Codex, Gemini CLI). Configure your provider in the Assistant tab.
@@ -12,7 +12,7 @@ An AI assistant for ComfyUI: control and explore your workflows with natural lan
 
 **[Quick Start Guide](QUICKSTART.md)** — Get running in a few minutes.
 
-Then open the **ComfyUI Assistant** tab and try:
+Open **Console** in the bottom panel, then the **ComfyUI Assistant** tab, and try:
 
 - Ask the assistant to load a workflow for any of the models supported by ComfyUI.
 - Chat about your workflow and ask for suggestions; you can ask the assistant to apply changes directly to the workflow.
