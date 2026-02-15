@@ -53,6 +53,25 @@ Architecture, backend, frontend, tools, and conventions: [doc/dev_docs/](doc/dev
 - [ComfyUI — JavaScript extensions](https://docs.comfy.org/custom-nodes/js/javascript_overview)
 - [assistant-ui](https://www.assistant-ui.com/) · [Vercel AI SDK](https://sdk.vercel.ai/)
 
+## Acknowledgements
+
+ComfyUI Assistant builds on the following projects and libraries:
+
+| Project | Purpose | Links |
+|--------|---------|-------|
+| **ComfyUI** | Host UI and workflow engine | [Docs](https://docs.comfy.org/) · [GitHub](https://github.com/comfyanonymous/ComfyUI) |
+| **assistant-ui** | Chat UI and runtime | [Docs](https://www.assistant-ui.com/) · [GitHub](https://github.com/assistant-ui/assistant-ui) |
+| **Vercel AI SDK** | LLM integration and streaming | [Docs](https://sdk.vercel.ai/) · [GitHub](https://github.com/vercel/ai) |
+| **React** | UI framework | [Docs](https://react.dev/) |
+| **Tailwind CSS** | Styling | [Docs](https://tailwindcss.com/) |
+| **Vite** | Build tool | [Docs](https://vitejs.dev/) |
+| **TypeScript** | Typing | [Docs](https://www.typescriptlang.org/) |
+| **Zod** | Schema and validation | [Docs](https://zod.dev/) |
+| **Radix UI** | Accessible components | [Docs](https://www.radix-ui.com/) |
+| **Zustand** | State management | [Docs](https://zustand.docs.pmnd.rs/) |
+| **OpenAI Python** | Backend LLM client (OpenAI-compatible APIs) | [GitHub](https://github.com/openai/openai-python) |
+| **python-dotenv** | Environment config | [GitHub](https://github.com/theskumar/python-dotenv) |
+
 ## License
 
 MIT
