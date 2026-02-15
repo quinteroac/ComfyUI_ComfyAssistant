@@ -31,8 +31,7 @@ import {
   ComposerAttachments,
   UserMessageAttachments
 } from '@/components/assistant-ui/attachment'
-import { MarkdownText } from '@/components/assistant-ui/markdown-text'
-import { ToolFallback } from '@/components/assistant-ui/tool-fallback'
+import { InterleavedMessageContent } from '@/components/assistant-ui/interleaved-message-content'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
 import { Button } from '@/components/ui/button'
 import { useSlashCommands } from '@/hooks/useSlashCommands'
@@ -355,22 +354,7 @@ const AssistantMessage: FC = () => {
           •
         </span>
         <div className="aui-assistant-message-content min-w-0 break-words text-[15px] text-foreground leading-relaxed">
-          {/* Single block for all text (deduped); Parts only renders non-text (Reasoning, tools) */}
-          <MarkdownText />
-          <MessagePrimitive.Parts
-            components={{
-              Text: () => null,
-              Reasoning: (props) => (
-                <details className="aui-reasoning-root" data-part="reasoning">
-                  <summary className="aui-reasoning-header">
-                    Chain of Thought
-                  </summary>
-                  <div className="aui-reasoning-content">{props.text}</div>
-                </details>
-              ),
-              tools: { Fallback: ToolFallback }
-            }}
-          />
+          <InterleavedMessageContent />
           <MessageError />
         </div>
       </div>

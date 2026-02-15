@@ -44,6 +44,22 @@ const MarkdownTextImpl = () => {
 
 export const MarkdownText = memo(MarkdownTextImpl)
 
+/** Renders a single markdown block (used by InterleavedMessageContent) */
+export const MarkdownBlock: FC<{ children: string }> = memo(({ children }) => {
+  if (!children?.trim()) return null
+  return (
+    <div className="aui-md text-[15px]">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+        components={defaultComponents as any}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
+  )
+})
+MarkdownBlock.displayName = 'MarkdownBlock'
+
 const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
   const { isCopied, copyToClipboard } = useCopyToClipboard()
   const onCopy = () => {

@@ -14,7 +14,8 @@ How ComfyUI Assistant uses the assistant-ui library. For generic library referen
 | File | Purpose |
 |------|---------|
 | `ui/src/components/assistant-ui/thread.tsx` | Main Thread component: messages, composer, slash command autocomplete, branch picker |
-| `ui/src/components/assistant-ui/markdown-text.tsx` | Markdown rendering for assistant messages (syntax highlighting, code blocks) |
+| `ui/src/components/assistant-ui/markdown-text.tsx` | Markdown rendering (MarkdownText, MarkdownBlock) for assistant messages (syntax highlighting, code blocks) |
+| `ui/src/components/assistant-ui/interleaved-message-content.tsx` | Renders message content in execution order: text blocks interleaved with tools and reasoning (avoids "text first, tools after" layout) |
 | `ui/src/components/assistant-ui/tool-fallback.tsx` | Renders tool calls as terminal log lines (prefix `›`, name, status icon); details (args, result, error) expand on click |
 | `ui/src/components/assistant-ui/attachment.tsx` | File attachment display |
 | `ui/src/components/assistant-ui/onboarding.tsx` | First-time onboarding flow (personality, goals) |
@@ -38,9 +39,10 @@ The chat uses a terminal aesthetic, not a typical chat bubble UI:
 ## Message Rendering
 
 ### Assistant Messages
-1. **Text parts**: Rendered via `MarkdownText` component (hidden raw text, visible markdown)
-2. **Reasoning parts**: Collapsible `<details>` block with "Reasoning" summary
-3. **Tool parts**: Rendered via `ToolFallback` component. Each tool appears as a single terminal-style log line (prefix `›`, status icon, tool name, chevron). Collapsed by default; click to expand args, result, or error. Styling matches terminal dim/foreground; no card or box so the chat stays readable.
+1. **Interleaved layout**: `InterleavedMessageContent` iterates over `message.content` in order, rendering text blocks (markdown) and tools/reasoning interleaved (text → tool → text → tool). Consecutive text parts are merged and deduplicated to avoid streaming duplicates.
+2. **Text parts**: Rendered via `MarkdownBlock` (markdown with syntax highlighting, code blocks)
+3. **Reasoning parts**: Collapsible `<details>` block with "Chain of Thought" summary
+4. **Tool parts**: Rendered via `ToolFallback` component. Each tool appears as a single terminal-style log line (prefix `›`, status icon, tool name, chevron). Collapsed by default; click to expand args, result, or error. Styling matches terminal dim/foreground; no card or box so the chat stays readable.
 
 ### User Messages
 - Simple text with `>` prefix
@@ -61,7 +63,8 @@ The chat uses a terminal aesthetic, not a typical chat bubble UI:
 | Change | File | What to Edit |
 |--------|------|-------------|
 | Message appearance | `thread.tsx` | `AssistantMessage` or `UserMessage` component |
-| Markdown rendering | `markdown-text.tsx` | `MarkdownText` component, remark/rehype plugins |
+| Message layout (order text/tools) | `interleaved-message-content.tsx` | `InterleavedMessageContent` component |
+| Markdown rendering | `markdown-text.tsx` | `MarkdownText`, `MarkdownBlock`, remark/rehype plugins |
 | Tool result display | `tool-fallback.tsx` | `ToolFallback` component |
 | Theme colors | `terminal-theme.css` | CSS custom properties |
 | Empty state / ASCII logo | `thread.tsx` | `ThreadEmpty` component |
