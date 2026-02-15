@@ -92,7 +92,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "getWorkflowInfo",
-            "description": "Gets information about the current ComfyUI workflow, including the list of nodes, connections, and optionally widget names/values for each node. Returns a compact representation by default (no layout info, no widget option lists).",
+            "description": "Gets information about the current ComfyUI workflow, including the list of nodes, connections, and optionally widget names/values for each node. Returns a compact representation by default (no layout info, no widget option lists). Use fullFormat: true when you need the complete canvas workflow (frontend format: nodes + links) for applyWorkflowJson or detailed analysis.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -107,6 +107,10 @@ TOOLS = [
                     "includeWidgetOptions": {
                         "type": "boolean",
                         "description": "If true, includes available options for combo/dropdown widgets. Defaults to false to reduce payload size (option lists can be very large)"
+                    },
+                    "fullFormat": {
+                        "type": "boolean",
+                        "description": "If true, returns the workflow in full frontend format (nodes + links with all properties), suitable for applyWorkflowJson or detailed analysis. Defaults to false."
                     }
                 }
             }

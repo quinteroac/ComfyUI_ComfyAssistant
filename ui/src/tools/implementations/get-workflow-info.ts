@@ -35,6 +35,18 @@ interface ConnectionInfo {
   targetSlotName?: string
 }
 
+/** Full workflow in frontend format (nodes + links), as returned by graphToPrompt */
+interface FullWorkflowPayload {
+  nodes: unknown[]
+  links: unknown[]
+  [key: string]: unknown
+}
+
+/** API-format workflow (node IDs -> { class_type, inputs }) */
+interface ApiWorkflowPayload {
+  [nodeId: string]: { class_type: string; inputs: Record<string, unknown> }
+}
+
 /**
  * Result of getting workflow information
  */
@@ -43,6 +55,9 @@ interface WorkflowInfo {
   nodes: NodeInfo[]
   connections: ConnectionInfo[]
   canvasSize?: { width: number; height: number }
+  fullWorkflow?: FullWorkflowPayload
+  apiWorkflow?: ApiWorkflowPayload
+  fullFormatError?: string
 }
 
 /**
@@ -50,7 +65,8 @@ interface WorkflowInfo {
  *
  * Returns a compact representation by default (no layout, no widget options).
  * Use includeLayout=true for position/size, includeWidgetOptions=true for
- * combo option lists, and includeNodeDetails=true for widget names+values.
+ * combo option lists, includeNodeDetails=true for widget names+values, and
+ * fullFormat=true for the complete workflow in frontend and API format.
  */
 export async function executeGetWorkflowInfo(
   params: GetWorkflowInfoParams,
@@ -159,6 +175,18 @@ export async function executeGetWorkflowInfo(
       result.canvasSize = {
         width: app.canvas.canvas.width,
         height: app.canvas.canvas.height
+      }
+    }
+
+    // Full format: include workflow in frontend and API form for applyWorkflowJson or detailed analysis
+    if (params.fullFormat === true && typeof app.graphToPrompt === 'function') {
+      try {
+        const { workflow, output } = await app.graphToPrompt(app.graph, {})
+        result.fullWorkflow = workflow as FullWorkflowPayload
+        result.apiWorkflow = output as ApiWorkflowPayload
+      } catch (fullErr) {
+        result.fullFormatError =
+          fullErr instanceof Error ? fullErr.message : String(fullErr)
       }
     }
 

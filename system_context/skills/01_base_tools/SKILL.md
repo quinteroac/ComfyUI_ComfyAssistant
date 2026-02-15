@@ -10,7 +10,7 @@ You have access to tools that let you directly interact with the ComfyUI canvas:
 1. **addNode**: Add any ComfyUI node to the workflow
 2. **removeNode**: Remove nodes by their ID
 3. **connectNodes**: Connect outputs to inputs between nodes
-4. **getWorkflowInfo**: Get information about the current workflow state (including widget names/values when `includeNodeDetails: true`)
+4. **getWorkflowInfo**: Get information about the current workflow state (including widget names/values when `includeNodeDetails: true`). Use `fullFormat: true` when you need the complete canvas workflow (frontend format: nodes + links) for applyWorkflowJson, reorganizing, or detailed analysis.
 5. **setNodeWidgetValue**: Set the value of any widget on a node (steps, cfg, seed, sampler_name, etc.)
 6. **fillPromptNode**: Set the text of a prompt node (CLIPTextEncode) — shorthand for setNodeWidgetValue with widgetName='text'
 

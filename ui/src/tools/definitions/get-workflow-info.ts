@@ -21,6 +21,12 @@ export const getWorkflowInfoSchema = z.object({
     .optional()
     .describe(
       'If true, includes available options for combo/dropdown widgets. Defaults to false to reduce payload size (option lists can be very large)'
+    ),
+  fullFormat: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, includes the full workflow in frontend format (nodes + links with all properties), suitable for applyWorkflowJson or detailed analysis. Defaults to false to keep responses compact.'
     )
 })
 
@@ -30,7 +36,7 @@ export const getWorkflowInfoSchema = z.object({
 export const getWorkflowInfoDefinition = {
   name: 'getWorkflowInfo',
   description:
-    'Gets information about the current ComfyUI workflow, including the list of nodes, connections, and general configuration.',
+    'Gets information about the current ComfyUI workflow, including the list of nodes, connections, and general configuration. Use fullFormat: true when you need the complete canvas workflow (frontend format: nodes + links) for applyWorkflowJson or detailed analysis.',
   parameters: getWorkflowInfoSchema
 }
 

@@ -209,7 +209,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 - `addNode`: Add nodes to the workflow
 - `removeNode`: Remove nodes by ID
 - `connectNodes`: Connect two nodes
-- `getWorkflowInfo`: Query workflow state (including widget names/values with `includeNodeDetails`)
+- `getWorkflowInfo`: Query workflow state (including widget names/values with `includeNodeDetails`; use `fullFormat: true` for the complete canvas workflow in frontend format)
 - `setNodeWidgetValue`: Set any widget value on a node (steps, cfg, seed, sampler_name, etc.)
 - `fillPromptNode`: Set the text of a CLIPTextEncode node (shorthand for setNodeWidgetValue)
 - `refreshEnvironment`: Rescan installed nodes, packages, and models (Phase 3)

@@ -11,6 +11,10 @@ description: Guidelines for using graph tools (before adding nodes, connecting, 
 2. Consider workflow organization and positioning
 3. Think about what connections will be needed next
 
+## When You Need the Full Workflow
+
+- Use `getWorkflowInfo` with **fullFormat: true** when you need the complete canvas workflow (e.g. to reorganize it and re-apply with applyWorkflowJson, or for very detailed analysis). The response will include `fullWorkflow` (frontend format: nodes + links) and `apiWorkflow` (API format).
+
 ## When Connecting Nodes
 
 1. Verify both nodes exist (use getWorkflowInfo first)

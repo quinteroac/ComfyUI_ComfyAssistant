@@ -75,7 +75,7 @@ export async function executeAddNode(
 | `addNode` | Graph | Add a node to the workflow |
 | `removeNode` | Graph | Remove a node by ID |
 | `connectNodes` | Graph | Connect two nodes by slot indices |
-| `getWorkflowInfo` | Graph | Query workflow state and node details |
+| `getWorkflowInfo` | Graph | Query workflow state and node details; use fullFormat: true for full frontend/API workflow |
 | `setNodeWidgetValue` | Graph | Set any widget value on a node |
 | `fillPromptNode` | Graph | Set text on a CLIPTextEncode node (shorthand) |
 | `createSkill` | Skills | Create a persistent user skill |
