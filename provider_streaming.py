@@ -28,6 +28,11 @@ from context_management import (
 from sse_streaming import _sse_line
 from tools_definitions import TOOLS
 
+try:
+    import temp_file_store
+except ImportError:
+    temp_file_store = None
+
 TOOLS_DEFINITIONS = TOOLS
 
 def _parse_thinking_tags(text: str) -> tuple[list[str], str]:
@@ -51,16 +56,21 @@ def _parse_thinking_tags(text: str) -> tuple[list[str], str]:
 async def _run_cli_command(
     cmd: list[str],
     timeout_seconds: int,
+    stdin_input: bytes | None = None,
 ) -> tuple[int, str, str, bool]:
-    """Run a CLI command with timeout, returning rc/stdout/stderr/timed_out."""
+    """Run a CLI command with timeout, returning rc/stdout/stderr/timed_out.
+
+    If stdin_input is provided, it is passed to the process stdin (avoids ARG_MAX).
+    """
     process = await asyncio.create_subprocess_exec(
         *cmd,
+        stdin=asyncio.subprocess.PIPE if stdin_input is not None else None,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     try:
         stdout, stderr = await asyncio.wait_for(
-            process.communicate(),
+            process.communicate(input=stdin_input),
             timeout=timeout_seconds,
         )
         out_str = stdout.decode("utf-8", errors="replace")
@@ -537,7 +547,16 @@ async def stream_claude_code(
 
     prompt = _build_cli_tool_prompt(openai_messages)
     schema_json = json.dumps(_cli_response_schema(), ensure_ascii=False)
-    cmd = [claude_code_command, "-p", prompt]
+    prompt_bytes = prompt.encode("utf-8")
+    if temp_file_store:
+        try:
+            temp_file_store.write_temp_file(
+                prompt, prefix="prompt", suffix=".txt"
+            )
+        except Exception:
+            pass
+
+    cmd = [claude_code_command, "-p", "-"]
     if claude_code_model:
         cmd.extend(["--model", claude_code_model])
     cmd.extend(["--output-format", "json", "--json-schema", schema_json])
@@ -545,6 +564,7 @@ async def stream_claude_code(
     rc, stdout, stderr, timed_out = await _run_cli_command(
         cmd,
         cli_provider_timeout_seconds,
+        stdin_input=prompt_bytes,
     )
     if timed_out:
         yield _sse_line({
@@ -617,6 +637,15 @@ async def stream_codex(
     yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
 
     prompt = _build_cli_tool_prompt(openai_messages)
+    prompt_bytes = prompt.encode("utf-8")
+    if temp_file_store:
+        try:
+            temp_file_store.write_temp_file(
+                prompt, prefix="prompt", suffix=".txt"
+            )
+        except Exception:
+            pass
+
     with tempfile.NamedTemporaryFile(prefix="codex-last-", suffix=".txt", delete=True) as tmp, tempfile.NamedTemporaryFile(prefix="codex-schema-", suffix=".json", mode="w", encoding="utf-8", delete=True) as schema_file:
         json.dump(_cli_response_schema(), schema_file, ensure_ascii=False)
         schema_file.flush()
@@ -630,14 +659,14 @@ async def stream_codex(
             schema_file.name,
             "-o",
             tmp.name,
-            prompt,
+            "-",
         ]
         if codex_model:
             cmd.extend(["--model", codex_model])
-
         rc, stdout, stderr, timed_out = await _run_cli_command(
             cmd,
             cli_provider_timeout_seconds,
+            stdin_input=prompt_bytes,
         )
         if timed_out:
             yield _sse_line({
@@ -729,20 +758,29 @@ async def stream_gemini_cli(
         logger.info("[ComfyAssistant] Follow-up request (msgs=%d)", len(openai_messages))
 
     prompt = _build_cli_tool_prompt(openai_messages)
-    # Gemini CLI does not support --json-schema; embed schema in prompt text
     schema_json = json.dumps(_cli_response_schema(), ensure_ascii=False)
     full_prompt = (
         prompt
         + "\n\nIMPORTANT: You MUST respond with a single JSON object matching this schema:\n"
         + schema_json
     )
-    cmd = [gemini_cli_command, "-p", full_prompt, "--output-format", "json"]
+    full_prompt_bytes = full_prompt.encode("utf-8")
+    if temp_file_store:
+        try:
+            temp_file_store.write_temp_file(
+                full_prompt, prefix="prompt", suffix=".txt"
+            )
+        except Exception:
+            pass
+
+    cmd = [gemini_cli_command, "-p", "-", "--output-format", "json"]
     if gemini_cli_model:
         cmd.extend(["-m", gemini_cli_model])
 
     rc, stdout, stderr, timed_out = await _run_cli_command(
         cmd,
         cli_provider_timeout_seconds,
+        stdin_input=full_prompt_bytes,
     )
     if timed_out:
         yield _sse_line({

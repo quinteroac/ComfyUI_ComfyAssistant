@@ -28,11 +28,16 @@ const frontendWorkflowSchema = z
   .passthrough()
 
 /**
- * Parameter schema: workflow can be API format or frontend format.
+ * Parameter schema: workflow (inline) or workflowPath (temp file id from getWorkflowInfo temp ref).
  */
-export const applyWorkflowJsonSchema = z.object({
-  workflow: z.union([apiWorkflowSchema, frontendWorkflowSchema])
-})
+export const applyWorkflowJsonSchema = z
+  .object({
+    workflow: z.union([apiWorkflowSchema, frontendWorkflowSchema]).optional(),
+    workflowPath: z.string().optional()
+  })
+  .refine((data) => data.workflow !== undefined || (data.workflowPath && data.workflowPath.length > 0), {
+    message: 'Either workflow or workflowPath is required'
+  })
 
 /**
  * Tool definition for loading a complete workflow from JSON.
@@ -42,7 +47,7 @@ export const applyWorkflowJsonSchema = z.object({
 export const applyWorkflowJsonDefinition = {
   name: 'applyWorkflowJson',
   description:
-    'Loads a complete ComfyUI workflow, replacing the current graph. Accepts two formats: (1) API format: object with string node IDs as keys and values { class_type, inputs, optional _meta.title }. (2) Frontend format: object with nodes (array) and links (array), as exported by ComfyUI or returned by official/custom templates. Use for complex workflows that would take many addNode/connectNodes calls.',
+    'Loads a complete ComfyUI workflow, replacing the current graph. Provide either workflow (inline JSON) or workflowPath (temp file id, e.g. from getWorkflowInfo _tempFile). Formats: (1) API format: object with string node IDs as keys and values { class_type, inputs, optional _meta.title }. (2) Frontend format: object with nodes (array) and links (array). Prefer workflowPath when referencing workflows from getWorkflowInfo temp refs.',
   parameters: applyWorkflowJsonSchema
 }
 

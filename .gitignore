@@ -32,6 +32,7 @@ user_context/skills/*/
 user_context/environment/
 user_context/environment/installed_nodes.json
 user_context/logs/
+user_context/temp/
 
 # Vite cache
 ui/node_modules/.vite/

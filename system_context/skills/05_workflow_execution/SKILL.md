@@ -34,6 +34,7 @@ Follow the decision order in the workflow-guardrails skill before creating any c
 - The workflow requires many nodes and connections that would be tedious with individual addNode/connectNodes calls
 - User provides or describes a workflow they want loaded
 - User wants a full workflow built end-to-end without step-by-step edits
+- When applying a workflow from **getWorkflowInfo** temp refs: use **workflowPath** with the `_tempFile` or `fullWorkflowRef` value (e.g. `workflowPath: "workflow_abc123.json"`) instead of inline `workflow` — workflows are stored in user_context/temp/ to avoid payload limits
 
 ### Best practice: default to JSON for complete workflows
 

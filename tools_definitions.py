@@ -382,39 +382,19 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "applyWorkflowJson",
-            "description": "Loads a complete ComfyUI workflow, replacing the current graph. Accepts two formats: (1) API format: object with string node IDs as keys and values { class_type, inputs, optional _meta.title }. (2) Frontend format: object with nodes (array) and links (array), as exported by ComfyUI or returned by official/custom templates. Use for complex workflows that would take many addNode/connectNodes calls. Prefer applyTemplate when loading from template id; use applyWorkflowJson for raw JSON. Always call searchInstalledNodes and getAvailableModels first when building or validating workflows.",
+            "description": "Loads a complete ComfyUI workflow, replacing the current graph. Provide either workflow (inline JSON) or workflowPath (temp file id from getWorkflowInfo _tempFile). Formats: (1) API format: object with string node IDs as keys and values { class_type, inputs, optional _meta.title }. (2) Frontend format: object with nodes (array) and links (array). Prefer workflowPath when referencing workflows from getWorkflowInfo temp refs. Prefer applyTemplate when loading from template id.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "workflow": {
                         "type": "object",
-                        "description": "Workflow in either format. API format: keys are string node IDs (e.g. '1', '2'), each value has class_type (string), inputs (object), optional _meta.title. Frontend format: object with nodes (array of node objects with id, type, pos, widgets_values, etc.) and links (array of link tuples). Templates and ComfyUI exports typically use frontend format.",
-                        "additionalProperties": {
-                            "type": "object",
-                            "properties": {
-                                "class_type": {
-                                    "type": "string",
-                                    "description": "The registered node type name"
-                                },
-                                "inputs": {
-                                    "type": "object",
-                                    "description": "Node inputs: scalar values or links as [nodeId, outputIndex]"
-                                },
-                                "_meta": {
-                                    "type": "object",
-                                    "properties": {
-                                        "title": {
-                                            "type": "string",
-                                            "description": "Display title for the node"
-                                        }
-                                    }
-                                }
-                            },
-                            "required": ["class_type", "inputs"]
-                        }
+                        "description": "Workflow inline. API format: keys are string node IDs, values have class_type, inputs, optional _meta.title. Frontend format: nodes array and links array."
+                    },
+                    "workflowPath": {
+                        "type": "string",
+                        "description": "Temp file id (e.g. workflow_abc123.json) from getWorkflowInfo _tempFile. Use when the workflow was saved to temp by the assistant."
                     }
-                },
-                "required": ["workflow"]
+                }
             }
         }
     },

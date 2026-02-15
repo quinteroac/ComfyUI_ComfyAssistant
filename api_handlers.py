@@ -17,6 +17,7 @@ import documentation_resolver
 import skill_manager
 import user_context_store
 import user_context_loader
+import temp_file_store
 import comfyui_examples
 import web_search
 import web_content
@@ -595,6 +596,98 @@ def create_research_handlers() -> dict:
         "registry": registry_handler,
         "examples": examples_handler,
     }
+
+
+# ---------------------------------------------------------------------------
+# Temp file handlers (workflow JSON, prompts)
+# ---------------------------------------------------------------------------
+
+
+def create_temp_handlers() -> dict:
+    """Create handler functions for temp file endpoints.
+
+    Returns:
+        Dict mapping handler names to async handler functions.
+    """
+
+    async def temp_file_post_handler(request: web.Request) -> web.Response:
+        """POST /api/temp/file — write JSON body to temp file, return {id, path}."""
+        try:
+            body = await request.json() if request.body_exists else {}
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+        prefix = (body.get("prefix") or "workflow").strip() or "workflow"
+        content = body.get("content", body)
+        if content is body and "content" not in body:
+            content = body
+
+        try:
+            filename = temp_file_store.write_temp_file(
+                content=content,
+                prefix=prefix,
+                suffix=".json",
+            )
+            return web.json_response({"id": filename, "path": filename})
+        except Exception as e:
+            logger.exception("Temp file write failed")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def temp_file_get_handler(request: web.Request) -> web.Response:
+        """GET /api/temp/file?id=xxx — return content of temp file."""
+        file_id = (request.query.get("id") or "").strip()
+        if not file_id:
+            return web.json_response(
+                {"error": "Missing 'id' query parameter"}, status=400
+            )
+        if not temp_file_store.is_safe_file_id(file_id):
+            return web.json_response(
+                {"error": "Invalid file id"}, status=400
+            )
+
+        content = temp_file_store.read_temp_file(file_id)
+        if content is None:
+            return web.json_response(
+                {"error": f"Temp file '{file_id}' not found"}, status=404
+            )
+
+        if isinstance(content, dict):
+            return web.json_response(content)
+        return web.json_response({"content": content})
+
+    async def temp_file_delete_handler(request: web.Request) -> web.Response:
+        """DELETE /api/temp/file?id=xxx — delete temp file."""
+        file_id = (request.query.get("id") or "").strip()
+        if not file_id:
+            return web.json_response(
+                {"error": "Missing 'id' query parameter"}, status=400
+            )
+        if not temp_file_store.is_safe_file_id(file_id):
+            return web.json_response(
+                {"error": "Invalid file id"}, status=400
+            )
+
+        deleted = temp_file_store.delete_temp_file(file_id)
+        if not deleted:
+            return web.json_response(
+                {"error": f"Temp file '{file_id}' not found"}, status=404
+            )
+        return web.json_response({"ok": True, "id": file_id})
+
+    return {
+        "temp_file_post": temp_file_post_handler,
+        "temp_file_get": temp_file_get_handler,
+        "temp_file_delete": temp_file_delete_handler,
+    }
+
+
+def register_temp_routes(app, handlers: dict) -> None:
+    """Register temp file routes on the aiohttp app."""
+    app.add_routes([
+        web.post("/api/temp/file", handlers["temp_file_post"]),
+        web.get("/api/temp/file", handlers["temp_file_get"]),
+        web.delete("/api/temp/file", handlers["temp_file_delete"]),
+    ])
 
 
 def register_research_routes(app, handlers: dict) -> None:
