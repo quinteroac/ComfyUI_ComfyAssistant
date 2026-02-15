@@ -56,14 +56,31 @@ def _fit_narrative(soul: str, goals: str, max_chars: int) -> tuple[str, str]:
     return "", _truncate_text(goals, max_chars)
 
 
+def _format_user_skills_index(user_skills: list[dict]) -> str:
+    """Build a compact index of user skills (slug + description, one line each)."""
+    if not user_skills:
+        return ""
+    lines = []
+    for skill in user_skills:
+        slug = skill.get("slug", "")
+        name = skill.get("name", slug)
+        desc = skill.get("description", "")
+        if desc:
+            lines.append(f"- **{name}** (`{slug}`): {desc}")
+        else:
+            lines.append(f"- **{name}** (`{slug}`)")
+    return "\n".join(lines)
+
+
 def _build_user_context_payload(
     rules: list[dict],
     soul: str,
     goals: str,
     rules_limit: int,
     narrative_max_chars: int,
+    user_skills_index: str = "",
 ) -> str:
-    """Assemble the user context payload from rules and narrative."""
+    """Assemble the user context payload from rules, narrative, and optional skills index."""
     parts = []
     if rules:
         lines = [
@@ -89,6 +106,13 @@ def _build_user_context_payload(
             block.append("**User goals**: " + fitted_goals)
         parts.append("## User context\n\n" + "\n\n".join(block))
 
+    if user_skills_index:
+        parts.append(
+            "## User skills index\n\n"
+            "Available user skills (call getUserSkill(slug) to load full instructions):\n\n"
+            + user_skills_index
+        )
+
     if not parts:
         return ""
 
@@ -104,17 +128,18 @@ def format_user_context(
     max_chars: int = DEFAULT_USER_CONTEXT_MAX_CHARS,
     max_narrative_chars: int = DEFAULT_NARRATIVE_MAX_CHARS,
     max_rules: int = DEFAULT_MAX_RULES,
+    user_skills: list[dict] | None = None,
     metrics: dict | None = None,
 ) -> str:
     """
-    Format loaded user context (rules, SOUL, goals) for injection into the system message.
+    Format loaded user context (rules, SOUL, goals, user skills index) for injection.
 
     Uses progressive pruning instead of hard truncation: when the payload exceeds
     max_chars, rules are reduced first (whole rules, not mid-text cuts), then
     narrative budget is halved.  Hard truncation is a last-resort fallback.
 
-    User skills are not included here; they are loaded on demand via the getUserSkill
-    and listUserSkills tools.
+    When user_skills is provided, a "User skills index" subsection is appended
+    to the block. Full skill content is loaded on demand via getUserSkill(slug).
     """
     if not user_context:
         if metrics is not None:
@@ -132,10 +157,13 @@ def format_user_context(
     if metrics is not None:
         metrics["user_context_rules_total"] = len(rules)
 
-    # Build payload with initial limits
+    # Build payload with initial limits (include user skills index when provided)
     rules_limit = min(len(rules), max_rules)
     narrative_budget = max_narrative_chars
-    payload = _build_user_context_payload(rules, soul, goals, rules_limit, narrative_budget)
+    skills_index = _format_user_skills_index(user_skills or [])
+    payload = _build_user_context_payload(
+        rules, soul, goals, rules_limit, narrative_budget, user_skills_index=skills_index
+    )
 
     if metrics is not None:
         metrics["user_context_chars_raw"] = len(payload)
@@ -153,13 +181,17 @@ def format_user_context(
         # Phase 1: halve rules count iteratively
         while rules_limit > 1 and len(payload) > max_chars:
             rules_limit = max(1, rules_limit // 2)
-            payload = _build_user_context_payload(rules, soul, goals, rules_limit, narrative_budget)
+            payload = _build_user_context_payload(
+                rules, soul, goals, rules_limit, narrative_budget, user_skills_index=skills_index
+            )
             truncated = True
 
     if len(payload) > max_chars and narrative_budget > 200:
         # Phase 2: halve narrative budget
         narrative_budget = narrative_budget // 2
-        payload = _build_user_context_payload(rules, soul, goals, rules_limit, narrative_budget)
+        payload = _build_user_context_payload(
+            rules, soul, goals, rules_limit, narrative_budget, user_skills_index=skills_index
+        )
         truncated = True
 
     if len(payload) > max_chars:
@@ -173,22 +205,6 @@ def format_user_context(
         metrics["user_context_truncated"] = truncated
 
     return payload
-
-
-def _format_user_skills_index(user_skills: list[dict]) -> str:
-    """Build a compact index of user skills (slug + description, one line each)."""
-    if not user_skills:
-        return ""
-    lines = []
-    for skill in user_skills:
-        slug = skill.get("slug", "")
-        name = skill.get("name", slug)
-        desc = skill.get("description", "")
-        if desc:
-            lines.append(f"- **{name}** (`{slug}`): {desc}")
-        else:
-            lines.append(f"- **{name}** (`{slug}`)")
-    return "\n".join(lines)
 
 
 def get_system_message(
@@ -247,6 +263,7 @@ def get_system_message(
         formatted = format_user_context(
             user_context,
             max_chars=user_context_max_chars,
+            user_skills=user_skills,
             metrics=metrics,
         )
         if formatted:

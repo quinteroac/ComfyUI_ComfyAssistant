@@ -103,6 +103,8 @@ ComfyUI_ComfyAssistant/
 │   │   ├── 07_workflow_guardrails/SKILL.md
 │   │   ├── 08_comfyui_examples_source/SKILL.md
 │   │   ├── 09_template_library/SKILL.md
+│   │   ├── 10_organize_workflow_json_front/SKILL.md
+│   │   ├── 11_create_skills/SKILL.md
 │   │   └── 17_model_loading_rules/SKILL.md
 │   └── README.md
 │
