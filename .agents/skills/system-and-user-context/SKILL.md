@@ -21,7 +21,8 @@ system_context/
 │   ├── 02_tool_guidelines/SKILL.md    # When and how to use tools
 │   ├── 03_node_reference/SKILL.md     # Common node types reference
 │   ├── 04_environment_tools/SKILL.md  # Environment tool instructions
-│   └── 05_workflow_execution/SKILL.md # Workflow execution guidance
+│   ├── 05_workflow_execution/SKILL.md # Workflow execution guidance
+│   └── 10_organize_workflow_json_front/SKILL.md  # Organize workflow (frontend JSON, validate)
 └── README.md                          # (skipped during loading)
 ```
 
