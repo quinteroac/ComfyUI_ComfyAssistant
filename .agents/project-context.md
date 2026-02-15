@@ -118,6 +118,9 @@ ComfyUI_ComfyAssistant/
 │   │   └── summary.json        # Brief summary for prompt injection
 │   ├── skills/                 # One dir per user skill (SKILL.md with YAML frontmatter)
 │   │   └── <slug>/SKILL.md     # e.g. use-preview-image/SKILL.md
+│   ├── temp/                   # Temporary files (workflows, prompts) — always use for JSON workflows
+│   │   ├── workflow_*.json     # Workflow JSON from getWorkflowInfo (referenced via _tempFile)
+│   │   └── prompt_*.txt        # CLI prompts (claude_code, gemini_cli use stdin; codex uses argv)
 │   └── logs/                   # Optional: daily JSONL conversation logs (when COMFY_ASSISTANT_ENABLE_LOGS=1)
 │
 ├── ui/                         # React frontend

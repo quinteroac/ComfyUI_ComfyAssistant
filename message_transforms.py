@@ -10,9 +10,94 @@ import uuid
 from sse_streaming import _get_tool_name, _is_tool_ui_part
 from tools_definitions import TOOLS
 
+try:
+    import temp_file_store
+except ImportError:
+    temp_file_store = None
+
 logger = logging.getLogger("ComfyUI_ComfyAssistant.message_transforms")
 
 TOOLS_DEFINITIONS = TOOLS
+
+
+def substitute_workflow_tool_results_with_temp_refs(messages: list[dict]) -> list[dict]:
+    """Replace workflow JSON in tool results with temp file references.
+
+    Always (no size threshold): when a tool result contains fullWorkflow, apiWorkflow,
+    or workflow, write it to user_context/temp/ and replace with {_tempFile, summary}.
+    """
+    if not temp_file_store:
+        return messages
+
+    result = []
+    for msg in messages:
+        msg = dict(msg)
+        role = msg.get("role")
+        if role != "tool":
+            result.append(msg)
+            continue
+
+        content = msg.get("content", "")
+        if isinstance(content, str) and content.strip():
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError:
+                result.append(msg)
+                continue
+        elif isinstance(content, dict):
+            parsed = content
+        else:
+            result.append(msg)
+            continue
+
+        if not isinstance(parsed, dict):
+            result.append(msg)
+            continue
+
+        workflow_data = None
+        workflow_key = None
+        for key in ("fullWorkflow", "apiWorkflow", "workflow"):
+            if key in parsed and parsed[key] is not None:
+                workflow_data = parsed[key]
+                workflow_key = key
+                break
+
+        if workflow_data is None:
+            result.append(msg)
+            continue
+
+        try:
+            filename = temp_file_store.write_temp_file(
+                content=workflow_data,
+                prefix="workflow",
+                suffix=".json",
+            )
+        except Exception as e:
+            logger.warning("Failed to write workflow temp file: %s", e)
+            result.append(msg)
+            continue
+
+        node_count = 0
+        if isinstance(workflow_data, dict):
+            nodes = workflow_data.get("nodes")
+            if isinstance(nodes, list):
+                node_count = len(nodes)
+            else:
+                node_count = len([k for k in workflow_data if isinstance(workflow_data.get(k), dict)])
+
+        summary_parts = [f"{workflow_key} saved to temp file (ref: {filename})"]
+        if node_count:
+            summary_parts.append(f"{node_count} nodes")
+
+        ref_content = {
+            "_tempFile": filename,
+            "summary": "; ".join(summary_parts),
+            "fullWorkflowRef": filename,
+        }
+        msg["content"] = json.dumps(ref_content, ensure_ascii=False)
+        result.append(msg)
+
+    return result
 
 
 def _stringify_message_content(content) -> str:

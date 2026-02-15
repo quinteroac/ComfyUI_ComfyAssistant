@@ -42,8 +42,21 @@ function isApiFormat(
 }
 
 /**
+ * Fetches workflow JSON from temp file API by id.
+ */
+async function fetchWorkflowFromTemp(workflowPath: string): Promise<unknown> {
+  const url = `/api/temp/file?id=${encodeURIComponent(workflowPath)}`
+  const res = await fetch(url)
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error ?? `Failed to fetch temp file: ${res.status}`)
+  }
+  return res.json()
+}
+
+/**
  * Validates node types and loads a complete workflow (API or frontend format),
- * replacing the current graph.
+ * replacing the current graph. Supports inline workflow or workflowPath (temp file id).
  */
 export async function executeApplyWorkflowJson(
   params: ApplyWorkflowJsonParams,
@@ -58,7 +71,25 @@ export async function executeApplyWorkflowJson(
     }
   }
 
-  const { workflow } = params
+  let workflow: unknown = params.workflow
+
+  if (params.workflowPath) {
+    try {
+      workflow = await fetchWorkflowFromTemp(params.workflowPath)
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to load workflow from temp file'
+      }
+    }
+  }
+
+  if (!workflow) {
+    return {
+      success: false,
+      error: 'Either workflow or workflowPath is required'
+    }
+  }
 
   if (isFrontendFormat(workflow)) {
     return loadFrontendWorkflow(workflow, app)

@@ -14,6 +14,7 @@ description: Guidelines for using graph tools (before adding nodes, connecting, 
 ## When You Need the Full Workflow
 
 - Use `getWorkflowInfo` with **fullFormat: true** when you need the complete canvas workflow (e.g. to reorganize it and re-apply with applyWorkflowJson, or for very detailed analysis). The response will include `fullWorkflow` (frontend format: nodes + links) and `apiWorkflow` (API format).
+- Workflow results are saved to user_context/temp/; the LLM receives `_tempFile` and `fullWorkflowRef` (filename) instead of inline JSON. When calling **applyWorkflowJson** to apply such a workflow, use **workflowPath** with the `_tempFile` or `fullWorkflowRef` value (e.g. `workflowPath: "workflow_abc123.json"`) instead of inline `workflow`.
 
 ## When Connecting Nodes
 

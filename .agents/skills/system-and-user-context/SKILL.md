@@ -41,6 +41,9 @@ user_context/
 │   ├── custom_nodes.json
 │   ├── models.json
 │   └── summary.json
+├── temp/               # Temporary files (workflows, prompts) — backend writes; auto-cleanup after 24h
+│   ├── workflow_*.json # Workflow JSON from getWorkflowInfo; tool results reference via _tempFile
+│   └── prompt_*.txt    # CLI prompts (claude_code, gemini_cli read via stdin)
 └── skills/             # User skills (Agent Skills standard)
     └── <slug>/SKILL.md # e.g. use-preview-image/SKILL.md
 ```

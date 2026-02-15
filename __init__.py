@@ -37,6 +37,7 @@ from tools_definitions import TOOLS
 from message_transforms import (
     _extract_content,
     _ui_messages_to_openai,
+    substitute_workflow_tool_results_with_temp_refs,
 )
 from context_management import (
     LLM_HISTORY_MAX_MESSAGES,
@@ -336,8 +337,9 @@ def _build_system_message_block(openai_messages: list[dict], metrics: dict) -> N
 
 
 def _apply_context_pipeline(openai_messages: list[dict], metrics: dict) -> list[dict]:
-    """Apply slash-skill injection and context trimming pipeline."""
+    """Apply slash-skill injection, temp file substitution, and context trimming."""
     _inject_skill_if_slash_skill(openai_messages)
+    openai_messages = substitute_workflow_tool_results_with_temp_refs(openai_messages)
     openai_messages = _trim_old_tool_results(
         openai_messages,
         LLM_TOOL_RESULT_KEEP_LAST_ROUNDS,
@@ -762,12 +764,23 @@ api_handlers.register_provider_routes(server.PromptServer.instance.app, _provide
 _phase8_handlers = api_handlers.create_research_handlers()
 api_handlers.register_research_routes(server.PromptServer.instance.app, _phase8_handlers)
 
+# Register temp file routes (workflow JSON, prompts)
+_temp_handlers = api_handlers.create_temp_handlers()
+api_handlers.register_temp_routes(server.PromptServer.instance.app, _temp_handlers)
+
 
 # --- Auto-scan environment on startup (non-blocking) ---
 
 async def _auto_scan_environment():
     """Run initial environment scan after a delay to let other custom nodes finish loading."""
     await asyncio.sleep(5)  # Wait for other extensions to register
+    try:
+        import temp_file_store
+        deleted = temp_file_store.cleanup_old_temp_files(max_age_hours=24)
+        if deleted:
+            logger.info("[ComfyAssistant] Cleaned up %d old temp files", deleted)
+    except Exception as e:
+        logger.debug("Temp file cleanup skipped: %s", e)
     try:
         user_context_store.ensure_environment_dirs()
         summary = environment_scanner.scan_environment(environment_dir)
