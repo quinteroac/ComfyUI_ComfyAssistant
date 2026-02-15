@@ -706,6 +706,28 @@ async def stream_gemini_cli(
     text_id = f"msg_{uuid.uuid4().hex[:24]}"
     yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
 
+    last_msg_role = (openai_messages[-1].get("role") or "") if openai_messages else ""
+    last_user_content = ""
+    for msg in openai_messages:
+        if isinstance(msg, dict) and msg.get("role") == "user":
+            content = msg.get("content")
+            last_user_content = content if isinstance(content, str) else str(content)
+    # Last round of tool results = trailing consecutive "tool" messages
+    last_tool_contents = []
+    for msg in reversed(openai_messages):
+        if not isinstance(msg, dict) or msg.get("role") != "tool":
+            break
+        content = msg.get("content")
+        last_tool_contents.append(content if isinstance(content, str) else str(content))
+    last_tool_contents.reverse()
+    if last_msg_role == "user" and last_user_content:
+        logger.info("[ComfyAssistant] User message: %s", last_user_content[:500] + ("..." if len(last_user_content) > 500 else ""))
+    elif last_msg_role == "tool" and last_tool_contents:
+        summary = " | ".join((c[:120] + ("..." if len(c) > 120 else "") for c in last_tool_contents[:5]))
+        logger.info("[ComfyAssistant] Follow-up after tool call (msgs=%d), tool response(s): %s", len(openai_messages), summary)
+    elif len(openai_messages) > 2:
+        logger.info("[ComfyAssistant] Follow-up request (msgs=%d)", len(openai_messages))
+
     prompt = _build_cli_tool_prompt(openai_messages)
     # Gemini CLI does not support --json-schema; embed schema in prompt text
     schema_json = json.dumps(_cli_response_schema(), ensure_ascii=False)
@@ -768,7 +790,16 @@ async def stream_gemini_cli(
             return
         raw = gemini_env["response"] if isinstance(gemini_env["response"], str) else json.dumps(gemini_env["response"])
 
+    logger.info(
+        "[ComfyAssistant] gemini_cli raw response: %s",
+        raw[:500] if raw else "(empty)",
+    )
     text, tool_calls = _normalize_cli_structured_response(raw)
+    logger.info(
+        "[ComfyAssistant] gemini_cli parsed: text=%r tool_calls=%d",
+        text[:200] if text else "(empty)",
+        len(tool_calls),
+    )
     if out_tok is None:
         out_tok = _estimate_tokens(text)
     logger.info(
@@ -776,8 +807,30 @@ async def stream_gemini_cli(
         in_tok,
         out_tok,
     )
-    # Send tool calls; only send text if there are NO tool calls
-    # This ensures auto-resubmit works: tool-invocation is the last part
+    # Emit text first when present so the user sees the assistant's reply even when tools are also invoked in the same turn.
+    # Send multiple text-delta chunks so the frontend accumulates them (validates no overwriting) and shows streaming.
+    text_delta_chunk_size = 64
+    if text:
+        yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+        for i in range(0, len(text), text_delta_chunk_size):
+            yield _sse_line({
+                "type": "text-delta",
+                "id": text_id,
+                "delta": text[i : i + text_delta_chunk_size],
+            }).encode("utf-8")
+        yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+    elif not tool_calls:
+        # No text and no tool calls: show fallback so the user sees something
+        reply = raw.strip() if raw.strip() else "(No response from model)"
+        yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+        for i in range(0, len(reply), text_delta_chunk_size):
+            yield _sse_line({
+                "type": "text-delta",
+                "id": text_id,
+                "delta": reply[i : i + text_delta_chunk_size],
+            }).encode("utf-8")
+        yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+
     for tool_call in tool_calls:
         yield _sse_line({
             "type": "tool-input-available",
@@ -785,14 +838,6 @@ async def stream_gemini_cli(
             "toolName": tool_call["name"],
             "input": tool_call["input"],
         }).encode("utf-8")
-    if text and not tool_calls:
-        yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-        yield _sse_line({
-            "type": "text-delta",
-            "id": text_id,
-            "delta": text,
-        }).encode("utf-8")
-        yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
     finish_reason = "tool-calls" if tool_calls else "stop"
     yield _sse_line({"type": "finish", "finishReason": finish_reason}).encode("utf-8")
     yield "data: [DONE]\n\n".encode("utf-8")

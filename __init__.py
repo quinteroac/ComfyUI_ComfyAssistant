@@ -233,9 +233,27 @@ async def _prepare_chat_request(request: web.Request) -> tuple[list[dict], dict]
         raise ValueError("Invalid JSON body")
 
     messages = body.get("messages", [])
+    # Use client's messageId when present (e.g. follow-up after tool) so the stream
+    # appends to the same assistant message instead of creating a new one.
+    message_id_from_client = body.get("messageId")
+    if message_id_from_client and isinstance(message_id_from_client, str):
+        stream_message_id = str(message_id_from_client).strip()
+    else:
+        stream_message_id = ""
+    if not stream_message_id:
+        stream_message_id = f"msg_{uuid.uuid4().hex}"
+        reused = False
+    else:
+        reused = True
+    logger.info(
+        "[ComfyAssistant] chat request messageId: from_client=%s reused=%s stream_id=%s",
+        message_id_from_client,
+        reused,
+        stream_message_id[:32] + ("..." if len(stream_message_id) > 32 else ""),
+    )
     metrics: dict = {
         "_raw_messages": messages,
-        "_message_id": f"msg_{uuid.uuid4().hex}",
+        "_message_id": stream_message_id,
         "_debug_context": COMFY_ASSISTANT_DEBUG_CONTEXT or (
             request.query.get("debug") == "context"
         ),
@@ -254,16 +272,6 @@ async def _prepare_chat_request(request: web.Request) -> tuple[list[dict], dict]
                 return ([], metrics)
 
     openai_messages = _ui_messages_to_openai(messages)
-
-    logger.info("[DEBUG] Input messages count: %d", len(messages))
-    logger.info("[DEBUG] Converted openai_messages count: %d", len(openai_messages))
-    for i, msg in enumerate(openai_messages):
-        logger.info(
-            "[DEBUG] Message %d: role=%s content=%s",
-            i,
-            msg.get("role"),
-            str(msg.get("content", ""))[:100],
-        )
 
     return (openai_messages, metrics)
 

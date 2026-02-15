@@ -18,15 +18,18 @@ import { cn } from '@/lib/utils'
 
 const MarkdownTextImpl = () => {
   const message = useMessage()
-
-  // Use only the LAST text part to avoid repetitions (placeholder + duplicate analysis after tool loops)
-  const textParts = message.content.filter((part) => part.type === 'text')
-  const fullText =
-    textParts.length > 0
-      ? (textParts[textParts.length - 1] as { text: string }).text
-      : ''
+  const textParts = message.content.filter((p) => p.type === 'text')
+  const texts = textParts.map((p) => (p as { text: string }).text).filter(Boolean)
+  const seen = new Set<string>()
+  const deduped = texts.filter((t) => {
+    if (seen.has(t)) return false
+    seen.add(t)
+    return true
+  })
+  const fullText = deduped.length > 0 ? deduped.join('\n\n') : ''
   const cleanedText = fullText.replace(/^<!-- local:slash -->\n?/, '')
 
+  if (!cleanedText) return null
   return (
     <div className="aui-md text-[15px]">
       <ReactMarkdown

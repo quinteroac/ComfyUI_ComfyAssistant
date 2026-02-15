@@ -53,23 +53,33 @@ declare global {
  */
 const MAX_TOOL_ROUNDTRIPS = 3
 let toolRoundtripCount = 0
+/** Only allow one automatic send per distinct last-message state to avoid duplicate requests when sendAutomaticallyWhen is called multiple times (e.g. after each addToolResult and again on stream finish). */
+let lastTriggeredMessageId: string | undefined
+let lastTriggeredPartsLength = 0
 
 function shouldResubmitAfterToolResult({
   messages
 }: {
   messages: UIMessage[]
 }): boolean {
+  const lastMsg = messages[messages.length - 1]
+  const parts = lastMsg?.parts ?? []
+  console.log('[ComfyAssistant] sendAutomaticallyWhen called', {
+    messagesCount: messages.length,
+    lastMsgPartsLength: parts.length,
+    partTypes: parts.map((p) => p.type),
+  })
+
   if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) {
     // Reset counter when no tool calls
     toolRoundtripCount = 0
+    console.log('[ComfyAssistant] sendAutomaticallyWhen -> false (no complete tool calls)')
     return false
   }
 
-  const lastMsg = messages[messages.length - 1]
-  const parts = lastMsg?.parts ?? []
-
   if (parts.length === 0) {
     toolRoundtripCount = 0
+    console.log('[ComfyAssistant] sendAutomaticallyWhen -> false (no parts)')
     return false
   }
 
@@ -77,6 +87,15 @@ function shouldResubmitAfterToolResult({
   const shouldResubmit = lastPartType !== 'text'
 
   if (shouldResubmit) {
+    // Allow only one automatic send per (message id, parts length) so we don't trigger multiple makeRequest() for the same state (e.g. from multiple addToolResult calls or from onFinish).
+    const messageId = lastMsg?.id ?? ''
+    if (messageId === lastTriggeredMessageId && parts.length === lastTriggeredPartsLength) {
+      console.log('[ComfyAssistant] sendAutomaticallyWhen -> false (already triggered for this state)')
+      return false
+    }
+    lastTriggeredMessageId = messageId
+    lastTriggeredPartsLength = parts.length
+
     toolRoundtripCount++
     console.log(
       `[ComfyAssistant] Tool roundtrip ${toolRoundtripCount}/${MAX_TOOL_ROUNDTRIPS}`
@@ -87,14 +106,18 @@ function shouldResubmitAfterToolResult({
         '[ComfyAssistant] Max tool roundtrips reached, stopping auto-resubmit'
       )
       toolRoundtripCount = 0
+      console.log('[ComfyAssistant] sendAutomaticallyWhen -> false (max roundtrips)')
       return false
     }
   } else {
-    // Reset counter when LLM responds with text
+    // Reset counter when LLM responds with text; allow future triggers for new tool rounds.
     toolRoundtripCount = 0
+    lastTriggeredMessageId = undefined
+    lastTriggeredPartsLength = 0
   }
 
   // If the last part is text, the LLM has already responded to the tool results
+  console.log('[ComfyAssistant] sendAutomaticallyWhen ->', shouldResubmit)
   return shouldResubmit
 }
 

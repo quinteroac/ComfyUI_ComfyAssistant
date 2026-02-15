@@ -184,6 +184,9 @@ def _parse_cli_tool_calls(raw_calls, allowed_tool_names: set[str]) -> list[dict]
                 input_value = json.loads(input_json)
             except json.JSONDecodeError:
                 input_value = {}
+        elif isinstance(input_json, dict):
+            # Gemini may return input_json as a dict instead of a JSON string
+            input_value = input_json
         elif "input" in call:
             input_value = call.get("input", {})
             if isinstance(input_value, str):
@@ -369,6 +372,12 @@ def _ui_messages_to_openai(messages: list) -> list:
       for backward compatibility
     """
     result = []
+    # Global deduplication: the runtime may accumulate tool invocations from
+    # earlier rounds into newer assistant messages.  Track seen IDs across
+    # ALL messages to avoid emitting duplicate tool_calls / tool results.
+    global_tool_calls_seen: set[str] = set()
+    global_tool_results_seen: set[str] = set()
+
     for msg in messages or []:
         role = msg.get("role", "user")
 
@@ -395,8 +404,6 @@ def _ui_messages_to_openai(messages: list) -> list:
             # Split accumulated parts into per-round OpenAI messages.
             # A new round starts when a text part appears after tool
             # invocations in the current round.
-            tool_calls_seen: set[str] = set()
-            tool_results_seen: set[str] = set()
 
             round_text = ""
             round_tool_calls: list[dict] = []
@@ -440,8 +447,8 @@ def _ui_messages_to_openai(messages: list) -> list:
                     state = part.get("state", "")
                     args = part.get("input", {})
 
-                    if tool_call_id and tool_call_id not in tool_calls_seen:
-                        tool_calls_seen.add(tool_call_id)
+                    if tool_call_id and tool_call_id not in global_tool_calls_seen:
+                        global_tool_calls_seen.add(tool_call_id)
                         round_tool_calls.append({
                             "id": tool_call_id,
                             "type": "function",
@@ -452,16 +459,16 @@ def _ui_messages_to_openai(messages: list) -> list:
                         })
 
                     if state == "output-available" and "output" in part:
-                        if tool_call_id and tool_call_id not in tool_results_seen:
-                            tool_results_seen.add(tool_call_id)
+                        if tool_call_id and tool_call_id not in global_tool_results_seen:
+                            global_tool_results_seen.add(tool_call_id)
                             round_tool_results.append({
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
                                 "content": json.dumps(part.get("output", {}))
                             })
                     elif state == "output-error":
-                        if tool_call_id and tool_call_id not in tool_results_seen:
-                            tool_results_seen.add(tool_call_id)
+                        if tool_call_id and tool_call_id not in global_tool_results_seen:
+                            global_tool_results_seen.add(tool_call_id)
                             round_tool_results.append({
                                 "role": "tool",
                                 "tool_call_id": tool_call_id,
@@ -475,8 +482,8 @@ def _ui_messages_to_openai(messages: list) -> list:
                 # Legacy format: type == 'tool-call'
                 elif part_type == "tool-call":
                     tid = part.get("toolCallId", "")
-                    if tid and tid not in tool_calls_seen:
-                        tool_calls_seen.add(tid)
+                    if tid and tid not in global_tool_calls_seen:
+                        global_tool_calls_seen.add(tid)
                         round_tool_calls.append({
                             "id": tid,
                             "type": "function",
