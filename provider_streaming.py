@@ -127,182 +127,216 @@ async def stream_openai(
 
     yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
 
+    empty_stream_after_retry = False
     try:
-        await asyncio.sleep(llm_request_delay_seconds)
+        for _empty_retry in range(2):
+            await asyncio.sleep(llm_request_delay_seconds)
 
-        # Retry with automatic compaction on 413 / context-too-large
-        retry_messages = openai_messages
-        stream = None
-        for _compact_attempt in range(max_context_compact_retries + 1):
-            try:
-                stream = await client.chat.completions.create(
-                    model=openai_model,
-                    messages=retry_messages,
-                    tools=tools_definitions,
-                    tool_choice="auto",
-                    stream=True,
-                )
-                break  # create() succeeded
-            except Exception as create_exc:
-                if _compact_attempt < max_context_compact_retries and is_context_too_large_error(create_exc):
-                    logger.warning(
-                        "[ComfyAssistant] context too large (compact attempt %d/%d), "
-                        "applying automatic compaction...",
-                        _compact_attempt + 1,
-                        max_context_compact_retries,
+            # Reset accumulators on retry (API returned 0 chunks)
+            if _empty_retry > 0:
+                buffer = ""
+                tool_calls_buffer = {}
+                response_text_parts = []
+                response_tool_calls = []
+                llm_finish_reason = None
+                usage_prompt_tokens = None
+                usage_completion_tokens = None
+                reasoning_sent = False
+                text_sent = False
+                text_start_emitted = False
+                text_end_sent = False
+
+            # Retry with automatic compaction on 413 / context-too-large
+            retry_messages = openai_messages
+            stream = None
+            for _compact_attempt in range(max_context_compact_retries + 1):
+                try:
+                    stream = await client.chat.completions.create(
+                        model=openai_model,
+                        messages=retry_messages,
+                        tools=tools_definitions,
+                        tool_choice="auto",
+                        stream=True,
                     )
-                    retry_messages = _compact_messages_for_retry(
-                        retry_messages, _compact_attempt + 1
-                    )
-                    new_est = count_request_tokens(retry_messages)
-                    logger.info(
-                        "[ComfyAssistant] compacted: %d messages, ~%d tokens (was ~%d)",
-                        len(retry_messages),
-                        new_est,
-                        request_tokens_est,
-                    )
+                    break  # create() succeeded
+                except Exception as create_exc:
+                    if _compact_attempt < max_context_compact_retries and is_context_too_large_error(create_exc):
+                        logger.warning(
+                            "[ComfyAssistant] context too large (compact attempt %d/%d), "
+                            "applying automatic compaction...",
+                            _compact_attempt + 1,
+                            max_context_compact_retries,
+                        )
+                        retry_messages = _compact_messages_for_retry(
+                            retry_messages, _compact_attempt + 1
+                        )
+                        new_est = count_request_tokens(retry_messages)
+                        logger.info(
+                            "[ComfyAssistant] compacted: %d messages, ~%d tokens (was ~%d)",
+                            len(retry_messages),
+                            new_est,
+                            request_tokens_est,
+                        )
+                        continue
+                    raise  # non-retryable or final attempt — propagate to outer handler
+
+            chunk_count = 0
+            async for chunk in stream:
+                choice = chunk.choices[0] if chunk.choices else None
+                chunk_count += 1
+                if not choice:
                     continue
-                raise  # non-retryable or final attempt — propagate to outer handler
 
-        async for chunk in stream:
-            choice = chunk.choices[0] if chunk.choices else None
-            if not choice:
-                continue
+                # Last chunk may carry finish_reason and usage
+                if choice.finish_reason:
+                    llm_finish_reason = choice.finish_reason
+                if getattr(chunk, "usage", None):
+                    u = chunk.usage
+                    if getattr(u, "prompt_tokens", None) is not None:
+                        usage_prompt_tokens = u.prompt_tokens
+                    if getattr(u, "completion_tokens", None) is not None:
+                        usage_completion_tokens = u.completion_tokens
 
-            # Last chunk may carry finish_reason and usage
-            if choice.finish_reason:
-                llm_finish_reason = choice.finish_reason
-            if getattr(chunk, "usage", None):
-                u = chunk.usage
-                if getattr(u, "prompt_tokens", None) is not None:
-                    usage_prompt_tokens = u.prompt_tokens
-                if getattr(u, "completion_tokens", None) is not None:
-                    usage_completion_tokens = u.completion_tokens
+                delta = choice.delta
 
-            delta = choice.delta
+                # Handle text content
+                if delta.content:
+                    buffer += delta.content
 
-            # Handle text content
-            if delta.content:
-                buffer += delta.content
+                    # Check if we have complete thinking blocks
+                    if "<think>" in buffer and "</think>" in buffer:
+                        reasoning_parts, cleaned_text = _parse_thinking_tags(buffer)
 
-                # Check if we have complete thinking blocks
-                if "<think>" in buffer and "</think>" in buffer:
-                    reasoning_parts, cleaned_text = _parse_thinking_tags(buffer)
+                        # Send reasoning parts
+                        for reasoning_text in reasoning_parts:
+                            if not reasoning_sent:
+                                reasoning_id = f"reasoning_{uuid.uuid4().hex[:24]}"
+                                yield _sse_line({"type": "reasoning-start", "id": reasoning_id}).encode("utf-8")
+                                reasoning_sent = True
+                            yield _sse_line({"type": "reasoning-delta", "id": reasoning_id, "delta": reasoning_text}).encode("utf-8")
 
-                    # Send reasoning parts
-                    for reasoning_text in reasoning_parts:
-                        if not reasoning_sent:
-                            reasoning_id = f"reasoning_{uuid.uuid4().hex[:24]}"
-                            yield _sse_line({"type": "reasoning-start", "id": reasoning_id}).encode("utf-8")
-                            reasoning_sent = True
-                        yield _sse_line({"type": "reasoning-delta", "id": reasoning_id, "delta": reasoning_text}).encode("utf-8")
+                        if reasoning_sent and reasoning_id:
+                            yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
+                            reasoning_sent = False
 
-                    if reasoning_sent and reasoning_id:
-                        yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
-                        reasoning_sent = False
-
-                    # Start text part for cleaned content (only once)
-                    if cleaned_text and not text_start_emitted:
-                        yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                        text_start_emitted = True
-
-                    if cleaned_text:
-                        yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
-                        text_sent = True
-                        response_text_parts.append(cleaned_text)
-
-                    buffer = ""
-                else:
-                    # Stream normally if no complete thinking blocks yet
-                    if "<think>" not in buffer:
-                        if not text_start_emitted:
+                        # Start text part for cleaned content (only once)
+                        if cleaned_text and not text_start_emitted:
                             yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
                             text_start_emitted = True
-                        yield _sse_line({"type": "text-delta", "id": text_id, "delta": delta.content}).encode("utf-8")
-                        text_sent = True
-                        response_text_parts.append(delta.content)
+
+                        if cleaned_text:
+                            yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
+                            text_sent = True
+                            response_text_parts.append(cleaned_text)
+
                         buffer = ""
+                    else:
+                        # Stream normally if no complete thinking blocks yet
+                        if "<think>" not in buffer:
+                            if not text_start_emitted:
+                                yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+                                text_start_emitted = True
+                            yield _sse_line({"type": "text-delta", "id": text_id, "delta": delta.content}).encode("utf-8")
+                            text_sent = True
+                            response_text_parts.append(delta.content)
+                            buffer = ""
 
-            # Handle tool calls (Data Stream Protocol format)
-            if delta.tool_calls:
-                for tool_call_delta in delta.tool_calls:
-                    index = tool_call_delta.index
+                # Handle tool calls (Data Stream Protocol format)
+                if delta.tool_calls:
+                    for tool_call_delta in delta.tool_calls:
+                        index = tool_call_delta.index
 
-                    # Initialize tool call buffer if needed
-                    if index not in tool_calls_buffer:
-                        tool_calls_buffer[index] = {
-                            "id": "",
-                            "name": "",
-                            "arguments": "",
-                            "completed": False,
-                        }
-                    tool_call_data = tool_calls_buffer[index]
-                    if tool_call_delta.id:
-                        tool_call_data["id"] = tool_call_delta.id
-                    if tool_call_delta.function:
-                        if tool_call_delta.function.name:
-                            tool_call_data["name"] = tool_call_delta.function.name
-                        if tool_call_delta.function.arguments:
-                            tool_call_data["arguments"] += tool_call_delta.function.arguments
-                    # Do not emit tool-input-start / tool-input-delta here. Emitting
-                    # only tool-input-available at the end avoids duplicate keys in
-                    # assistant-ui (Duplicate key toolCallId-... in tapResources),
-                    # which can occur when the client processes tool-input-available
-                    # before the part from tool-input-start is committed.
+                        # Initialize tool call buffer if needed
+                        if index not in tool_calls_buffer:
+                            tool_calls_buffer[index] = {
+                                "id": "",
+                                "name": "",
+                                "arguments": "",
+                                "completed": False,
+                            }
+                        tool_call_data = tool_calls_buffer[index]
+                        if tool_call_delta.id:
+                            tool_call_data["id"] = tool_call_delta.id
+                        if tool_call_delta.function:
+                            if tool_call_delta.function.name:
+                                tool_call_data["name"] = tool_call_delta.function.name
+                            if tool_call_delta.function.arguments:
+                                tool_call_data["arguments"] += tool_call_delta.function.arguments
+                        # Do not emit tool-input-start / tool-input-delta here. Emitting
+                        # only tool-input-available at the end avoids duplicate keys in
+                        # assistant-ui (Duplicate key toolCallId-... in tapResources),
+                        # which can occur when the client processes tool-input-available
+                        # before the part from tool-input-start is committed.
 
-        # Process any remaining buffer
-        if buffer:
-            reasoning_parts, cleaned_text = _parse_thinking_tags(buffer)
+            # Process any remaining buffer
+            if buffer:
+                reasoning_parts, cleaned_text = _parse_thinking_tags(buffer)
 
-            for reasoning_text in reasoning_parts:
-                reasoning_id = f"reasoning_{uuid.uuid4().hex[:24]}"
-                yield _sse_line({"type": "reasoning-start", "id": reasoning_id}).encode("utf-8")
-                yield _sse_line({"type": "reasoning-delta", "id": reasoning_id, "delta": reasoning_text}).encode("utf-8")
-                yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
+                for reasoning_text in reasoning_parts:
+                    reasoning_id = f"reasoning_{uuid.uuid4().hex[:24]}"
+                    yield _sse_line({"type": "reasoning-start", "id": reasoning_id}).encode("utf-8")
+                    yield _sse_line({"type": "reasoning-delta", "id": reasoning_id, "delta": reasoning_text}).encode("utf-8")
+                    yield _sse_line({"type": "reasoning-end", "id": reasoning_id}).encode("utf-8")
 
-            if cleaned_text:
-                if not text_start_emitted:
-                    yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
-                    text_start_emitted = True
-                yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
-                text_sent = True
-                response_text_parts.append(cleaned_text)
+                if cleaned_text:
+                    if not text_start_emitted:
+                        yield _sse_line({"type": "text-start", "id": text_id}).encode("utf-8")
+                        text_start_emitted = True
+                    yield _sse_line({"type": "text-delta", "id": text_id, "delta": cleaned_text}).encode("utf-8")
+                    text_sent = True
+                    response_text_parts.append(cleaned_text)
 
-        # Do NOT emit placeholder text when model returns only tool calls.
-        # assistant-ui already renders tool-call parts, so the UI won't be empty.
+            # Do NOT emit placeholder text when model returns only tool calls.
+            # assistant-ui already renders tool-call parts, so the UI won't be empty.
 
-        # Close text part before tool calls so the client can finalize the message and run tools
-        if text_sent and text_id and not text_end_sent:
-            yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
-            text_end_sent = True
+            # Close text part before tool calls so the client can finalize the message and run tools
+            if text_sent and text_id and not text_end_sent:
+                yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")
+                text_end_sent = True
 
-        # Emit tool-input-available for all complete tool calls
-        for index, tool_call in tool_calls_buffer.items():
-            if tool_call["id"] and tool_call["name"] and tool_call["arguments"] and not tool_call["completed"]:
-                try:
-                    args = json.loads(tool_call["arguments"])
-                    response_tool_calls.append({"name": tool_call["name"], "input": args})
+            # Emit tool-input-available for all complete tool calls
+            for index, tool_call in tool_calls_buffer.items():
+                if tool_call["id"] and tool_call["name"] and tool_call["arguments"] and not tool_call["completed"]:
+                    try:
+                        args = json.loads(tool_call["arguments"])
+                        response_tool_calls.append({"name": tool_call["name"], "input": args})
+                        yield _sse_line({
+                            "type": "tool-input-available",
+                            "toolCallId": tool_call["id"],
+                            "toolName": tool_call["name"],
+                            "input": args,
+                        }).encode("utf-8")
+                        tool_call["completed"] = True
+                    except json.JSONDecodeError:
+                        # JSON not valid yet, skip
+                        pass
+
+            # Token count for this request (real usage or estimate)
+            out_tokens = usage_completion_tokens
+            if out_tokens is None:
+                out_tokens = _estimate_tokens("".join(response_text_parts))
+            in_tokens = usage_prompt_tokens if usage_prompt_tokens is not None else request_tokens_est
+            logger.info(
+                "[ComfyAssistant] tokens in=%s out=%s provider=openai",
+                in_tokens,
+                out_tokens,
+            )
+            if out_tokens == 0:
+                logger.warning(
+                    "[ComfyAssistant] openai stream ended with 0 output tokens (finish_reason=%s). "
+                    "Possible causes: client disconnected before first token, API returned empty, or slow first-token.",
+                    llm_finish_reason,
+                )
+                if chunk_count == 0:
+                    if _empty_retry == 0:
+                        logger.warning("[ComfyAssistant] API returned empty stream, retrying once...")
+                        continue
                     yield _sse_line({
-                        "type": "tool-input-available",
-                        "toolCallId": tool_call["id"],
-                        "toolName": tool_call["name"],
-                        "input": args,
+                        "type": "error",
+                        "errorText": "The API returned an empty response. Please try again.",
                     }).encode("utf-8")
-                    tool_call["completed"] = True
-                except json.JSONDecodeError:
-                    # JSON not valid yet, skip
-                    pass
-
-        # Token count for this request (real usage or estimate)
-        out_tokens = usage_completion_tokens
-        if out_tokens is None:
-            out_tokens = _estimate_tokens("".join(response_text_parts))
-        in_tokens = usage_prompt_tokens if usage_prompt_tokens is not None else request_tokens_est
-        logger.info(
-            "[ComfyAssistant] tokens in=%s out=%s provider=openai",
-            in_tokens,
-            out_tokens,
-        )
+                    empty_stream_after_retry = True
+            break  # exit _empty_retry loop (success or already emitted error)
 
     except Exception as e:
         logger.debug("LLM request failed: %s", e, exc_info=True)
@@ -324,6 +358,9 @@ async def stream_openai(
             }).encode("utf-8")
         else:
             yield _sse_line({"type": "error", "errorText": str(e)}).encode("utf-8")
+
+    if empty_stream_after_retry:
+        return
 
     if text_sent and text_id and not text_end_sent:
         yield _sse_line({"type": "text-end", "id": text_id}).encode("utf-8")

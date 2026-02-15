@@ -110,6 +110,23 @@ This delay is applied before each LLM request and can reduce 429 errors when the
 
 ---
 
+## Troubleshooting
+
+### "Global interrupt (no prompt_id specified)" in logs
+
+This message comes from **ComfyUI core** (not ComfyAssistant), when something calls ComfyUI’s interrupt API without a `prompt_id` (e.g. the main UI “Interrupt” button with no running prompt, or another tab/script). ComfyAssistant does not call that endpoint. If you see it without pressing Interrupt, check other ComfyUI tabs or the queue panel; it does not stop the assistant chat stream by itself.
+
+### Chat shows 0 output tokens (`out=0`)
+
+If the log shows `tokens in=... out=0`, the stream ended before any reply text was received. Common causes:
+
+- **Client closed the connection** — e.g. browser timeout, tab/thread change, or the UI cancelled the request.
+- **API returned nothing** — e.g. model or proxy returned an empty or very slow first token; the new warning log will include `finish_reason` to help diagnose.
+
+Check the new `[ComfyAssistant] openai stream ended with 0 output tokens (finish_reason=...)` log line; if `finish_reason` is missing or the request never completes, the client likely disconnected.
+
+---
+
 ## Next steps
 
 - [User skills](skills.md) — Add custom instructions the assistant will follow.
