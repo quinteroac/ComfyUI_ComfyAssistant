@@ -25,6 +25,7 @@ Provider settings are stored in:
 - CLI providers (`claude_code`, `codex`, `gemini_cli`): one config per type, name must equal provider type.
 - Exactly one provider is active at a time.
 - Switch active provider at runtime with `/provider set <name>`.
+- **Mid-conversation:** You can change provider (or persona) at any time during a chat. The same thread and message history are kept, so the new provider or persona continues with full context.
 
 ### Open provider settings later
 

@@ -36,6 +36,7 @@ Open the **ComfyUI Assistant** tab, set up your LLM provider (wizard on first us
 - **What the assistant can do:** Graph actions, environment search, user skills, workflow execution, research — see [doc/base-tools.md](doc/base-tools.md).
 - **Customization:** System and user context, skills, SOUL, goals — see [doc/](doc/README.md).
 - **Personas:** Named personalities per provider (`user_context/personas/<slug>/SOUL.md` with YAML frontmatter). `/persona` lists them, `/persona <name>` switches, `/persona create` adds one, `/persona del <name>` removes. See [doc/configuration.md](doc/configuration.md).
+- You can **switch provider or persona in the middle of a conversation**; the assistant keeps the same thread and context, so the new provider or persona continues from the existing chat.
 
 ## Recommended providers
 

@@ -2,6 +2,8 @@
 
 Personas let you switch between named personalities for the assistant. Each persona is tied to a **provider** (e.g. OpenAI, Anthropic, Grok) and has its own tone, style, and instructions. When you switch persona, the assistant uses that persona’s text and the associated provider for the next messages.
 
+You can **switch provider or persona in the middle of a conversation**. The same thread and message history are kept, so the assistant (with the new provider or persona) continues with full context.
+
 ## Prerequisites
 
 - At least one provider must be configured (see [Configuration](configuration.md)).
@@ -75,7 +77,7 @@ You can edit `SOUL.md` with a text editor anytime; changes apply on the next mes
 
 ## Switching and active persona
 
-- **Switch:** `/persona <name-or-slug>` activates that persona and switches the provider to the one in its frontmatter.
+- **Switch:** `/persona <name-or-slug>` activates that persona and switches the provider to the one in its frontmatter. You can do this at any time during a chat; the conversation context is preserved.
 - **No persona:** If you have never set a persona, or you delete the active one, the assistant uses the default personality (and the current provider). Legacy `user_context/SOUL.md` is used as fallback when no persona is active.
 - **Provider mismatch:** If a persona’s provider is not configured, the switch fails with a message; configure that provider in `/provider-settings` first.
 
