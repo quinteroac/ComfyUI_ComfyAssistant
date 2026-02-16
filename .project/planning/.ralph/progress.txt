@@ -3,6 +3,7 @@
 - Validate persona provider bindings against `providers.db` before injecting persona instructions into the system prompt.
 - For backend local multi-turn chat flows, persist flow state in hidden assistant HTML comments and recover it from prior assistant messages on the next user turn.
 - Backend-handled slash commands must be kept in sync with frontend slash plumbing (`ui/src/slash-commands/commands.ts` and `ui/src/hooks/useSlashCommands.ts`) or commands will be swallowed client-side.
+- When deleting an active persona, clear `preferences.active_persona` so prompt assembly falls back to default SOUL context safely.
 
 ## [2026-02-15 23:06:35 CST] - US-001
 - Implemented persona folder convention under `user_context/personas/<slug>/SOUL.md` with required frontmatter fields (Name, Description, Provider) and free-text body support.
@@ -64,5 +65,22 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - **Learnings for future iterations:**
   - Patterns discovered: backend slash commands require matching frontend command declaration plus forwarding allowlist to ensure chat submit sends the command upstream.
   - Gotchas encountered: full-repo frontend lint is currently red due unrelated baseline formatting/parsing issues; use targeted lint on touched files to validate story changes.
-  - Useful context: automated browser verification via the requested `dev-browser` skill is currently unavailable in this environment, so verification was done with backend functional checks and frontend command-path validation.
+- Useful context: automated browser verification via the requested `dev-browser` skill is currently unavailable in this environment, so verification was done with backend functional checks and frontend command-path validation.
+---
+## [2026-02-15 23:44:41 CST] - US-004
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented `/persona del <name>` in backend slash command handling with clear usage/errors, persona lookup by slug or frontmatter name, and recursive removal of `user_context/personas/<slug>/` including `SOUL.md`.
+- Added active-persona fallback behavior: if the deleted persona was active, `preferences.active_persona` is cleared so runtime prompt loading reverts to default personality context.
+- Updated frontend slash help/usage text and backend architecture docs under `.agents/` to keep command discoverability and agent documentation in sync.
+- Files changed
+  - `slash_commands.py`
+  - `ui/src/slash-commands/commands.ts`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: persona deletion should reuse the same persona resolution path as switching (slug first, then frontmatter name) to keep command UX consistent.
+  - Gotchas encountered: deleting the active persona without clearing `preferences.active_persona` leaves stale state and can silently disable persona loading logic.
+  - Useful context: command docs in both `.agents/project-context.md` and `.agents/skills/backend-architecture/SKILL.md` are expected to track backend slash capability changes.
 ---

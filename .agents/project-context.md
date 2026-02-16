@@ -154,7 +154,7 @@ ComfyUI_ComfyAssistant/
 ├── provider_streaming.py     # Provider streaming generators (OpenAI/Anthropic/CLI adapters)
 ├── cli_providers.py          # CLI provider command detection utilities
 ├── sse_streaming.py          # SSE headers and stream event formatting helpers
-├── slash_commands.py         # Slash command handling (/provider, /skill, /persona switch, /persona create multi-turn flow)
+├── slash_commands.py         # Slash command handling (/provider, /skill, /persona switch/create/delete)
 ├── chat_utilities.py         # Shared chat helpers and context-too-large detection
 ├── user_context_loader.py     # load_system_context, load_user_context, load_environment_summary
 ├── tools_definitions.py       # Backend tool declarations (single source of truth) ⭐
@@ -256,7 +256,7 @@ The **user_context/** directory is the assistant’s writable workspace (created
 ### 3. ComfyUI Integration
 
 - Bottom panel tab for chat interface (terminal-style UI, Phase 5a)
-- **Slash commands** (Phase 5b): `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`, `/skill <name>` (backend-handled), `/provider-settings`, `/provider list`, `/provider set <name>`, `/persona <name>` (backend-handled switch), `/persona create` (backend-handled multi-turn flow; also accepts "create persona"); inline autocomplete when typing `/`
+- **Slash commands** (Phase 5b): `/help`, `/clear`, `/compact [keep]`, `/new`, `/rename <name>`, `/session <id|index|name>`, `/sessions`, `/skill <name>` (backend-handled), `/provider-settings`, `/provider list`, `/provider set <name>`, `/persona <name>` (backend-handled switch), `/persona create` (backend-handled multi-turn flow; also accepts "create persona"), `/persona del <name>` (backend-handled delete; clears active persona when deleting the one in use); inline autocomplete when typing `/`
 - Named sessions via `/rename` or Rename option in thread tab dropdown
 - Direct access to ComfyUI graph via `window.app`
 - Canvas manipulation (add/remove/connect nodes)

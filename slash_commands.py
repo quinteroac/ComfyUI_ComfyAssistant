@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import shutil
 from typing import Any
 
 import provider_manager
@@ -326,6 +327,17 @@ def _resolve_persona_by_name_or_slug(token: str) -> dict[str, str] | None:
     return None
 
 
+def _delete_persona_folder(slug: str) -> None:
+    """Delete user_context/personas/<slug> recursively."""
+    if not _is_valid_persona_slug(slug):
+        raise ValueError("Invalid persona slug.")
+    root = user_context_store.ensure_user_context_dirs()
+    persona_dir = os.path.join(root, "personas", slug)
+    if not os.path.isdir(persona_dir):
+        raise FileNotFoundError(f'Persona "{slug}" does not exist.')
+    shutil.rmtree(persona_dir)
+
+
 def _handle_persona_switch(command_text: str) -> dict:
     """Handle `/persona <name-or-slug>` switch command."""
     parts = command_text.strip().split(maxsplit=1)
@@ -366,6 +378,44 @@ def _handle_persona_switch(command_text: str) -> dict:
     }
 
 
+def _handle_persona_delete(command_text: str) -> dict:
+    """Handle `/persona del <name-or-slug>` delete command."""
+    parts = command_text.strip().split(maxsplit=2)
+    if len(parts) < 3 or not parts[2].strip():
+        return {"text": "Usage: `/persona del <name>`"}
+
+    token = parts[2].strip()
+    persona = _resolve_persona_by_name_or_slug(token)
+    if not persona:
+        available = _list_personas()
+        if not available:
+            return {"text": "Persona not found and no personas are available yet."}
+        options = ", ".join(f"`{record['slug']}`" for record in available)
+        return {"text": f"Persona `{token}` not found. Available personas: {options}"}
+
+    try:
+        _delete_persona_folder(persona["slug"])
+    except FileNotFoundError:
+        return {"text": f'Persona `{persona["slug"]}` does not exist.'}
+    except OSError as exc:
+        return {"text": f'Could not delete persona `{persona["slug"]}`: {exc}'}
+
+    active_slug = str(user_context_store.get_preferences().get("active_persona") or "").strip().lower()
+    if active_slug == persona["slug"]:
+        user_context_store.add_or_update_preference("active_persona", "")
+        return {
+            "text": (
+                f'Persona **{persona["name"]}** (`{persona["slug"]}`) was deleted.\n\n'
+                "It was the active persona, so the assistant fell back to the default personality. "
+                "Use `/persona <name>` to select another persona."
+            )
+        }
+
+    return {
+        "text": f'Persona **{persona["name"]}** (`{persona["slug"]}`) was deleted.'
+    }
+
+
 def handle_persona_command(
     *,
     command_text: str,
@@ -388,8 +438,15 @@ def handle_persona_command(
     if flow_state is None and not (wants_create_flow or is_persona_command):
         return None
 
-    # Single-turn persona switching (outside create flow).
+    # Single-turn persona switching/deletion (outside create flow).
     if flow_state is None and is_persona_command and not lower_user_text.startswith("/persona create"):
+        if (
+            lower_user_text.startswith("/persona del ")
+            or lower_user_text == "/persona del"
+            or lower_user_text.startswith("/persona delete ")
+            or lower_user_text == "/persona delete"
+        ):
+            return _handle_persona_delete(user_text)
         return _handle_persona_switch(user_text)
 
     if lower_user_text in {"/cancel", "cancel"}:

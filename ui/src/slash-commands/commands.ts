@@ -68,6 +68,7 @@ function cmdHelp(_args: string, ctx: SlashCommandContext) {
     '| `/provider set <name>` | Set active provider |',
     '| `/persona <name>` | Switch active persona and provider |',
     '| `/persona create` | Start guided persona creation |',
+    '| `/persona del <name>` | Delete a persona |',
     '',
     'Type a message to chat with the assistant. Use slash commands for quick actions.'
   ]
@@ -223,8 +224,8 @@ export const COMMANDS: SlashCommand[] = [
   },
   {
     name: 'persona',
-    description: 'Switch active persona or create one',
-    usage: '/persona <name>|create',
+    description: 'Switch, create, or delete a persona',
+    usage: '/persona <name>|create|del <name>',
     execute: () => {} // Handled by backend; message is sent as-is
   },
   {
