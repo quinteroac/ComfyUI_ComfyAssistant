@@ -76,7 +76,7 @@
         "Verify in browser using dev-browser skill if the list is shown in the UI"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]

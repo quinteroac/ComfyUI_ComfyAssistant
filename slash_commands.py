@@ -310,6 +310,36 @@ def _list_personas() -> list[dict[str, str]]:
     return personas
 
 
+def _format_persona_line(persona: dict[str, str], active_slug: str) -> str:
+    marker = "✓" if active_slug and persona["slug"] == active_slug else " "
+    description = persona.get("description", "").strip()
+    if len(description) > 90:
+        description = f"{description[:87].rstrip()}..."
+    return (
+        f"{marker} **{persona['name']}** (`{persona['slug']}`) · "
+        f"provider `{persona['provider']}` · {description}"
+    )
+
+
+def _handle_persona_list() -> dict:
+    """Handle `/persona` or `/persona list` commands."""
+    personas = _list_personas()
+    if not personas:
+        return {"text": "No personas are available yet. Run `/persona create` first."}
+
+    active_slug = str(user_context_store.get_preferences().get("active_persona") or "").strip().lower()
+    lines = [
+        "**Available Personas**",
+        "",
+    ]
+    for persona in personas:
+        lines.append(_format_persona_line(persona, active_slug))
+    lines.append("")
+    lines.append("Use `/persona <name-or-slug>` to switch personas.")
+    lines.append("Use `/persona del <name-or-slug>` to delete one.")
+    return {"text": "\n".join(lines)}
+
+
 def _resolve_persona_by_name_or_slug(token: str) -> dict[str, str] | None:
     """Resolve persona by exact slug or case-insensitive Name frontmatter."""
     needle = (token or "").strip()
@@ -342,12 +372,14 @@ def _handle_persona_switch(command_text: str) -> dict:
     """Handle `/persona <name-or-slug>` switch command."""
     parts = command_text.strip().split(maxsplit=1)
     if len(parts) < 2 or not parts[1].strip():
-        return {"text": "Usage: `/persona <name>` (or `/persona create`)."}
+        return _handle_persona_list()
 
     token = parts[1].strip()
     lowered_token = token.lower()
     if lowered_token == "create":
         return {"text": "Run `/persona create` and answer the next prompts to create a persona."}
+    if lowered_token == "list":
+        return _handle_persona_list()
 
     persona = _resolve_persona_by_name_or_slug(token)
     if not persona:

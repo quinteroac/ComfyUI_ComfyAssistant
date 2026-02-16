@@ -66,6 +66,7 @@ function cmdHelp(_args: string, ctx: SlashCommandContext) {
     '| `/provider-settings` | Open provider settings wizard |',
     '| `/provider list` | List configured providers |',
     '| `/provider set <name>` | Set active provider |',
+    '| `/persona` | List available personas |',
     '| `/persona <name>` | Switch active persona and provider |',
     '| `/persona create` | Start guided persona creation |',
     '| `/persona del <name>` | Delete a persona |',
@@ -225,7 +226,7 @@ export const COMMANDS: SlashCommand[] = [
   {
     name: 'persona',
     description: 'Switch, create, or delete a persona',
-    usage: '/persona <name>|create|del <name>',
+    usage: '/persona [name|create|del <name>]',
     execute: () => {} // Handled by backend; message is sent as-is
   },
   {

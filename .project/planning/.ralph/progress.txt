@@ -4,6 +4,7 @@
 - For backend local multi-turn chat flows, persist flow state in hidden assistant HTML comments and recover it from prior assistant messages on the next user turn.
 - Backend-handled slash commands must be kept in sync with frontend slash plumbing (`ui/src/slash-commands/commands.ts` and `ui/src/hooks/useSlashCommands.ts`) or commands will be swallowed client-side.
 - When deleting an active persona, clear `preferences.active_persona` so prompt assembly falls back to default SOUL context safely.
+- For backend resource commands, support both empty-argument listing and explicit `list` alias in the same handler to keep slash command UX predictable.
 
 ## [2026-02-15 23:06:35 CST] - US-001
 - Implemented persona folder convention under `user_context/personas/<slug>/SOUL.md` with required frontmatter fields (Name, Description, Provider) and free-text body support.
@@ -82,5 +83,24 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - **Learnings for future iterations:**
   - Patterns discovered: persona deletion should reuse the same persona resolution path as switching (slug first, then frontmatter name) to keep command UX consistent.
   - Gotchas encountered: deleting the active persona without clearing `preferences.active_persona` leaves stale state and can silently disable persona loading logic.
-  - Useful context: command docs in both `.agents/project-context.md` and `.agents/skills/backend-architecture/SKILL.md` are expected to track backend slash capability changes.
+- Useful context: command docs in both `.agents/project-context.md` and `.agents/skills/backend-architecture/SKILL.md` are expected to track backend slash capability changes.
+---
+## [2026-02-15 23:48:19 CST] - US-005
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented persona listing for `/persona` (no args) and `/persona list` in backend slash command handling, including active-persona marking and provider/description output per persona.
+- Kept switch/create/delete behavior unchanged while improving `/persona` default behavior from usage text to discoverable listing output.
+- Updated frontend slash help/usage text so `/persona` is documented as a list command.
+- Added automated backend tests for persona listing empty-state, active-marker rendering, and `list` subcommand behavior.
+- Files changed
+  - `slash_commands.py`
+  - `tests/test_persona_commands.py`
+  - `ui/src/slash-commands/commands.ts`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: for slash command families, treating `<command>` and `<command> list` as equivalent improves discoverability without adding extra routing.
+  - Gotchas encountered: this environment lacks `pytest`; backend tests should be runnable with `python -m unittest discover` to avoid dependency assumptions.
+  - Useful context: frontend slash command forwarding needed no code-path change for this story because `persona` was already in the backend-forwarded allowlist.
 ---
