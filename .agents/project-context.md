@@ -69,7 +69,7 @@ This extension enables users to:
 ```
 ComfyUI_ComfyAssistant/
 ├── .agents/                    # Agent skills and documentation
-│   ├── skills/                 # 15 skill modules
+│   ├── skills/                 # Agent skill modules
 │   │   ├── assistant-ui/       # assistant-ui architecture
 │   │   ├── primitives/         # UI primitives
 │   │   ├── runtime/            # Runtime patterns
@@ -82,6 +82,7 @@ ComfyUI_ComfyAssistant/
 │   │   ├── backend-tools-declaration/
 │   │   ├── documentation/
 │   │   ├── environment-and-models/
+│   │   ├── installation/      # Install ComfyUI Assistant (for agents)
 │   │   ├── patterns-and-conventions/
 │   │   ├── system-and-user-context/
 │   │   └── ui-integration/

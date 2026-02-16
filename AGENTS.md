@@ -8,7 +8,7 @@ When working on this repository, **read the `.agents/` directory first** for con
 |------|---------|
 | **`.agents/project-context.md`** | Project overview, architecture, stack, directory structure, env vars |
 | **`.agents/conventions.md`** | Code style, Git rules, security, patterns (TypeScript, Python), when to update docs |
-| **`.agents/skills/`** | Topic-specific guides: tools, assistant-ui, runtime, streaming, thread-list, setup, primitives |
+| **`.agents/skills/`** | Topic-specific guides: tools, assistant-ui, runtime, streaming, thread-list, setup, installation, primitives |
 
 ## Quick rules
 

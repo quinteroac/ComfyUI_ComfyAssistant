@@ -23,10 +23,11 @@ Open **Console** in the bottom panel, then the **ComfyUI Assistant** tab, and tr
 ## Installation
 
 1. Clone this repo into ComfyUI’s `custom_nodes` folder.
-2. Build the frontend: `cd ui && npm install && npm run build && cd ..`
-3. Restart ComfyUI.
+2. Install Python dependencies: `pip install -e .` (from the extension root).
+3. Build the frontend: `cd ui && npm install && npm run build && cd ..`
+4. Restart ComfyUI.
 
-Full steps and options: [doc/installation.md](doc/installation.md).
+Full steps and options: [doc/installation.md](doc/installation.md). You can use an AI agent (Claude, Codex, Cursor, etc.) to run the install — see [Using an AI agent to install](doc/installation.md#using-an-ai-agent-to-install) in the install guide. For the agent’s context: [.agents/skills/installation/SKILL.md](.agents/skills/installation/SKILL.md).
 
 ## Usage
 
