@@ -28,6 +28,18 @@ Follow the decision order in the workflow-guardrails skill before creating any c
 - **interrupted** — User or system cancelled the execution.
 - **timeout** — Execution took too long. Suggest the user check ComfyUI's queue or increase the timeout.
 
+### Validation and retry after executeWorkflow
+
+After every `executeWorkflow` call:
+
+1. **Validate the result**: Treat as "problem" if the status is **error**, **timeout**, or **interrupted**, or if the run completed but produced no outputs when outputs were expected (e.g. empty images list for an image workflow).
+2. **On problem**: Retry by calling `executeWorkflow` again. You may optionally suggest a small change (e.g. different seed, or checking a node) before retrying, but retrying the same workflow is acceptable.
+3. **Maximum attempts**: Try up to **5 times** in total (initial run + up to 4 retries). Stop as soon as you get **success** with valid outputs.
+4. **After 5 failed attempts**: Do not retry further. Inform the user clearly:
+   - That the workflow was executed 5 times and did not succeed.
+   - The last error or status (error message, timeout, interrupted).
+   - Concrete suggestions: check node connections, missing models, ComfyUI queue, or increasing the timeout.
+
 ## When to use `applyWorkflowJson`
 
 - User asks for a complete workflow ("create a txt2img workflow", "build me an img2img pipeline with upscale")
@@ -151,7 +163,8 @@ After calling `applyWorkflowJson` to load a workflow, suggest running it with `e
 3. Call `getAvailableModels` to find a checkpoint
 4. Call `applyWorkflowJson` with the complete workflow
 5. Call `executeWorkflow` to run it
-6. Report the results
+6. **Validate the result**: if there are problems (error, timeout, interrupted, or no outputs), retry `executeWorkflow` up to 5 times in total; if still failing after 5 attempts, inform the user and suggest fixes
+7. Report the results (or the failure and what to check)
 
 ## Guidelines
 
