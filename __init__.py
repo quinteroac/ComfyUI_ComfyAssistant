@@ -298,11 +298,17 @@ def _build_system_message_block(openai_messages: list[dict], metrics: dict) -> N
             pass
 
         if has_prior_assistant:
+            # Load user_context so continuation includes persona/SOUL (personality applies every turn)
+            try:
+                user_context = user_context_loader.load_user_context()
+            except Exception:
+                user_context = None
             openai_messages.insert(
                 0,
                 get_system_message_continuation(
                     user_skills=user_skills_list,
                     environment_summary=environment_summary,
+                    user_context=user_context,
                 ),
             )
         else:

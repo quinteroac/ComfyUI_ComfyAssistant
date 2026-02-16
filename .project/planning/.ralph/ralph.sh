@@ -1,11 +1,11 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
-# Usage: ./ralph.sh [--tool amp|claude] [max_iterations]
+# Usage: ./ralph.sh [--tool claude|codex|gemini] [max_iterations]
 
 set -e
 
 # Parse arguments
-TOOL="amp"  # Default to amp for backwards compatibility
+TOOL="claude"  # Default tool
 MAX_ITERATIONS=10
 
 while [[ $# -gt 0 ]]; do
@@ -29,8 +29,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate tool choice
-if [[ "$TOOL" != "amp" && "$TOOL" != "claude" && "$TOOL" != "codex" ]]; then
-  echo "Error: Invalid tool '$TOOL'. Must be 'amp', 'claude', or 'codex'."
+if [[ "$TOOL" != "claude" && "$TOOL" != "codex" && "$TOOL" != "gemini" ]]; then
+  echo "Error: Invalid tool '$TOOL'. Must be 'claude', 'codex', or 'gemini'."
   exit 1
 fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -87,21 +87,22 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
   echo "==============================================================="
 
-  # Run the selected tool with the ralph prompt
-  if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
-  elif [[ "$TOOL" == "codex" ]]; then
-    # Codex: example invocation, adjust flags as needed
-    OUTPUT=$(codex exec --dangerously-bypass-approvals-and-sandbox < "$SCRIPT_DIR/prompt.md" 2>&1 | tee /dev/stderr) || true
-
+  # Run the selected tool: capture to temp file so we can both show output and grep for COMPLETE
+  # (command substitution $(...) often fails to capture output when tools write to TTY or use stderr)
+  TMPOUT=$(mktemp)
+  trap "rm -f '$TMPOUT'" EXIT
+  if [[ "$TOOL" == "codex" ]]; then
+    codex exec --dangerously-bypass-approvals-and-sandbox < "$SCRIPT_DIR/prompt.md" 2>&1 | tee "$TMPOUT" || true
+  elif [[ "$TOOL" == "gemini" ]]; then
+    gemini -p "$(cat "$SCRIPT_DIR/prompt.md")" --yolo 2>&1 | tee "$TMPOUT" || true
   else
-    # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
-    OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
+    claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee "$TMPOUT" || true
   fi
-  
+  OUTPUT=$(cat "$TMPOUT")
+  rm -f "$TMPOUT"
+  trap - EXIT
+
   # Check for completion signal
-  echo "OUTPUT: $OUTPUT"
-  
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
     echo ""
     echo "Ralph completed all tasks!"

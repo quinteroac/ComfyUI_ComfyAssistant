@@ -302,15 +302,22 @@ def get_system_message(
     }
 
 
+# Max chars for user context when included in continuation (persona/SOUL must persist across turns)
+CONTINUATION_USER_CONTEXT_MAX_CHARS = 2500
+
+
 def get_system_message_continuation(
     user_skills: list[dict] | None = None,
     environment_summary: str = "",
+    user_context: dict | None = None,
 ) -> dict:
     """
     Returns a system message for continuation turns.
 
     Includes the user skills index and environment summary to ensure the agent
     remains aware of available skills and models even in long conversations.
+    When user_context is provided, also includes persona/SOUL and goals so the
+    active personality is applied on every turn (e.g. after /persona switch).
     """
     parts = [SYSTEM_CONTINUATION_CONTENT, WORKFLOW_GUARDRAILS_REMINDER]
 
@@ -320,6 +327,16 @@ def get_system_message_continuation(
 
     if environment_summary:
         parts.append("## Installed environment\n\n" + environment_summary)
+
+    if user_context:
+        formatted = format_user_context(
+            user_context,
+            max_chars=CONTINUATION_USER_CONTEXT_MAX_CHARS,
+            max_narrative_chars=min(800, DEFAULT_NARRATIVE_MAX_CHARS),
+            user_skills=None,
+        )
+        if formatted:
+            parts.append(formatted)
 
     return {
         "role": "system",

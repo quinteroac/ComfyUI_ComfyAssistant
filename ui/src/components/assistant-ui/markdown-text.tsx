@@ -14,7 +14,7 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
-import { cn } from '@/lib/utils'
+import { cn, stripLocalMessageComments } from '@/lib/utils'
 
 const MarkdownTextImpl = () => {
   const message = useMessage()
@@ -27,7 +27,7 @@ const MarkdownTextImpl = () => {
     return true
   })
   const fullText = deduped.length > 0 ? deduped.join('\n\n') : ''
-  const cleanedText = fullText.replace(/^<!-- local:slash -->\n?/, '')
+  const cleanedText = stripLocalMessageComments(fullText)
 
   if (!cleanedText) return null
   return (

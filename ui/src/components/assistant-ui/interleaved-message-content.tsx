@@ -7,6 +7,7 @@ import {
 } from '@assistant-ui/react'
 import { memo, useMemo } from 'react'
 
+import { stripLocalMessageComments } from '@/lib/utils'
 import { MarkdownBlock } from '@/components/assistant-ui/markdown-text'
 import { ToolFallback } from '@/components/assistant-ui/tool-fallback'
 
@@ -83,7 +84,7 @@ const InterleavedMessageContentImpl = () => {
     <>
       {blocks.map((block, blockIdx) => {
         if (block.type === 'text') {
-          const cleaned = block.text.replace(/^<!-- local:slash -->\n?/, '')
+          const cleaned = stripLocalMessageComments(block.text)
           if (!cleaned.trim()) return null
           return (
             <MarkdownBlock key={`text-${block.startIndex}-${blockIdx}`}>

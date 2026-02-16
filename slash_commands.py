@@ -19,6 +19,19 @@ logger = logging.getLogger("ComfyUI_ComfyAssistant.slash_commands")
 _PERSONA_SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?$")
 _PERSONA_FLOW_RE = re.compile(r"<!--\s*local:persona-create\s*(\{.*?\})\s*-->", re.DOTALL)
 
+# #region agent log
+def _debug_log(location: str, message: str, data: dict | None = None, hypothesis_id: str = "A") -> None:
+    import time
+    try:
+        payload = {"id": f"log_{int(time.time()*1000)}", "timestamp": int(time.time()*1000), "location": location, "message": message, "hypothesisId": hypothesis_id}
+        if data is not None:
+            payload["data"] = data
+        with open(os.path.join(os.path.dirname(__file__), ".cursor", "debug.log"), "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+# #endregion
+
 
 def _openai_message_content_to_str(msg: dict[str, Any]) -> str:
     """Extract plain text content from an OpenAI-format message."""
@@ -177,12 +190,16 @@ def _extract_last_persona_flow_state(openai_messages: list[dict]) -> dict[str, s
             return None
         if not isinstance(parsed, dict):
             return None
-        return {
+        result = {
             "state": str(parsed.get("state") or "").strip(),
             "name": str(parsed.get("name") or "").strip(),
             "slug": str(parsed.get("slug") or "").strip(),
             "description": str(parsed.get("description") or "").strip(),
         }
+        # #region agent log
+        _debug_log("slash_commands._extract_last_persona_flow_state", "extracted flow state", {"message_index": i, "state": result["state"], "num_messages": len(openai_messages)})
+        # #endregion
+        return result
     return None
 
 
@@ -464,14 +481,21 @@ def handle_persona_command(
     user_text = (command_text or "").strip()
     lower_user_text = user_text.lower()
     flow_state = _extract_last_persona_flow_state(openai_messages)
+    # #region agent log
+    _debug_log("slash_commands.handle_persona_command", "entry", {"flow_state": flow_state, "state_name": flow_state.get("state", "") if flow_state else None, "user_text_preview": user_text[:80] if user_text else ""})
+    # #endregion
+
+    # Flow completed (persona created); next message is normal chat.
+    if flow_state and flow_state.get("state") == "created":
+        return None
 
     is_persona_command = lower_user_text.startswith("/persona")
     wants_create_flow = _looks_like_persona_create_request(user_text)
     if flow_state is None and not (wants_create_flow or is_persona_command):
         return None
 
-    # Single-turn persona switching/deletion (outside create flow).
-    if flow_state is None and is_persona_command and not lower_user_text.startswith("/persona create"):
+    # Single-turn persona switching/deletion: handle explicit commands even if create flow was in progress.
+    if is_persona_command and not lower_user_text.startswith("/persona create"):
         if (
             lower_user_text.startswith("/persona del ")
             or lower_user_text == "/persona del"
@@ -564,6 +588,9 @@ def handle_persona_command(
             names = ", ".join(
                 f"`{p.get('name')}`" for p in providers if p.get("name")
             )
+            # #region agent log
+            _debug_log("slash_commands.handle_persona_command", "Provider not found branch", {"user_text_preview": user_text[:80], "flow_state_state": flow_state.get("state")})
+            # #endregion
             return {
                 "text": _with_persona_flow_state(
                     f"Provider not found. Choose one of: {names}",
@@ -586,11 +613,22 @@ def handle_persona_command(
             return {"text": str(exc)}
         except OSError as exc:
             return {"text": f"Could not create persona files: {exc}"}
+        provider_name = str(provider.get("name") or "")
+        provider_store.set_active_provider(provider_name)
+        user_context_store.add_or_update_preference("active_persona", slug)
+        provider_manager.reload_provider()
+        # #region agent log
+        _debug_log("slash_commands.handle_persona_command", "Persona created success (state=created in response)", {"slug": slug, "provider_name": provider_name})
+        # #endregion
+        success_text = (
+            f'Persona **{persona_name}** created at '
+            f'`user_context/personas/{slug}/SOUL.md` with provider '
+            f'`{provider_name}`. Active persona and provider set; new messages will use them.'
+        )
         return {
-            "text": (
-                f'Persona **{persona_name}** created at '
-                f'`user_context/personas/{slug}/SOUL.md` with provider '
-                f'`{provider.get("name")}`.'
+            "text": _with_persona_flow_state(
+                success_text,
+                {"state": "created", "slug": slug},
             )
         }
 
