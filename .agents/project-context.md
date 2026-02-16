@@ -170,13 +170,20 @@ ComfyUI_ComfyAssistant/
 │   ├── README.md              # Index
 │   ├── installation.md       # Install (Manager / manual)
 │   ├── configuration.md      # API, onboarding, user context
+│   ├── commands.md           # Slash commands (session, provider, persona, skill)
 │   ├── skills.md             # User skills usage
 │   ├── base-tools.md         # Base tools and natural language
 │   ├── roadmap.md            # Development phases (done + planned)
-│   └── dev_docs/             # Developer docs (standards + vibecoders)
+│   └── dev_docs/             # Developer docs (architecture, backend, frontend, standards)
 │       ├── README.md          # Index
+│       ├── architecture.md   # System overview, request flow, agentic loop
+│       ├── backend.md        # Python modules, API endpoints, SSE
+│       ├── context-and-environment.md  # System prompt, environment scan, cache
+│       ├── frontend.md        # React, ComfyUI integration, theme, slash commands
+│       ├── tools.md          # Step-by-step guide for adding/modifying tools
 │       ├── standards-and-conventions.md  # Summary; full: .agents/conventions.md
-│       └── vibecoders-guide.md           # What to ask agents to review
+│       ├── vibecoders-guide.md           # What to ask agents to review
+│       └── health-check.md   # Pre-commit: typecheck, lint, format, tests, build
 ├── .env.example               # Environment template
 ├── pyproject.toml             # Python project metadata
 └── README.md                  # Documentation
