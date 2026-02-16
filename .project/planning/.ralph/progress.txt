@@ -1,6 +1,7 @@
 ## Codebase Patterns
 - Keep user-context personality loading backward-compatible by resolving active persona first and falling back to legacy `user_context/SOUL.md`.
 - Validate persona provider bindings against `providers.db` before injecting persona instructions into the system prompt.
+- For backend local multi-turn chat flows, persist flow state in hidden assistant HTML comments and recover it from prior assistant messages on the next user turn.
 
 ## [2026-02-15 23:06:35 CST] - US-001
 - Implemented persona folder convention under `user_context/personas/<slug>/SOUL.md` with required frontmatter fields (Name, Description, Provider) and free-text body support.
@@ -23,4 +24,23 @@
   - Keep persona metadata parsing strict (required frontmatter + body) so later slash commands can rely on consistent files.
   - `.agents/` docs may require direct shell writes when patch tooling blocks hidden-path edits.
   - Repository-wide frontend lint currently has unrelated baseline issues; story-scoped Python checks passed.
+---
+## [2026-02-15 23:28:54 CST] - US-002
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented a local conversational persona-creation flow triggered by `/persona create` (and plain `create persona` variants), with deterministic multi-turn prompts for name, personality description, and provider selection.
+- Added provider-aware persona file creation that writes `user_context/personas/<slug>/SOUL.md` with required YAML frontmatter (`Name`, `Description`, `Provider`) plus body text from the personality description.
+- Wired persona creation into chat routing before provider dispatch so the flow runs even when no LLM credentials are available.
+- Updated agent documentation to capture the new slash-command capability and local flow-state pattern.
+- Files changed
+  - `slash_commands.py`
+  - `__init__.py`
+  - `AGENTS.md`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: local conversational command flows can be implemented safely by encoding compact JSON state in hidden assistant comments and parsing the latest assistant marker each turn.
+  - Gotchas encountered: `user_context_store.set_user_context_path(...)` must be set before provider-store operations in standalone scripts/tests.
+  - Useful context: routing local persona flow before provider credential checks guarantees the creation wizard remains available offline.
 ---

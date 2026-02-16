@@ -16,5 +16,6 @@ When working on this repository, **read the `.agents/` directory first** for con
 - **Conventions**: Follow `.agents/conventions.md` (English only, security first, no `eval`, Zod validation, etc.).
 - **Features**: Use the right skill under `.agents/skills/` (e.g. tools → `skills/tools/`, UI → `skills/assistant-ui/`).
 - **Docs**: When you change architecture, patterns, or features, update the relevant files under `.agents/` in the same change.
+- **Conversational local flows**: For multi-turn slash-style flows handled in backend (`slash_commands.py`), persist state via hidden assistant HTML comment markers so the next turn can continue without DB state.
 
 All documentation in `.agents/` is in English.

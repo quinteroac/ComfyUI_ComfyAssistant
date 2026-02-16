@@ -66,10 +66,9 @@ from sse_streaming import (
     _stream_ai_sdk_text,
 )
 from slash_commands import (
-    _format_provider_line,
     _handle_provider_command,
     _inject_skill_if_slash_skill,
-    _resolve_skill_by_name_or_slug,
+    handle_persona_create_conversation,
 )
 from chat_utilities import (
     _get_last_openai_user_text,
@@ -439,6 +438,20 @@ def _select_provider_and_stream(
                 yield chunk.encode("utf-8")
 
         return stream_local_command()
+
+    persona_flow_result = handle_persona_create_conversation(
+        command_text=raw_last_user,
+        openai_messages=openai_messages,
+    )
+    if persona_flow_result is not None:
+        async def stream_local_persona_flow():
+            for chunk in _stream_ai_sdk_text(
+                persona_flow_result.get("text", ""),
+                message_id,
+            ):
+                yield chunk.encode("utf-8")
+
+        return stream_local_persona_flow()
 
     if selected_provider == "claude_code":
         placeholder = (
