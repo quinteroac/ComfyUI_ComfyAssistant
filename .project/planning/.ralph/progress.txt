@@ -2,6 +2,7 @@
 - Keep user-context personality loading backward-compatible by resolving active persona first and falling back to legacy `user_context/SOUL.md`.
 - Validate persona provider bindings against `providers.db` before injecting persona instructions into the system prompt.
 - For backend local multi-turn chat flows, persist flow state in hidden assistant HTML comments and recover it from prior assistant messages on the next user turn.
+- Backend-handled slash commands must be kept in sync with frontend slash plumbing (`ui/src/slash-commands/commands.ts` and `ui/src/hooks/useSlashCommands.ts`) or commands will be swallowed client-side.
 
 ## [2026-02-15 23:06:35 CST] - US-001
 - Implemented persona folder convention under `user_context/personas/<slug>/SOUL.md` with required frontmatter fields (Name, Description, Provider) and free-text body support.
@@ -43,4 +44,25 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Patterns discovered: local conversational command flows can be implemented safely by encoding compact JSON state in hidden assistant comments and parsing the latest assistant marker each turn.
   - Gotchas encountered: `user_context_store.set_user_context_path(...)` must be set before provider-store operations in standalone scripts/tests.
   - Useful context: routing local persona flow before provider credential checks guarantees the creation wizard remains available offline.
+---
+## [2026-02-15 23:39:41 CST] - US-003
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented backend `/persona <name>` switching in `slash_commands.py`: resolves persona by slug or frontmatter name, validates persona/provider configuration, sets `preferences.active_persona`, activates the persona's provider, and reloads runtime provider config.
+- Preserved existing local multi-turn `/persona create` flow while unifying persona handling through a single backend handler path in chat routing.
+- Updated frontend slash command registry and backend-forwarding allowlist so `/persona` is sent to backend (with autocomplete/help support) instead of being consumed as unknown local command.
+- Synced agent/project docs with the new slash capability and added reusable command-sync guidance in `AGENTS.md`.
+- Files changed
+  - `slash_commands.py`
+  - `__init__.py`
+  - `ui/src/hooks/useSlashCommands.ts`
+  - `ui/src/slash-commands/commands.ts`
+  - `AGENTS.md`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: backend slash commands require matching frontend command declaration plus forwarding allowlist to ensure chat submit sends the command upstream.
+  - Gotchas encountered: full-repo frontend lint is currently red due unrelated baseline formatting/parsing issues; use targeted lint on touched files to validate story changes.
+  - Useful context: automated browser verification via the requested `dev-browser` skill is currently unavailable in this environment, so verification was done with backend functional checks and frontend command-path validation.
 ---

@@ -245,13 +245,137 @@ def _write_persona_soul(
         soul_file.write(content)
 
 
-def handle_persona_create_conversation(
+def _parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
+    """Parse simple YAML frontmatter + markdown body from SOUL.md."""
+    frontmatter: dict[str, str] = {}
+    body = content.strip()
+    if not body.startswith("---"):
+        return (frontmatter, body)
+
+    rest = body[3:].lstrip("\n")
+    end = rest.find("\n---")
+    if end < 0:
+        return ({}, "")
+
+    frontmatter_block = rest[:end].strip()
+    body = rest[end + 4:].strip()
+    for line in frontmatter_block.splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        frontmatter[key.strip().lower()] = value.strip().strip("'\"").strip()
+    return (frontmatter, body)
+
+
+def _load_persona_by_slug(slug: str) -> dict[str, str] | None:
+    """Load persona metadata from user_context/personas/<slug>/SOUL.md."""
+    if not _is_valid_persona_slug(slug):
+        return None
+    root = user_context_store.ensure_user_context_dirs()
+    soul_path = os.path.join(root, "personas", slug, "SOUL.md")
+    if not os.path.isfile(soul_path):
+        return None
+    try:
+        with open(soul_path, "r", encoding="utf-8") as soul_file:
+            raw = soul_file.read()
+    except OSError:
+        return None
+    frontmatter, body = _parse_frontmatter(raw)
+    name = (frontmatter.get("name") or "").strip()
+    description = (frontmatter.get("description") or "").strip()
+    provider = (frontmatter.get("provider") or "").strip()
+    if not name or not description or not provider or not body.strip():
+        return None
+    return {
+        "slug": slug,
+        "name": name,
+        "description": description,
+        "provider": provider,
+    }
+
+
+def _list_personas() -> list[dict[str, str]]:
+    """List valid persona records from user_context/personas/."""
+    personas: list[dict[str, str]] = []
+    root = user_context_store.ensure_user_context_dirs()
+    personas_dir = os.path.join(root, "personas")
+    if not os.path.isdir(personas_dir):
+        return personas
+    for name in sorted(os.listdir(personas_dir)):
+        slug = (name or "").strip().lower()
+        persona = _load_persona_by_slug(slug)
+        if persona:
+            personas.append(persona)
+    return personas
+
+
+def _resolve_persona_by_name_or_slug(token: str) -> dict[str, str] | None:
+    """Resolve persona by exact slug or case-insensitive Name frontmatter."""
+    needle = (token or "").strip()
+    if not needle:
+        return None
+    slug_candidate = _slugify_persona_name(needle)
+    if _is_valid_persona_slug(slug_candidate):
+        exact = _load_persona_by_slug(slug_candidate)
+        if exact:
+            return exact
+    needle_lower = needle.lower()
+    for persona in _list_personas():
+        if needle_lower == persona["name"].strip().lower():
+            return persona
+    return None
+
+
+def _handle_persona_switch(command_text: str) -> dict:
+    """Handle `/persona <name-or-slug>` switch command."""
+    parts = command_text.strip().split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip():
+        return {"text": "Usage: `/persona <name>` (or `/persona create`)."}
+
+    token = parts[1].strip()
+    lowered_token = token.lower()
+    if lowered_token == "create":
+        return {"text": "Run `/persona create` and answer the next prompts to create a persona."}
+
+    persona = _resolve_persona_by_name_or_slug(token)
+    if not persona:
+        available = _list_personas()
+        if not available:
+            return {"text": "Persona not found and no personas are available yet. Run `/persona create` first."}
+        options = ", ".join(
+            f"`{record['slug']}`" for record in available
+        )
+        return {"text": f"Persona `{token}` not found. Available personas: {options}"}
+
+    provider_name = persona["provider"]
+    provider = provider_store.get_provider_by_name(provider_name)
+    if not provider:
+        return {"text": f'Persona `{persona["slug"]}` references provider `{provider_name}`, but that provider is not configured.'}
+
+    if not provider_store.set_active_provider(provider_name):
+        return {"text": f"Could not activate provider `{provider_name}` for persona `{persona['slug']}`."}
+
+    user_context_store.add_or_update_preference("active_persona", persona["slug"])
+    provider_manager.reload_provider()
+    return {
+        "text": (
+            f'✓ Active persona set to **{persona["name"]}** (`{persona["slug"]}`).\n\n'
+            f'Provider switched to `{provider_name}`. '
+            "New messages will use this persona and provider."
+        )
+    }
+
+
+def handle_persona_command(
     *,
     command_text: str,
     openai_messages: list[dict],
 ) -> dict | None:
     """
-    Handle local multi-turn persona creation flow.
+    Handle local persona commands:
+    - `/persona create` conversational flow
+    - `/persona <name>` switch flow
+    - plain text persona-create triggers ("create persona", etc.)
 
     Returns {"text": "..."} for local response, or None when not applicable.
     """
@@ -259,8 +383,14 @@ def handle_persona_create_conversation(
     lower_user_text = user_text.lower()
     flow_state = _extract_last_persona_flow_state(openai_messages)
 
-    if flow_state is None and not _looks_like_persona_create_request(user_text):
+    is_persona_command = lower_user_text.startswith("/persona")
+    wants_create_flow = _looks_like_persona_create_request(user_text)
+    if flow_state is None and not (wants_create_flow or is_persona_command):
         return None
+
+    # Single-turn persona switching (outside create flow).
+    if flow_state is None and is_persona_command and not lower_user_text.startswith("/persona create"):
+        return _handle_persona_switch(user_text)
 
     if lower_user_text in {"/cancel", "cancel"}:
         return {"text": "Persona creation cancelled."}

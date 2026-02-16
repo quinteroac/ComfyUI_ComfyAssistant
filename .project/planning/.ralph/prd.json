@@ -47,7 +47,7 @@
         "Verify in browser using dev-browser skill that the command is reflected in the UI (selector or active persona indicator, if applicable)"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

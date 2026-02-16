@@ -68,7 +68,7 @@ from sse_streaming import (
 from slash_commands import (
     _handle_provider_command,
     _inject_skill_if_slash_skill,
-    handle_persona_create_conversation,
+    handle_persona_command,
 )
 from chat_utilities import (
     _get_last_openai_user_text,
@@ -439,7 +439,7 @@ def _select_provider_and_stream(
 
         return stream_local_command()
 
-    persona_flow_result = handle_persona_create_conversation(
+    persona_flow_result = handle_persona_command(
         command_text=raw_last_user,
         openai_messages=openai_messages,
     )
@@ -498,6 +498,7 @@ def _select_provider_and_stream(
     if raw_last_user.startswith("/") and not (
         raw_last_user_lower.startswith("/skill")
         or raw_last_user_lower.startswith("/provider")
+        or raw_last_user_lower.startswith("/persona")
     ):
         async def stream_empty():
             yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")
