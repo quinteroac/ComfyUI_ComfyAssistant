@@ -1,0 +1,83 @@
+{
+  "project": "ComfyUI_ComfyAssistant",
+  "branchName": "ralph/agent-personas",
+  "description": "Agent Personas System - User-defined personality schemas tied to provider/model, with SOUL.md storage, creation flow, /persona switch and delete",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Folder structure and SOUL.md per persona",
+      "description": "As a developer, I need each persona to have its own folder and a SOUL.md file with YAML frontmatter and body text so the system can load and apply the personality.",
+      "acceptanceCriteria": [
+        "Each persona lives under user_context/personas/[persona_name]/ (name in kebab-case or valid slug)",
+        "There is exactly one SOUL.md file per persona in that folder",
+        "SOUL.md has YAML frontmatter with: Name, Description, Provider (a previously configured provider)",
+        "After the frontmatter, the file body describes the personality in free text",
+        "Typecheck/lint passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "System skill to create personas (conversational assistant)",
+      "description": "As a user, I want an assistant that guides me with questions to create a persona, so I don't have to edit files by hand.",
+      "acceptanceCriteria": [
+        "There is an invocable system skill (e.g. create persona / I want to create a persona) that starts the flow",
+        "The assistant asks: What will be the name of the persona? and waits for a response",
+        "The assistant asks: Can you describe the personality? (behavior, background, specialty…) and waits for a response",
+        "The assistant shows a list of configured providers (via providers list or equivalent) and asks which provider will represent the persona",
+        "After the user chooses a provider, the assistant creates the folder and SOUL.md in the defined format and confirms creation to the user",
+        "Typecheck/lint passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Slash command to switch persona in conversation",
+      "description": "As a user, I want to use /persona [persona_name] during a conversation to switch to that persona, keeping the history.",
+      "acceptanceCriteria": [
+        "The command /persona [persona_name] is registered and recognized by the system",
+        "When executed, the agent switches to the provider/model and SOUL.md of the indicated persona",
+        "The persona has access to the current conversation history (if any)",
+        "If [persona_name] does not exist, a clear error message is shown (and optionally the list of available personas)",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill that the command is reflected in the UI (selector or active persona indicator, if applicable)"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Command to delete a persona",
+      "description": "As a user, I want to delete a persona with /persona del [persona_name] to remove its definition from the system.",
+      "acceptanceCriteria": [
+        "The command /persona del [persona_name] is registered and recognized",
+        "When executed, the folder user_context/personas/[persona_name]/ and its contents (including SOUL.md) are removed",
+        "If that persona was in use, the system falls back to a default persona or indicates that another must be chosen",
+        "If [persona_name] does not exist, a clear error message is shown",
+        "Typecheck/lint passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "List available personas (optional for MVP)",
+      "description": "As a user, I want to see which personas I have defined so I can choose one or check names before using /persona or /persona del.",
+      "acceptanceCriteria": [
+        "There is a way to list personas (e.g. /persona with no arguments, or list personas, per design)",
+        "The list shows at least each persona's name (and optionally a short description)",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill if the list is shown in the UI"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

@@ -1,15 +1,36 @@
 # User context workspace (Phase 1)
 
-This folder is the assistant’s **writable workspace**. The backend creates it on first use (onboarding or first chat). Do not commit `context.db`, `SOUL.md`, `goals.md`, or the contents of `skills/` (they are in `.gitignore`).
+This folder is the assistant’s **writable workspace**. The backend creates it on first use (onboarding or first chat). Do not commit personal local data in `context.db`, `goals.md`, `personas/`, or the contents of `skills/` (they are in `.gitignore`).
 
 ## Layout
 
 | Path | Purpose |
 |------|---------|
 | `context.db` | SQLite: user rules, preferences, onboarding flag |
-| `SOUL.md` | Personality / tone (from onboarding or manual edit) |
+| `SOUL.md` | Legacy fallback personality file (kept for backward compatibility) |
 | `goals.md` | User goals and experience level |
+| `personas/<persona-slug>/SOUL.md` | Persona-specific personality file with frontmatter (`Name`, `Description`, `Provider`) and free-text body |
 | `skills/<skill-name>/SKILL.md` | One directory per user skill (Agent Skills standard) |
+
+## Personas format
+
+Personas use one folder per persona:
+
+- `user_context/personas/<persona-slug>/SOUL.md`
+
+`SOUL.md` must contain YAML frontmatter plus body text:
+
+```markdown
+---
+Name: Persona display name
+Description: What this persona is for
+Provider: configured-provider-name
+---
+
+Free-text personality instructions.
+```
+
+The backend loads the persona file when `preferences.active_persona` is set in `context.db` and the `Provider` matches a configured provider.
 
 ## Skills format (Agent Skills standard)
 

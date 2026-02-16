@@ -27,6 +27,7 @@ user_context/providers.db
 user_context/*.db
 user_context/SOUL.md
 user_context/goals.md
+user_context/personas/*/
 user_context/skills/*.md
 user_context/skills/*/
 user_context/environment/

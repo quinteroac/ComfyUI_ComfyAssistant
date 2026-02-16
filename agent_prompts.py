@@ -78,6 +78,7 @@ def _build_user_context_payload(
     goals: str,
     rules_limit: int,
     narrative_max_chars: int,
+    persona: dict | None = None,
     user_skills_index: str = "",
 ) -> str:
     """Assemble the user context payload from rules, narrative, and optional skills index."""
@@ -100,6 +101,14 @@ def _build_user_context_payload(
     fitted_soul, fitted_goals = _fit_narrative(soul, goals, narrative_max_chars)
     if fitted_soul or fitted_goals:
         block = []
+        if persona:
+            persona_name = (persona.get("name") or persona.get("slug") or "").strip()
+            persona_slug = (persona.get("slug") or "").strip()
+            persona_provider = (persona.get("provider") or "").strip()
+            if persona_name and persona_provider:
+                block.append(
+                    f"**Active persona**: {persona_name} (`{persona_slug}`) via provider `{persona_provider}`"
+                )
         if fitted_soul:
             block.append("**Personality / tone**: " + fitted_soul)
         if fitted_goals:
@@ -153,6 +162,7 @@ def format_user_context(
     rules = user_context.get("rules") or []
     soul = (user_context.get("soul_text") or "").strip()
     goals = (user_context.get("goals_text") or "").strip()
+    persona = user_context.get("persona")
 
     if metrics is not None:
         metrics["user_context_rules_total"] = len(rules)
@@ -162,7 +172,13 @@ def format_user_context(
     narrative_budget = max_narrative_chars
     skills_index = _format_user_skills_index(user_skills or [])
     payload = _build_user_context_payload(
-        rules, soul, goals, rules_limit, narrative_budget, user_skills_index=skills_index
+        rules,
+        soul,
+        goals,
+        rules_limit,
+        narrative_budget,
+        persona=persona,
+        user_skills_index=skills_index,
     )
 
     if metrics is not None:
@@ -182,7 +198,13 @@ def format_user_context(
         while rules_limit > 1 and len(payload) > max_chars:
             rules_limit = max(1, rules_limit // 2)
             payload = _build_user_context_payload(
-                rules, soul, goals, rules_limit, narrative_budget, user_skills_index=skills_index
+                rules,
+                soul,
+                goals,
+                rules_limit,
+                narrative_budget,
+                persona=persona,
+                user_skills_index=skills_index,
             )
             truncated = True
 
@@ -190,7 +212,13 @@ def format_user_context(
         # Phase 2: halve narrative budget
         narrative_budget = narrative_budget // 2
         payload = _build_user_context_payload(
-            rules, soul, goals, rules_limit, narrative_budget, user_skills_index=skills_index
+            rules,
+            soul,
+            goals,
+            rules_limit,
+            narrative_budget,
+            persona=persona,
+            user_skills_index=skills_index,
         )
         truncated = True
 
@@ -274,15 +302,22 @@ def get_system_message(
     }
 
 
+# Max chars for user context when included in continuation (persona/SOUL must persist across turns)
+CONTINUATION_USER_CONTEXT_MAX_CHARS = 2500
+
+
 def get_system_message_continuation(
     user_skills: list[dict] | None = None,
     environment_summary: str = "",
+    user_context: dict | None = None,
 ) -> dict:
     """
     Returns a system message for continuation turns.
 
     Includes the user skills index and environment summary to ensure the agent
     remains aware of available skills and models even in long conversations.
+    When user_context is provided, also includes persona/SOUL and goals so the
+    active personality is applied on every turn (e.g. after /persona switch).
     """
     parts = [SYSTEM_CONTINUATION_CONTENT, WORKFLOW_GUARDRAILS_REMINDER]
 
@@ -292,6 +327,16 @@ def get_system_message_continuation(
 
     if environment_summary:
         parts.append("## Installed environment\n\n" + environment_summary)
+
+    if user_context:
+        formatted = format_user_context(
+            user_context,
+            max_chars=CONTINUATION_USER_CONTEXT_MAX_CHARS,
+            max_narrative_chars=min(800, DEFAULT_NARRATIVE_MAX_CHARS),
+            user_skills=None,
+        )
+        if formatted:
+            parts.append(formatted)
 
     return {
         "role": "system",

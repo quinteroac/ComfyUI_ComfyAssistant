@@ -20,7 +20,7 @@ The Python backend lives at the project root. ComfyUI loads `__init__.py` as a c
 | `provider_streaming.py` | Provider layer: provider-specific streaming generators (OpenAI/Anthropic/CLI adapters) |
 | `cli_providers.py` | Provider layer: CLI binary discovery for claude/codex/gemini providers |
 | `sse_streaming.py` | API layer: AI SDK SSE headers and event serialization helpers |
-| `slash_commands.py` | Features layer: slash command handling (`/provider`, `/skill`) |
+| `slash_commands.py` | Features layer: slash command handling (`/provider`, `/skill`, `/persona` list, `/persona <name>` switch, `/persona create` conversational flow, `/persona del <name>` delete) |
 | `api_handlers.py` | Environment, docs, and skills API handlers (factory pattern via `create_handlers`) |
 | `agent_prompts.py` | `get_system_message()` -- assembles system_context + environment + user_context |
 | `tools_definitions.py` | `TOOLS` list in OpenAI function calling format; `get_tools()`, `get_tool_names()` |
@@ -175,6 +175,14 @@ Two ways: (1) `LLM_REQUEST_DELAY_SECONDS` adds a delay before each LLM call; (2)
 Primary path: configure providers in the wizard (`/provider-settings`) and switch with:
 - `/provider list`
 - `/provider set <name>`
+
+Persona creation path (local, no LLM/provider call required):
+- `/persona <name>` switches `preferences.active_persona` and activates the persona's configured provider
+- `/persona` lists available personas and marks the active one
+- `/persona create` (or plain message `create persona`)
+- backend asks three questions (name, personality description, provider)
+- flow state is stored in assistant message HTML comments (`<!-- local:persona-create {...} -->`) so the next user turn can continue deterministically
+- `/persona del <name>` removes `user_context/personas/<slug>/`; if deleted persona was active, backend clears `preferences.active_persona` and falls back to default SOUL behavior
 
 Fallback path: set `LLM_PROVIDER` in `.env`:
 - `openai`: use `OPENAI_API_KEY` (+ optional `OPENAI_API_BASE_URL`, `OPENAI_MODEL`)

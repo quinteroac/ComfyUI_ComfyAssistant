@@ -45,7 +45,7 @@ export function useSlashCommands() {
     const args = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1).trim()
 
     // Backend-managed commands: send to backend as-is.
-    if (name === 'skill' || name === 'provider') {
+    if (name === 'skill' || name === 'provider' || name === 'persona') {
       return false
     }
 

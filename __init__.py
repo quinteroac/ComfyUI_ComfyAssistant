@@ -66,10 +66,9 @@ from sse_streaming import (
     _stream_ai_sdk_text,
 )
 from slash_commands import (
-    _format_provider_line,
     _handle_provider_command,
     _inject_skill_if_slash_skill,
-    _resolve_skill_by_name_or_slug,
+    handle_persona_command,
 )
 from chat_utilities import (
     _get_last_openai_user_text,
@@ -299,11 +298,17 @@ def _build_system_message_block(openai_messages: list[dict], metrics: dict) -> N
             pass
 
         if has_prior_assistant:
+            # Load user_context so continuation includes persona/SOUL (personality applies every turn)
+            try:
+                user_context = user_context_loader.load_user_context()
+            except Exception:
+                user_context = None
             openai_messages.insert(
                 0,
                 get_system_message_continuation(
                     user_skills=user_skills_list,
                     environment_summary=environment_summary,
+                    user_context=user_context,
                 ),
             )
         else:
@@ -440,6 +445,20 @@ def _select_provider_and_stream(
 
         return stream_local_command()
 
+    persona_flow_result = handle_persona_command(
+        command_text=raw_last_user,
+        openai_messages=openai_messages,
+    )
+    if persona_flow_result is not None:
+        async def stream_local_persona_flow():
+            for chunk in _stream_ai_sdk_text(
+                persona_flow_result.get("text", ""),
+                message_id,
+            ):
+                yield chunk.encode("utf-8")
+
+        return stream_local_persona_flow()
+
     if selected_provider == "claude_code":
         placeholder = (
             f"Chat API is not configured. Install `{claude_code_command}` "
@@ -485,6 +504,7 @@ def _select_provider_and_stream(
     if raw_last_user.startswith("/") and not (
         raw_last_user_lower.startswith("/skill")
         or raw_last_user_lower.startswith("/provider")
+        or raw_last_user_lower.startswith("/persona")
     ):
         async def stream_empty():
             yield _sse_line({"type": "start", "messageId": message_id}).encode("utf-8")

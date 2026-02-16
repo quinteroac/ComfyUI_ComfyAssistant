@@ -1,0 +1,106 @@
+## Codebase Patterns
+- Keep user-context personality loading backward-compatible by resolving active persona first and falling back to legacy `user_context/SOUL.md`.
+- Validate persona provider bindings against `providers.db` before injecting persona instructions into the system prompt.
+- For backend local multi-turn chat flows, persist flow state in hidden assistant HTML comments and recover it from prior assistant messages on the next user turn.
+- Backend-handled slash commands must be kept in sync with frontend slash plumbing (`ui/src/slash-commands/commands.ts` and `ui/src/hooks/useSlashCommands.ts`) or commands will be swallowed client-side.
+- When deleting an active persona, clear `preferences.active_persona` so prompt assembly falls back to default SOUL context safely.
+- For backend resource commands, support both empty-argument listing and explicit `list` alias in the same handler to keep slash command UX predictable.
+
+## [2026-02-15 23:06:35 CST] - US-001
+- Implemented persona folder convention under `user_context/personas/<slug>/SOUL.md` with required frontmatter fields (Name, Description, Provider) and free-text body support.
+- Added backend loading for active persona via `preferences.active_persona`, with slug validation, SOUL frontmatter parsing, provider existence validation, and legacy SOUL fallback.
+- Updated prompt assembly to include active persona metadata and applied documentation updates for persona layout/conventions.
+- Files changed:
+  - `user_context_store.py`
+  - `user_context_loader.py`
+  - `agent_prompts.py`
+  - `.gitignore`
+  - `user_context/README.md`
+  - `user_context/personas/README.md`
+  - `doc/configuration.md`
+  - `doc/dev_docs/context-and-environment.md`
+  - `.agents/project-context.md`
+  - `.agents/skills/system-and-user-context/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Keep persona metadata parsing strict (required frontmatter + body) so later slash commands can rely on consistent files.
+  - `.agents/` docs may require direct shell writes when patch tooling blocks hidden-path edits.
+  - Repository-wide frontend lint currently has unrelated baseline issues; story-scoped Python checks passed.
+---
+## [2026-02-15 23:28:54 CST] - US-002
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented a local conversational persona-creation flow triggered by `/persona create` (and plain `create persona` variants), with deterministic multi-turn prompts for name, personality description, and provider selection.
+- Added provider-aware persona file creation that writes `user_context/personas/<slug>/SOUL.md` with required YAML frontmatter (`Name`, `Description`, `Provider`) plus body text from the personality description.
+- Wired persona creation into chat routing before provider dispatch so the flow runs even when no LLM credentials are available.
+- Updated agent documentation to capture the new slash-command capability and local flow-state pattern.
+- Files changed
+  - `slash_commands.py`
+  - `__init__.py`
+  - `AGENTS.md`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: local conversational command flows can be implemented safely by encoding compact JSON state in hidden assistant comments and parsing the latest assistant marker each turn.
+  - Gotchas encountered: `user_context_store.set_user_context_path(...)` must be set before provider-store operations in standalone scripts/tests.
+  - Useful context: routing local persona flow before provider credential checks guarantees the creation wizard remains available offline.
+---
+## [2026-02-15 23:39:41 CST] - US-003
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented backend `/persona <name>` switching in `slash_commands.py`: resolves persona by slug or frontmatter name, validates persona/provider configuration, sets `preferences.active_persona`, activates the persona's provider, and reloads runtime provider config.
+- Preserved existing local multi-turn `/persona create` flow while unifying persona handling through a single backend handler path in chat routing.
+- Updated frontend slash command registry and backend-forwarding allowlist so `/persona` is sent to backend (with autocomplete/help support) instead of being consumed as unknown local command.
+- Synced agent/project docs with the new slash capability and added reusable command-sync guidance in `AGENTS.md`.
+- Files changed
+  - `slash_commands.py`
+  - `__init__.py`
+  - `ui/src/hooks/useSlashCommands.ts`
+  - `ui/src/slash-commands/commands.ts`
+  - `AGENTS.md`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: backend slash commands require matching frontend command declaration plus forwarding allowlist to ensure chat submit sends the command upstream.
+  - Gotchas encountered: full-repo frontend lint is currently red due unrelated baseline formatting/parsing issues; use targeted lint on touched files to validate story changes.
+- Useful context: automated browser verification via the requested `dev-browser` skill is currently unavailable in this environment, so verification was done with backend functional checks and frontend command-path validation.
+---
+## [2026-02-15 23:44:41 CST] - US-004
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented `/persona del <name>` in backend slash command handling with clear usage/errors, persona lookup by slug or frontmatter name, and recursive removal of `user_context/personas/<slug>/` including `SOUL.md`.
+- Added active-persona fallback behavior: if the deleted persona was active, `preferences.active_persona` is cleared so runtime prompt loading reverts to default personality context.
+- Updated frontend slash help/usage text and backend architecture docs under `.agents/` to keep command discoverability and agent documentation in sync.
+- Files changed
+  - `slash_commands.py`
+  - `ui/src/slash-commands/commands.ts`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: persona deletion should reuse the same persona resolution path as switching (slug first, then frontmatter name) to keep command UX consistent.
+  - Gotchas encountered: deleting the active persona without clearing `preferences.active_persona` leaves stale state and can silently disable persona loading logic.
+- Useful context: command docs in both `.agents/project-context.md` and `.agents/skills/backend-architecture/SKILL.md` are expected to track backend slash capability changes.
+---
+## [2026-02-15 23:48:19 CST] - US-005
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented persona listing for `/persona` (no args) and `/persona list` in backend slash command handling, including active-persona marking and provider/description output per persona.
+- Kept switch/create/delete behavior unchanged while improving `/persona` default behavior from usage text to discoverable listing output.
+- Updated frontend slash help/usage text so `/persona` is documented as a list command.
+- Added automated backend tests for persona listing empty-state, active-marker rendering, and `list` subcommand behavior.
+- Files changed
+  - `slash_commands.py`
+  - `tests/test_persona_commands.py`
+  - `ui/src/slash-commands/commands.ts`
+  - `.agents/project-context.md`
+  - `.agents/skills/backend-architecture/SKILL.md`
+  - `.project/planning/.ralph/prd.json`
+  - `.project/planning/.ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: for slash command families, treating `<command>` and `<command> list` as equivalent improves discoverability without adding extra routing.
+  - Gotchas encountered: this environment lacks `pytest`; backend tests should be runnable with `python -m unittest discover` to avoid dependency assumptions.
+  - Useful context: frontend slash command forwarding needed no code-path change for this story because `persona` was already in the backend-forwarded allowlist.
+---
