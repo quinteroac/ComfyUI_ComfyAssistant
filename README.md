@@ -5,6 +5,7 @@ An AI assistant for ComfyUI: control and explore your workflows with natural lan
 - Chat with an AI that understands ComfyUI and can add nodes, connect them, run workflows, and search your environment.
 - Works with any OpenAI-compatible API (or Claude Code, Codex, Gemini CLI). Configure your provider in the Assistant tab.
 - You can customize the assistant with user skills, personality, and goals; the extension also ships with base skills for workflows, tools, and research.
+- **Personas** let you switch between named personalities tied to a provider: each persona is a `SOUL.md` in `user_context/personas/<slug>/` (name, description, provider in frontmatter). Use `/persona` to list, `/persona <name>` to switch, `/persona create` to add one, and `/persona del <name>` to remove.
 
 📚 **Documentation:** [User docs](doc/README.md) (installation, configuration, commands, skills, tools) · [Developer docs](doc/dev_docs/README.md) (architecture, backend, frontend, standards).
 
@@ -31,9 +32,10 @@ Full steps and options: [doc/installation.md](doc/installation.md).
 
 Open the **ComfyUI Assistant** tab, set up your LLM provider (wizard on first use or [doc/configuration.md](doc/configuration.md)), and chat. The assistant can modify the workflow, run it, search nodes and models, and use the web and the ComfyUI Registry when needed.
 
-- **Commands:** Slash commands like `/help`, `/clear`, `/new`, `/skill` — see [doc/commands.md](doc/commands.md).
+- **Commands:** Slash commands like `/help`, `/clear`, `/new`, `/skill`, `/persona` — see [doc/commands.md](doc/commands.md).
 - **What the assistant can do:** Graph actions, environment search, user skills, workflow execution, research — see [doc/base-tools.md](doc/base-tools.md).
 - **Customization:** System and user context, skills, SOUL, goals — see [doc/](doc/README.md).
+- **Personas:** Named personalities per provider (`user_context/personas/<slug>/SOUL.md` with YAML frontmatter). `/persona` lists them, `/persona <name>` switches, `/persona create` adds one, `/persona del <name>` removes. See [doc/configuration.md](doc/configuration.md).
 
 ## Recommended providers
 

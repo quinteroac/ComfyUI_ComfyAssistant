@@ -8,6 +8,7 @@ This folder contains user-facing documentation for the ComfyUI Assistant extensi
 |----------|-------------|
 | [Installation](installation.md) | How to install the extension (Manager or manual) and build the frontend |
 | [Configuration](configuration.md) | Provider wizard (required), optional `.env` fallback, first-time onboarding |
+| [Personas](personas.md) | How to use personas: list, switch, create, delete; file format and manual creation |
 | [Slash commands](commands.md) | Local commands for session management and quick actions |
 | [User skills](skills.md) | What skills are, how to add and edit them, and how the assistant uses them |
 | [Base tools](base-tools.md) | Tools the assistant can use (add/remove/connect nodes, configure widgets, prompts) and how to ask in natural language |

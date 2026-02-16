@@ -78,15 +78,9 @@ You can change personality and goals at any time by editing these files in the e
 - `user_context/SOUL.md`
 - `user_context/goals.md`
 
-For persona-specific behavior, use one folder per persona:
+For **personas** (named personalities tied to a provider), see **[Personas](personas.md)** for how to list, switch, create, and delete them, and for the `user_context/personas/<slug>/SOUL.md` file format.
 
-- `user_context/personas/<persona-slug>/SOUL.md`
-
-Persona `SOUL.md` files must use YAML frontmatter with `Name`, `Description`,
-and `Provider`, followed by free-text instructions. The backend reads this file
-when `preferences.active_persona` points to that slug.
-
-The assistant reads them on the next request. You do not need to restart ComfyUI for text edits in `user_context/`.
+The assistant reads context on the next request. You do not need to restart ComfyUI for text edits in `user_context/`.
 
 ---
 
@@ -138,5 +132,6 @@ Check the new `[ComfyAssistant] openai stream ended with 0 output tokens (finish
 
 ## Next steps
 
+- [Personas](personas.md) — Use and create named personalities per provider.
 - [User skills](skills.md) — Add custom instructions the assistant will follow.
 - [Base tools](base-tools.md) — What the assistant can do in the workflow and how to ask.
