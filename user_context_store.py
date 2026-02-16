@@ -27,9 +27,10 @@ def get_user_context_path() -> str:
 
 
 def ensure_user_context_dirs() -> str:
-    """Create user_context/ and user_context/skills/ if missing. Returns user_context path."""
+    """Create base user_context directories if missing. Returns user_context path."""
     root = get_user_context_path()
     os.makedirs(os.path.join(root, "skills"), exist_ok=True)
+    os.makedirs(os.path.join(root, "personas"), exist_ok=True)
     return root
 
 

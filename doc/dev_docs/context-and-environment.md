@@ -47,8 +47,10 @@ The `user_context/` directory is a writable workspace created on first use. It i
 ```
 user_context/
 ├── context.db          # SQLite: rules (name, rule_text), preferences (key/value), meta (onboarding_done)
-├── SOUL.md             # Personality / tone (from onboarding or manual edit)
+├── SOUL.md             # Legacy fallback personality / tone
 ├── goals.md            # User goals and experience level
+├── personas/           # Persona folders
+│   └── <slug>/SOUL.md  # YAML frontmatter: Name, Description, Provider + body
 ├── environment/        # Cached environment scan data
 │   ├── installed_nodes.json
 │   ├── custom_nodes.json
@@ -59,7 +61,9 @@ user_context/
 ```
 
 - **`context.db`** is a SQLite database with three tables: rules, preferences, and meta (tracks onboarding state).
-- **`SOUL.md`** and **`goals.md`** are set during onboarding or can be edited manually.
+- **`personas/<slug>/SOUL.md`** is the primary persona format.
+- **`SOUL.md`** remains a fallback for older installs and onboarding defaults.
+- **`goals.md`** can be edited manually at any time.
 - **`environment/`** holds cached scan results (see "Environment scanning" below).
 - **`skills/`** holds user-created skills in the Agent Skills standard format (YAML frontmatter + markdown body).
 
@@ -83,7 +87,8 @@ user_context/
 - **Rule**: {rule_text}         ← from context.db
 
 ### User context
-**Personality / tone**: {soul}  ← from SOUL.md
+**Active persona**: {name} (`{slug}`) via provider `{provider}`  ← from personas/<slug>/SOUL.md
+**Personality / tone**: {soul}  ← persona SOUL body (or fallback SOUL.md)
 **User goals**: {goals}         ← from goals.md
 
 ### User skills
@@ -96,7 +101,7 @@ The loading functions all live in `user_context_loader.py`:
 | Function | Source | Returns |
 |----------|--------|---------|
 | `load_system_context(path)` | `system_context/*.md` + `skills/*/SKILL.md` | Concatenated text |
-| `load_user_context()` | `context.db` + `SOUL.md` + `goals.md` + `skills/` | Dict with rules, soul_text, goals_text, preferences, skills |
+| `load_user_context()` | `context.db` + `personas/<slug>/SOUL.md` (active persona) + fallback `SOUL.md` + `goals.md` | Dict with rules, soul_text, persona, goals_text, preferences |
 | `load_environment_summary()` | `user_context/environment/summary.json` | Brief text (e.g. "87 packages, 523 node types, 150 models") |
 | `load_skills()` | `user_context/skills/*/SKILL.md` | List of (slug, text, is_full) |
 

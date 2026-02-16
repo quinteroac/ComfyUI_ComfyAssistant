@@ -65,7 +65,7 @@ This information is stored in the **user context** (`user_context/`) and is inje
 1. When you open the Assistant tab for the first time, the app may show an onboarding screen instead of the chat.
 2. You can fill in the fields or click **Skip** to use neutral defaults.
 3. On submit (or skip), the backend writes:
-   - `user_context/SOUL.md` — personality/tone
+   - `user_context/SOUL.md` — legacy fallback personality/tone
    - `user_context/goals.md` — goals and experience
    - A flag so onboarding is not shown again
 
@@ -77,6 +77,14 @@ You can change personality and goals at any time by editing these files in the e
 
 - `user_context/SOUL.md`
 - `user_context/goals.md`
+
+For persona-specific behavior, use one folder per persona:
+
+- `user_context/personas/<persona-slug>/SOUL.md`
+
+Persona `SOUL.md` files must use YAML frontmatter with `Name`, `Description`,
+and `Provider`, followed by free-text instructions. The backend reads this file
+when `preferences.active_persona` points to that slug.
 
 The assistant reads them on the next request. You do not need to restart ComfyUI for text edits in `user_context/`.
 
@@ -90,8 +98,9 @@ The folder `user_context/` is the assistant’s **user workspace**:
 |------|---------|
 | `context.db` | SQLite database: rules, preferences, onboarding flag (created automatically). |
 | `providers.db` | SQLite database: provider configs and active provider selection. |
-| `SOUL.md` | Personality / tone (from onboarding or manual edit). |
+| `SOUL.md` | Legacy fallback personality / tone. |
 | `goals.md` | Your goals and experience level. |
+| `personas/<persona-slug>/SOUL.md` | Persona-specific personality file with frontmatter (`Name`, `Description`, `Provider`) and body text. |
 | `skills/` | User-defined skills — see [User skills](skills.md). |
 
 These files are created on first use (onboarding or first chat). Do not commit `context.db`, `SOUL.md`, `goals.md`, or the contents of `skills/` if they contain personal data; they are in `.gitignore` by default.
