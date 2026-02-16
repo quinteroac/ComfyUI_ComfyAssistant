@@ -16,6 +16,7 @@ An AI assistant for ComfyUI: control and explore your workflows with natural lan
 Open **Console** in the bottom panel, then the **ComfyUI Assistant** tab, and try:
 
 - Ask the assistant to load a workflow for any of the models supported by ComfyUI.
+- Ask the assistant to create a txt2img workflow with detailer and upscaler.
 - Chat about your workflow and ask for suggestions; you can ask the assistant to apply changes directly to the workflow.
 - Ask the assistant to organize your workflow (layout and readability).
 - Brainstorm prompts with the assistant and ask it to run the workflow with that prompt.
@@ -41,9 +42,11 @@ Open the **ComfyUI Assistant** tab, set up your LLM provider (wizard on first us
 
 ## Recommended providers
 
-- **Claude Opus 4** — Best for complex tasks (workflow design, multi-step reasoning). More expensive; use the Anthropic API or Open Router.
+- **Claude Opus 4.6** — Best for complex tasks (workflow design, multi-step reasoning). More expensive; use the Anthropic API or Open Router.
 - **Gemini** — Good for most day-to-day tasks. Use Gemini CLI or the Open Router API.
 - **Grok** — Great for prompt ideas and creative brainstorming. Use the x.ai API or Open Router.
+
+Results can vary depending on which model you choose. **Frontier models** (e.g. latest Claude Opus, GPT-4 class, or top-tier Open Router models) generally give better workflow quality and fewer errors; smaller or older models may need more back-and-forth or manual tweaks.
 
 See [doc/configuration.md](doc/configuration.md) for how to add and switch providers.
 
