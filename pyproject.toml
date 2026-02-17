@@ -2,7 +2,8 @@
 name = "ComfyUI_ComfyAssistant"
 description = "AI Assistant for ComfyUI with agentic capabilities to interact with workflows."
 version = "0.2.0"
-license = {file = "LICENSE"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
@@ -12,6 +13,40 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/Comfy-Org/ComfyUI-React-Extension-Template"
+
+# Setuptools: avoid multiple top-level packages (ui, user_context, system_context)
+[tool.setuptools.packages.find]
+where = ["."]
+include = []
+exclude = ["ui*", "user_context*", "system_context*", "tests*", "scripts*", "doc*", "dist*", "node_modules*", ".agents*", ".project*"]
+
+[tool.setuptools]
+py-modules = [
+    "__init__",
+    "agent_prompts",
+    "api_handlers",
+    "chat_utilities",
+    "cli_providers",
+    "comfyui_examples",
+    "context_management",
+    "conversation_logger",
+    "documentation_resolver",
+    "environment_scanner",
+    "message_transforms",
+    "node_registry",
+    "provider_manager",
+    "provider_streaming",
+    "provider_store",
+    "skill_manager",
+    "slash_commands",
+    "sse_streaming",
+    "temp_file_store",
+    "tools_definitions",
+    "user_context_loader",
+    "user_context_store",
+    "web_content",
+    "web_search",
+]
 
 # Used by Comfy Registry https://comfyregistry.org
 [tool.comfy]

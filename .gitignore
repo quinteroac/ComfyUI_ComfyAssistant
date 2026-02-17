@@ -2,17 +2,40 @@
 .env
 .env.local
 .env.*
+!.env.example
 ui/.env
 ui/.env.local
 
-# Python bytecode cache
+# Python bytecode cache and build artifacts
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.eggs/
+htmlcov/
+.coverage
+.coverage.*
 
-# Frontend build output
+# Frontend build output and tooling
 dist/
+ui/dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# IDE/Editor specific directories (use .agents/ instead) directories (use .agents/ instead)
+# Node dependencies
+node_modules/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE/Editor specific directories (use .agents/ instead)
 .cursor/
 .claude/
 .vscode/
@@ -34,7 +57,3 @@ user_context/environment/
 user_context/environment/installed_nodes.json
 user_context/logs/
 user_context/temp/
-
-# Vite cache
-ui/node_modules/.vite/
-ui/node_modules/.vite/deps_temp*/

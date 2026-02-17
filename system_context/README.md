@@ -54,6 +54,7 @@ description: Base graph tools (addNode, removeNode, connectNodes, getWorkflowInf
 | `skills/15_model_wan22/SKILL.md` | WAN 2.2 workflows from ComfyUI_examples |
 | `skills/16_model_z_image/SKILL.md` | Z-Image workflows from ComfyUI_examples |
 | `skills/17_model_loading_rules/SKILL.md` | Rules for UNETLoader vs CheckpointLoader selection |
+| `skills/18_user_system_planning/SKILL.md` | Planning workflow for complex requests (evaluate, investigate, ask, plan, revise, execute) |
 
 To add a base skill: create a new directory under `skills/` (use a numeric prefix to control order) and add `SKILL.md` with frontmatter and body.
 
