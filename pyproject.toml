@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI_ComfyAssistant"
 description = "AI Assistant for ComfyUI with agentic capabilities to interact with workflows."
-version = "0.2.0"
+version = "1.0.0"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/Comfy-Org/ComfyUI-React-Extension-Template"
+Repository = "https://github.com/quinteroac/ComfyUI_ComfyAssistant"
 
 # Setuptools: avoid multiple top-level packages (ui, user_context, system_context)
 [tool.setuptools.packages.find]
@@ -50,7 +50,7 @@ py-modules = [
 
 # Used by Comfy Registry https://comfyregistry.org
 [tool.comfy]
-PublisherId = "your_publisher_id" # Change this to your actual publisher ID
-DisplayName = "ComfyUI React Extension Template"
+PublisherId = "quinteroac" # Change this to your actual publisher ID
+DisplayName = "ComfyUI AI Assistant"
 Icon = ""
 includes = ["dist/"]
