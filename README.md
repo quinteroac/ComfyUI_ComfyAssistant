@@ -15,11 +15,25 @@ An AI assistant for ComfyUI: control and explore your workflows with natural lan
 
 Open **Console** in the bottom panel, then the **ComfyUI Assistant** tab, and try:
 
-- Ask the assistant to load a workflow for any of the models supported by ComfyUI.
-- Ask the assistant to create a txt2img workflow with detailer and upscaler.
-- Chat about your workflow and ask for suggestions; you can ask the assistant to apply changes directly to the workflow.
-- Ask the assistant to organize your workflow (layout and readability).
-- Brainstorm prompts with the assistant and ask it to run the workflow with that prompt.
+- **Load a workflow** — Ask the assistant to load a workflow for any of the models supported by ComfyUI.
+
+  ![Load workflow](doc/screenshots/load-workflow.png)
+
+- **Create a workflow** — Ask the assistant to create a txt2img workflow with detailer and upscaler.
+
+  ![Create workflow](doc/screenshots/create-workflow.png)
+
+- **Describe and edit** — Chat about your workflow and ask for suggestions; you can ask the assistant to apply changes directly to the workflow.
+
+  ![Describe workflow](doc/screenshots/describe-workflow.png)
+
+- **Organize** — Ask the assistant to organize your workflow (layout and readability).
+
+  ![Organize workflow](doc/screenshots/organize-workflow.png)
+
+- **Prompt maker** — Brainstorm prompts with the assistant and ask it to run the workflow with that prompt.
+
+  ![Prompt maker](doc/screenshots/prompt-maker.png)
 
 ## Installation
 
