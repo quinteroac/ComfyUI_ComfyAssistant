@@ -1,13 +1,36 @@
-- El agente no ve los errores del API de comfyui, ejemplo cuando corre un workflow y la ejecución manda un error el agente sabe del fallo pero no de la causa del fallo, debemos añadir eso ya que muchas veces la causa es algo simple que el mismo agente podria solucionar.
+# Ideas and Improvements
 
-- Soporte para el API de Gemini de Google aún pendiente.
+This document serves as an index of planned improvements and feature ideas for ComfyUI Assistant. Each idea has been documented in a separate file for better organization and tracking.
 
-- Crear un sistema de memoria/preferencias para que el usuario pueda indicarle al agente su preferencia ejemplo: "prefiero que mis workflows tengan preview en lugar de save".
+## Active Ideas
 
-- Poder dar al modelo la capacidad para visualizar media de output o input.
+1. **[Enhanced Error Reporting from ComfyUI API](./enhanced-error-reporting.md)**
+   - Improve error visibility and enable agent self-correction
+   - Status: Planned
 
-- Soporte para web search a través de tavily.
+2. **[Google Gemini API Support](./google-gemini-api-support.md)**
+   - Add Gemini API provider integration
+   - Status: Planned
 
+3. **[Enhanced User Preferences and Memory System](./enhanced-user-preferences.md)**
+   - Extend preferences system with natural language support
+   - Status: Planned
+
+4. **[Media Visualization Capability for LLM](./media-visualization-capability.md)**
+   - Enable vision capabilities for workflow debugging and refinement
+   - Status: Planned
+
+5. **[Tavily Web Search Integration](./tavily-web-search-integration.md)**
+   - Add Tavily API as an additional web search provider
+   - Status: Planned
+
+## Contributing
+
+When adding new ideas:
+1. Create a new markdown file in this directory
+2. Follow the structure: Current State, Proposed Solution, Benefits, Implementation Notes
+3. Add a link to this index file
+4. Include related files and technical considerations
 
 
 
