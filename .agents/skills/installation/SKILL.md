@@ -44,7 +44,7 @@ Extension root = `ComfyUI/custom_nodes/ComfyUI_ComfyAssistant/`.
 **From the extension root** (where `pyproject.toml` lives):
 
 ```bash
-pip install -e .
+pip install -r requirements.txt
 ```
 
 Installs: `openai`, `python-dotenv`, `ddgs`, `beautifulsoup4`. Required for backend (chat, tools, providers). If the user uses a venv for ComfyUI, use that venv’s `pip`.
@@ -81,7 +81,7 @@ Restart so ComfyUI loads the new node and the built assets.
 
 | Symptom | Likely cause | Action |
 |--------|----------------|--------|
-| "Module not found" (Python) | Python deps not installed | From extension root: `pip install -e .` (use ComfyUI’s venv if applicable) |
+| "Module not found" (Python) | Python deps not installed | From extension root: `pip install -r requirements.txt` (use ComfyUI’s venv if applicable) |
 | No Assistant tab | Extension not in `custom_nodes` or frontend not built | Confirm path `custom_nodes/ComfyUI_ComfyAssistant`, run `cd ui && npm run build`, restart ComfyUI |
 | Tab empty or JS errors | Build missing or stale | `cd ui && npm install && npm run build`, restart ComfyUI |
 | Assistant does not answer | No provider configured | User must set up a provider in the Assistant tab (or `.env`); see `doc/configuration.md` |

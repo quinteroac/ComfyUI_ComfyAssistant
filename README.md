@@ -38,7 +38,7 @@ Open **Console** in the bottom panel, then the **ComfyUI Assistant** tab, and tr
 ## Installation
 
 1. Clone this repo into ComfyUI’s `custom_nodes` folder.
-2. Install Python dependencies: `pip install -e .` (from the extension root).
+2. Install Python dependencies: `pip install -r requirements.txt` (from the extension root).
 3. Build the frontend: `cd ui && npm install && npm run build && cd ..`
 4. Restart ComfyUI.
 

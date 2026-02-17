@@ -30,7 +30,7 @@ Replace the clone URL with the actual repository URL if different.
 From the extension root (where `pyproject.toml` is):
 
 ```bash
-pip install -e .
+pip install -r requirements.txt
 ```
 
 This installs the backend dependencies (`openai`, `python-dotenv`, `ddgs`, `beautifulsoup4`). Without this step, the assistant backend may fail with "Module not found" when handling chat or tools.
@@ -69,7 +69,7 @@ You can have **Claude**, **Codex**, **Cursor**, or another AI agent perform the 
    - *“Follow doc/installation.md and run the installation steps for me”*
 
 3. **Let the agent run the steps**  
-   The agent will run: clone (if needed), `pip install -e .`, `cd ui && npm install && npm run build`, and remind you to restart ComfyUI. If you use a Python venv for ComfyUI, say so so it uses the same `pip`.
+   The agent will run: clone (if needed), `pip install -r requirements.txt`, `cd ui && npm install && npm run build`, and remind you to restart ComfyUI. If you use a Python venv for ComfyUI, say so so it uses the same `pip`.
 
 4. **If something fails**  
    Ask the agent to fix it and point it again at the skill or at this guide; the skill includes a troubleshooting table (e.g. “Module not found”, missing tab, empty tab).
@@ -103,7 +103,7 @@ With `watch` running, source changes are rebuilt automatically. Refresh the brow
 |--------|--------------|
 | No Assistant tab in bottom panel | Ensure the extension is in `custom_nodes/ComfyUI_ComfyAssistant` and that you ran `npm run build` inside `ui/`. Restart ComfyUI. |
 | Tab is empty or shows errors | Check the browser console (F12). Re-run `cd ui && npm run build` and restart ComfyUI. |
-| "Module not found" (Python) | From the extension root run `pip install -e .` (use ComfyUI’s venv if you use one). |
+| "Module not found" (Python) | From the extension root run `pip install -r requirements.txt` (use ComfyUI’s venv if you use one). |
 | "Module not found" or build errors (frontend) | Run `cd ui && npm install` again and then `npm run build`. |
 | Assistant does not answer | Configure a provider via the **Provider Wizard** in the Assistant tab (or `/provider-settings`). Optional: use `.env` fallback — see [Configuration](configuration.md). |
 
